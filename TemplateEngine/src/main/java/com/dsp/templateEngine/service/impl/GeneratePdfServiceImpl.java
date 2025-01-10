@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.service.impl;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import com.itextpdf.commons.utils.Base64;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
+import com.itextpdf.io.source.ByteArrayOutputStream;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -465,38 +467,39 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
-		String outputDirectory = "C:/Test"; // Change this to your desired directory
-		File outputDir = new File(outputDirectory);
+		// Create a temporary file for the final PDF
+		// To adapt your convertHtmlToPdf function to return a File object without
+		// writing it to the local file system, you can use a TempFile approach. Java
+		// provides a mechanism to create temporary files that are automatically deleted
+		// when the program exits, which is ideal for your use case.
+		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-		// Ensure the output directory exists
-		if (!outputDir.exists()) {
-			outputDir.mkdirs();
+		// Generate the initial PDF in memory
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream);
+
+		// Add page numbering to the in-memory PDF
+		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), startPageNumber);
+
+		// Write the numbered PDF bytes to the temporary file
+		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+			fileOutputStream.write(numberedPdfBytes);
 		}
 
-		// File paths for generated PDF and PDF with page numbers
-		String pdfFilePath = outputDirectory + "/" + fileName + ".pdf";
-		String finalPdfFilePath = outputDirectory + "/" + fileName + "_paged.pdf";
-
-		// Generate the initial PDF from HTML
-		try (FileOutputStream fileOutputStream = new FileOutputStream(pdfFilePath)) {
-			HtmlConverter.convertToPdf(htmlContent, fileOutputStream);
-			System.out.println("PDF created successfully at: " + pdfFilePath);
-		}
-
-		// Add page numbering
-		addPageNumbersToPdf(pdfFilePath, finalPdfFilePath, startPageNumber);
-
-		// Return the final PDF file
-		return new File(finalPdfFilePath);
+		// Return the temporary file
+		return tempPdfFile;
 	}
 
-	private void addPageNumbersToPdf(String src, String dest, Integer startPageNumber) throws IOException {
-		// Default the starting page number to 1 if not provided
-		int startingPage = startPageNumber;
+	private byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
+		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
 
-		// Open the source PDF
-		PdfReader reader = new PdfReader(src);
-		PdfWriter writer = new PdfWriter(dest);
+		// Input and output streams for in-memory processing
+		ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfBytes);
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+
+		// Open the source PDF from the input stream
+		PdfReader reader = new PdfReader(pdfInputStream);
+		PdfWriter writer = new PdfWriter(pdfOutputStream);
 		PdfDocument pdfDoc = new PdfDocument(reader, writer);
 
 		// Create a Document object
@@ -505,7 +508,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Add page numbers at the center of each page's bottom margin
 		for (int i = 1; i <= totalPages; i++) {
-			// Add the page number to the current page
 			document.showTextAligned(new Paragraph(String.valueOf(startingPage + i - 1)) // Page number with offset
 					.setFontSize(12) // Set font size for better visibility
 					.setBold(), // Make it bold if needed
@@ -520,7 +522,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Close the document
 		document.close();
-		System.out.println("Page numbers added successfully. Final PDF at: " + dest);
+
+		// Return the final PDF as a byte array
+		return pdfOutputStream.toByteArray();
 	}
 
 }
