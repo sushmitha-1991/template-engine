@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.controller;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -34,4 +35,27 @@ public class GeneratedPdfController {
 			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
+
+	@PostMapping("/publish-document")
+	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String html,
+			@RequestParam String fileName, @RequestParam Long appInstId,
+			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
+		// Call the service and get the response
+		ResponseEntity<Map<String, Object>> serviceResponse = pdfService.publishDocument(html, fileName, appInstId,
+				startPageNumber);
+
+		// Extract the body and unwrap the nested "data" if it exists
+		Map<String, Object> serviceBody = serviceResponse.getBody();
+		Map<String, Object> unwrappedData = serviceBody != null && serviceBody.containsKey("data")
+				? (Map<String, Object>) serviceBody.get("data")
+				: null;
+
+		// Create the response object with the unwrapped data
+		GenericResponse<Map<String, Object>> response = new GenericResponse<>(serviceResponse.getStatusCode().value(),
+				true, "Document Published Successfully.", unwrappedData // Use the unwrapped data here
+		);
+
+		return new ResponseEntity<>(response, serviceResponse.getStatusCode());
+	}
+
 }
