@@ -29,6 +29,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -346,13 +347,26 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Transactional
 	@Override
-	public ResponseEntity<Map<String, Object>> publishDocument(String html, String fileName, Long appInstId,
-			Integer startPageNumber) {
+	public ResponseEntity<Map<String, Object>> publishDocument(String html, Long appInstId, Integer startPageNumber) {
 		try {
 
-			File pdfFile = convertHtmlToPdf(html, fileName, startPageNumber);
+			// Step 1: Fetch application details using the native query
+			ApplicationInstanceProjection appDetails = generatedPdfModelRepository
+					.findApplicationDetailsById(appInstId);
 
-			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, "/okm:root/", "231", appInstId.toString(),
+			if (appDetails == null) {
+				throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
+			}
+
+			String appNo = appDetails.getAppNo() + ".pdf";
+			String abbr = appDetails.getAbbr();
+			String okmPath = "/okm:root/" + abbr;
+
+			log.debug("Fetched application details - AppNo: {}, Abbr: {}", appNo, abbr);
+
+			File pdfFile = convertHtmlToPdf(html, appNo, startPageNumber);
+
+			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 					"ApplicationInstance", "1");
 
 			ObjectMapper objectMapper = new ObjectMapper();
@@ -371,7 +385,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
-			System.out.println("### documentUuid - " + documentUuid);
 			log.debug("Extracted documentUuid: {}", documentUuid);
 
 			generatedPdfModelRepository.updateApplicationInstanceStatusToPublished(appInstId, documentUuid);

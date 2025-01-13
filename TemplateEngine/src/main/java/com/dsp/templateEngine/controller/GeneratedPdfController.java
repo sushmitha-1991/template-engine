@@ -38,10 +38,9 @@ public class GeneratedPdfController {
 
 	@PostMapping("/publish-document")
 	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String html,
-			@RequestParam String fileName, @RequestParam Long appInstId,
-			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
+			@RequestParam Long appInstId, @RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
 		// Call the service and get the response
-		ResponseEntity<Map<String, Object>> serviceResponse = pdfService.publishDocument(html, fileName, appInstId,
+		ResponseEntity<Map<String, Object>> serviceResponse = pdfService.publishDocument(html, appInstId,
 				startPageNumber);
 
 		// Extract the body and unwrap the nested "data" if it exists

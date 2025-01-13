@@ -28,7 +28,6 @@ public interface GeneratePdfService {
 	 * @param fileName
 	 * @return
 	 */
-	ResponseEntity<Map<String, Object>> publishDocument(String html, String fileName, Long appInstId,
-			Integer startPageNumber);
+	ResponseEntity<Map<String, Object>> publishDocument(String html, Long appInstId, Integer startPageNumber);
 
 }

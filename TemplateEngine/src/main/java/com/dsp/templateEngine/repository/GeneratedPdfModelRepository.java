@@ -6,7 +6,9 @@ import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 
 import jakarta.transaction.Transactional;
@@ -25,4 +27,13 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 	@Modifying
 	@Query(value = "UPDATE master.application_instance SET current_status = 'Published', is_published = true, published_document_uuid = :documentUuid WHERE id = :appInstId", nativeQuery = true)
 	void updateApplicationInstanceStatusToPublished(Long appInstId, UUID documentUuid);
+
+	@Query(value = """
+			    SELECT ai.application_no AS appNo,
+			           a.abbr AS abbr
+			    FROM master.application_instance ai
+			    LEFT JOIN master.applications a ON a.id = ai.application_id
+			    WHERE ai.id = :appInstId
+			""", nativeQuery = true)
+	ApplicationInstanceProjection findApplicationDetailsById(@Param("appInstId") Long appInstId);
 }
