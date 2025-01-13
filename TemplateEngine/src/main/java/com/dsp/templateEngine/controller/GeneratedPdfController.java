@@ -55,11 +55,21 @@ public class GeneratedPdfController {
 			ResponseEntity<Map<String, Object>> responseEn = pdfService.publishDocument(htmlContentEn, appInstId,
 					startPageNumber, "EN");
 
+			// Check if English content is already published
+			if (responseEn.getStatusCode() == HttpStatus.CONFLICT) {
+				return handleConflict(responseEn);
+			}
+
 			ResponseEntity<Map<String, Object>> responseHi = null;
 			if (htmlContentHi != null && !htmlContentHi.isEmpty()) {
 				log.debug("Processing Hindi content for appInstId: {}", appInstId);
 				// Process Hindi HTML content
 				responseHi = pdfService.publishDocument(htmlContentHi, appInstId, startPageNumber, "HI");
+
+				// Check if Hindi content is already published
+				if (responseHi.getStatusCode() == HttpStatus.CONFLICT) {
+					return handleConflict(responseHi);
+				}
 			}
 
 			// Combine responses into a single response map
@@ -81,6 +91,14 @@ public class GeneratedPdfController {
 					"Failed to publish documents. Error: " + e.getMessage(), null);
 			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	private ResponseEntity<GenericResponse<Map<String, Object>>> handleConflict(
+			ResponseEntity<Map<String, Object>> conflictResponse) {
+		Map<String, Object> responseBody = conflictResponse.getBody();
+		GenericResponse<Map<String, Object>> conflictGenericResponse = new GenericResponse<>(HttpStatus.OK.value(),
+				false, (responseBody != null) ? (String) responseBody.get("message") : "Conflict occurred.", null);
+		return new ResponseEntity<>(conflictGenericResponse, HttpStatus.OK);
 	}
 
 }
