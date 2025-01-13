@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.controller;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
 
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
 @RestController
 @RequestMapping("/template")
 public class GeneratedPdfController {
@@ -24,12 +28,15 @@ public class GeneratedPdfController {
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
 			@RequestParam String fileName) {
+		log.info("Received request to generate PDF for file: {}", fileName);
 		try {
 			String pdfPath = pdfService.generatePdfFromHtml(html, fileName);
+			log.info("PDF generated successfully for file: {}", fileName);
 			GenericResponse<String> response = new GenericResponse<>(HttpStatus.OK.value(), true,
 					"PDF generated successfully.", pdfPath);
 			return new ResponseEntity<>(response, HttpStatus.OK);
 		} catch (IOException e) {
+			log.error("Error generating PDF for file: {}. Error: {}", fileName, e.getMessage());
 			GenericResponse<String> response = new GenericResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
 					"PDF generation failed.", null);
 			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -37,30 +44,43 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/publish-document")
-	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String html,
-			@RequestParam Long appInstId, @RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
-		// Call the service and get the response
-		ResponseEntity<Map<String, Object>> serviceResponse = pdfService.publishDocument(html, appInstId,
-				startPageNumber);
+	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String htmlContentEn,
+			@RequestParam(required = false) String htmlContentHi, @RequestParam Long appInstId,
+			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
+		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
 
-		// Extract the body and unwrap the nested "data" if it exists
-		Map<String, Object> serviceBody = serviceResponse.getBody();
-		Map<String, Object> unwrappedData = serviceBody != null && serviceBody.containsKey("data")
-				? (Map<String, Object>) serviceBody.get("data")
-				: null;
+		try {
+			// Process English HTML content
+			log.debug("Processing English content for appInstId: {}", appInstId);
+			ResponseEntity<Map<String, Object>> responseEn = pdfService.publishDocument(htmlContentEn, appInstId,
+					startPageNumber, "EN");
 
-		// Determine success based on the status code
-		boolean success = serviceResponse.getStatusCode().is2xxSuccessful();
+			ResponseEntity<Map<String, Object>> responseHi = null;
+			if (htmlContentHi != null && !htmlContentHi.isEmpty()) {
+				log.debug("Processing Hindi content for appInstId: {}", appInstId);
+				// Process Hindi HTML content
+				responseHi = pdfService.publishDocument(htmlContentHi, appInstId, startPageNumber, "HI");
+			}
 
-		// Create the response object with the unwrapped data
-		GenericResponse<Map<String, Object>> response = new GenericResponse<>(serviceResponse.getStatusCode().value(),
-				success,
-				serviceBody != null
-						? serviceBody.getOrDefault("message", "Operation completed successfully.").toString()
-						: "",
-				unwrappedData);
+			// Combine responses into a single response map
+			Map<String, Object> combinedData = new HashMap<>();
+			combinedData.put("English", responseEn.getBody() != null ? responseEn.getBody().get("data") : null);
+			combinedData.put("Hindi",
+					responseHi != null && responseHi.getBody() != null ? responseHi.getBody().get("data") : null);
 
-		return new ResponseEntity<>(response, serviceResponse.getStatusCode());
+			log.info("Documents published successfully for appInstId: {}", appInstId);
+			// Create a unified response object
+			GenericResponse<Map<String, Object>> response = new GenericResponse<>(HttpStatus.OK.value(), true,
+					"Documents published successfully.", combinedData);
+
+			return new ResponseEntity<>(response, HttpStatus.OK);
+		} catch (Exception e) {
+			log.error("Error publishing document for appInstId: {}. Error: {}", appInstId, e.getMessage());
+			GenericResponse<Map<String, Object>> errorResponse = new GenericResponse<>(
+					HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+					"Failed to publish documents. Error: " + e.getMessage(), null);
+			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 }
