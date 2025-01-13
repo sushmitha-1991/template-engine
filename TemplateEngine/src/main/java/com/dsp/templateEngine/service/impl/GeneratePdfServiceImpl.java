@@ -349,8 +349,22 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Override
 	public ResponseEntity<Map<String, Object>> publishDocument(String html, Long appInstId, Integer startPageNumber) {
 		try {
+			// Step 1: Check if the application instance is already published
+			Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
 
-			// Step 1: Fetch application details using the native query
+			log.debug("#### isPublished - {}", isPublished);
+
+			if (Boolean.TRUE.equals(isPublished)) {
+				Map<String, Object> alreadyPublishedResponse = new HashMap<>();
+				alreadyPublishedResponse.put("statusCode", 200);
+				alreadyPublishedResponse.put("success", false);
+				alreadyPublishedResponse.put("message",
+						"The document for this application instance is already published.");
+				alreadyPublishedResponse.put("data", null);
+				return new ResponseEntity<>(alreadyPublishedResponse, HttpStatus.OK);
+			}
+
+			// Step 2: Fetch application details using the native query
 			ApplicationInstanceProjection appDetails = generatedPdfModelRepository
 					.findApplicationDetailsById(appInstId);
 

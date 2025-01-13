@@ -49,10 +49,16 @@ public class GeneratedPdfController {
 				? (Map<String, Object>) serviceBody.get("data")
 				: null;
 
+		// Determine success based on the status code
+		boolean success = serviceResponse.getStatusCode().is2xxSuccessful();
+
 		// Create the response object with the unwrapped data
 		GenericResponse<Map<String, Object>> response = new GenericResponse<>(serviceResponse.getStatusCode().value(),
-				true, "Document Published Successfully.", unwrappedData // Use the unwrapped data here
-		);
+				success,
+				serviceBody != null
+						? serviceBody.getOrDefault("message", "Operation completed successfully.").toString()
+						: "",
+				unwrappedData);
 
 		return new ResponseEntity<>(response, serviceResponse.getStatusCode());
 	}

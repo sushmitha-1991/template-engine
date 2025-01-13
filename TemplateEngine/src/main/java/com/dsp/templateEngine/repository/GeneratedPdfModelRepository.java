@@ -36,4 +36,12 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 			    WHERE ai.id = :appInstId
 			""", nativeQuery = true)
 	ApplicationInstanceProjection findApplicationDetailsById(@Param("appInstId") Long appInstId);
+
+	/**
+	 * @param appInstId
+	 * @return
+	 */
+	@Query(value = "select ai.is_published FROM master.application_instance ai WHERE ai.id = :appInstId", nativeQuery = true)
+	Boolean isApplicationInstancePublished(@Param("appInstId") Long appInstId);
+
 }
