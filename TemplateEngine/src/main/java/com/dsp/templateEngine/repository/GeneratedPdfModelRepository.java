@@ -49,4 +49,20 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 	@Query(value = "select ai.is_published FROM master.application_instance ai WHERE ai.id = :appInstId", nativeQuery = true)
 	Boolean isApplicationInstancePublished(@Param("appInstId") Long appInstId);
 
+	/**
+	 * @param appInstId
+	 */
+
+	@Transactional
+	@Modifying
+	@Query(value = "UPDATE workflow.workflow_history SET status = 'Published' WHERE id = :workflowHistoryId", nativeQuery = true)
+	void updateStatusInWorkflowHistory(Long workflowHistoryId);
+
+	/**
+	 * @param appInstId
+	 * @return
+	 */
+	@Query(value = " select MAX(wh.id) from workflow.workflow_history wh where wh.application_instance_id = :appInstId", nativeQuery = true)
+	Long getWorkflowIdByAppInstanceId(Long appInstId);
+
 }

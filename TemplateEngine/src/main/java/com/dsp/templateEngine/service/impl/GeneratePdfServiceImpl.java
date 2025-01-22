@@ -380,6 +380,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 					"ApplicationInstance", "1");
 
+			// Step 4: Update status in workflow history
+			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
+			
+			generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+			
 			// Parse and validate the OpenKM response
 			ObjectMapper objectMapper = new ObjectMapper();
 			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
