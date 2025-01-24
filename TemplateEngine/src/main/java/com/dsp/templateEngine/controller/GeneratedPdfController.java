@@ -50,45 +50,28 @@ public class GeneratedPdfController {
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
 
 		try {
-			// Process English HTML content
-			log.debug("Processing English content for appInstId: {}", appInstId);
-			ResponseEntity<Map<String, Object>> responseEn = pdfService.publishDocument(htmlContentEn, appInstId,
-					startPageNumber, "EN");
+			ResponseEntity<Map<String, Object>> response = pdfService.publishDocument(htmlContentEn, htmlContentHi,
+					appInstId, startPageNumber);
 
-			// Check if English content is already published
-			if (responseEn.getStatusCode() == HttpStatus.CONFLICT) {
-				return handleConflict(responseEn);
+			if (response.getStatusCode() == HttpStatus.CONFLICT) {
+				return handleConflict(response);
 			}
 
-			ResponseEntity<Map<String, Object>> responseHi = null;
-			if (htmlContentHi != null && !htmlContentHi.isEmpty()) {
-				log.debug("Processing Hindi content for appInstId: {}", appInstId);
-				// Process Hindi HTML content
-				responseHi = pdfService.publishDocument(htmlContentHi, appInstId, startPageNumber, "HI");
+			Map<String, Object> responseBody = response.getBody();
+			Map<String, Object> resultData = new HashMap<>();
+			resultData.put("documentUuid", responseBody != null ? responseBody.get("documentUuid") : null);
 
-				// Check if Hindi content is already published
-				if (responseHi.getStatusCode() == HttpStatus.CONFLICT) {
-					return handleConflict(responseHi);
-				}
-			}
+			log.info("Document published successfully for appInstId: {}", appInstId);
 
-			// Combine responses into a single response map
-			Map<String, Object> combinedData = new HashMap<>();
-			combinedData.put("English", responseEn.getBody() != null ? responseEn.getBody().get("data") : null);
-			combinedData.put("Hindi",
-					responseHi != null && responseHi.getBody() != null ? responseHi.getBody().get("data") : null);
+			GenericResponse<Map<String, Object>> genericResponse = new GenericResponse<>(HttpStatus.OK.value(), true,
+					"Document published successfully.", resultData);
 
-			log.info("Documents published successfully for appInstId: {}", appInstId);
-			// Create a unified response object
-			GenericResponse<Map<String, Object>> response = new GenericResponse<>(HttpStatus.OK.value(), true,
-					"Documents published successfully.", combinedData);
-
-			return new ResponseEntity<>(response, HttpStatus.OK);
+			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: {}. Error: {}", appInstId, e.getMessage());
 			GenericResponse<Map<String, Object>> errorResponse = new GenericResponse<>(
 					HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
-					"Failed to publish documents. Error: " + e.getMessage(), null);
+					"Failed to publish document. Error: " + e.getMessage(), null);
 			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}

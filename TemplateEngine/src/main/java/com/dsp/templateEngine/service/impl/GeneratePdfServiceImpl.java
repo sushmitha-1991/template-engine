@@ -342,9 +342,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 //	}
 
 	@Transactional
-	@Override
-	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContent, Long appInstId,
-			Integer startPageNumber, String languageSuffix) {
+	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
+			Long appInstId, Integer startPageNumber) {
 		try {
 			// Step 1: Check if the document is already published
 			Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
@@ -369,22 +368,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			// Generate filename with the language suffix
-			String appNo = appDetails.getAppNo() + "-" + languageSuffix + ".pdf";
+			String appNo = appDetails.getAppNo() + ".pdf";
 			String abbr = appDetails.getAbbr();
 			String okmPath = "/okm:root/" + abbr;
 
 			// Step 2: Convert HTML content to a PDF
-			File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+			File pdfFile = convertHtmlToPdf(htmlContentEn, appNo, startPageNumber);
 
 			// Step 3: Upload PDF to OpenKM
 			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 					"ApplicationInstance", "1");
 
+			System.out.println("#### uploadResult - " + uploadResult);
+
 			// Step 4: Update status in workflow history
 			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
-			
+			System.out.println("### workflowHistoryId - " + workflowHistoryId);
 			generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
-			
+
 			// Parse and validate the OpenKM response
 			ObjectMapper objectMapper = new ObjectMapper();
 			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
@@ -401,23 +402,22 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
 
-			// Update the appropriate column based on the language suffix
-			if ("EN".equalsIgnoreCase(languageSuffix)) {
-				generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
-			} else if ("HI".equalsIgnoreCase(languageSuffix)) {
-				generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedHi(appInstId, documentUuid);
-			} else {
-				throw new IllegalArgumentException("Invalid language suffix: " + languageSuffix);
-			}
+			// Update the appropriate column for published status
+			generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
 
-			return new ResponseEntity<>(responseMap, HttpStatus.OK);
+			// Add documentUuid to the responseMap
+			Map<String, Object> responseWithUuid = new HashMap<>();
+			responseWithUuid.put("documentUuid", documentUuid.toString());
+
+			// Return success response with UUID
+			return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
 		} catch (Exception e) {
-			log.error("Error publishing document for language: " + languageSuffix, e);
+			log.error("Error publishing document for appInstId: " + appInstId, e);
 			Map<String, Object> errorResponse = new HashMap<>();
 			errorResponse.put("statusCode", 500);
 			errorResponse.put("success", false);
 			errorResponse.put("message",
-					"Failed to publish document for language: " + languageSuffix + ". Error: " + e.getMessage());
+					"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
 			errorResponse.put("data", null);
 			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
