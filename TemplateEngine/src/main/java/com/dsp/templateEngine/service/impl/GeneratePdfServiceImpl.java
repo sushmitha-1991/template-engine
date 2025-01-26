@@ -347,7 +347,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		try {
 			// Step 1: Check if the document is already published
 			Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
-			log.debug("#### isPublished - {}", isPublished);
 
 			if (Boolean.TRUE.equals(isPublished)) {
 				log.info("Document is already published for appInstId: {}", appInstId);
@@ -373,13 +372,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String okmPath = "/okm:root/" + abbr;
 
 			// Step 2: Convert HTML content to a PDF
-			File pdfFile = convertHtmlToPdf(htmlContentEn, appNo, startPageNumber);
+			File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
 
 			// Step 3: Upload PDF to OpenKM
 			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 					"ApplicationInstance", "1");
-
-			System.out.println("#### uploadResult - " + uploadResult);
 
 			// Step 4: Update status in workflow history
 			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
@@ -499,22 +496,43 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+	public File convertHtmlToPdf(String htmlContentEn, String htmlContentHi, String fileName, Integer startPageNumber)
+			throws IOException {
 		// Create a temporary file for the final PDF
-		// To adapt your convertHtmlToPdf function to return a File object without
-		// writing it to the local file system, you can use a TempFile approach. Java
-		// provides a mechanism to create temporary files that are automatically deleted
-		// when the program exits, which is ideal for your use case.
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-		// Generate the initial PDF in memory
-		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
-		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream);
+		// Generate the English content PDF in memory
+		ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
+		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream);
 
-		// Add page numbering to the in-memory PDF
-		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), startPageNumber);
+		// Generate the Hindi content PDF in memory (if provided)
+		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
+		if (htmlContentHi != null) {
+			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream);
+		}
 
-		// Write the numbered PDF bytes to the temporary file
+		// Merge the PDFs into the final file
+		try (PdfWriter writer = new PdfWriter(tempPdfFile); PdfDocument finalPdfDocument = new PdfDocument(writer)) {
+			// Add English content
+			try (PdfDocument enPdfDocument = new PdfDocument(
+					new PdfReader(new ByteArrayInputStream(enPdfOutputStream.toByteArray())))) {
+				enPdfDocument.copyPagesTo(1, enPdfDocument.getNumberOfPages(), finalPdfDocument);
+			}
+
+			// Add Hindi content if provided
+			if (htmlContentHi != null) {
+				try (PdfDocument hiPdfDocument = new PdfDocument(
+						new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
+					hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
+				}
+			}
+		}
+
+		// Add page numbers to the final PDF
+		byte[] numberedPdfBytes = addPageNumbersToPdf(java.nio.file.Files.readAllBytes(tempPdfFile.toPath()),
+				startPageNumber);
+
+		// Write the numbered PDF bytes back to the temporary file
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
 			fileOutputStream.write(numberedPdfBytes);
 		}
