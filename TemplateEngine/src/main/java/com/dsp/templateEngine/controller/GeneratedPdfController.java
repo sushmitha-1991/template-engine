@@ -43,6 +43,24 @@ public class GeneratedPdfController {
 		}
 	}
 
+	@PostMapping("/mytask/download")
+	public ResponseEntity<GenericResponse<String>> downloadHtmlFromMyTask(@RequestParam String html,
+			@RequestParam String fileName) {
+		log.info("Received request to generate PDF for file: {}", fileName);
+		try {
+			String pdfPath = pdfService.downloadHtmlFromMyTask(html, fileName);
+			log.info("PDF generated successfully for file: {}", fileName);
+			GenericResponse<String> response = new GenericResponse<>(HttpStatus.OK.value(), true,
+					"PDF generated successfully.", pdfPath);
+			return new ResponseEntity<>(response, HttpStatus.OK);
+		} catch (Exception e) { // Use Exception instead of IOException
+			log.error("Error generating PDF for file: {}. Error: {}", fileName, e.getMessage());
+			GenericResponse<String> response = new GenericResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
+					"PDF generation failed.", null);
+			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
+
 	@PostMapping("/publish-document")
 	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam Long appInstId,
