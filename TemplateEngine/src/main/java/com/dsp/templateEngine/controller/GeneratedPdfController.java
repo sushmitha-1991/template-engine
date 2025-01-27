@@ -1,11 +1,14 @@
 package com.dsp.templateEngine.controller;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,6 +17,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
+import com.itextpdf.kernel.pdf.PdfDocument;
+import com.itextpdf.kernel.pdf.PdfWriter;
+import com.itextpdf.layout.font.FontProvider;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,20 +53,37 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/mytask/download")
-	public ResponseEntity<GenericResponse<String>> downloadHtmlFromMyTask(@RequestParam String html,
-			@RequestParam String fileName) {
-		log.info("Received request to generate PDF for file: {}", fileName);
+	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String html, @RequestParam String fileName) {
 		try {
-			String pdfPath = pdfService.downloadHtmlFromMyTask(html, fileName);
-			log.info("PDF generated successfully for file: {}", fileName);
-			GenericResponse<String> response = new GenericResponse<>(HttpStatus.OK.value(), true,
-					"PDF generated successfully.", pdfPath);
-			return new ResponseEntity<>(response, HttpStatus.OK);
-		} catch (Exception e) { // Use Exception instead of IOException
-			log.error("Error generating PDF for file: {}. Error: {}", fileName, e.getMessage());
-			GenericResponse<String> response = new GenericResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), false,
-					"PDF generation failed.", null);
-			return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+			// Generate the PDF in memory
+			ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
+
+			// Initialize the PDF writer and document
+			PdfWriter writer = new PdfWriter(pdfStream);
+			PdfDocument pdfDocument = new PdfDocument(writer);
+
+			// Configure font provider for Hindi/Unicode support
+			String fontDirectory = "src/main/resources/font/";
+			ConverterProperties converterProperties = new ConverterProperties();
+			FontProvider fontProvider = new DefaultFontProvider();
+			fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+			converterProperties.setFontProvider(fontProvider);
+
+			// Convert HTML to PDF
+			HtmlConverter.convertToPdf(html, pdfDocument, converterProperties);
+			pdfDocument.close();
+
+			// Prepare HTTP headers to trigger a download
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_PDF);
+			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
+
+			// Return the generated PDF as a byte array in the response
+			return new ResponseEntity<>(pdfStream.toByteArray(), headers, HttpStatus.OK);
+		} catch (Exception e) {
+			// Log error and return an error response
+			log.error("Error generating PDF: {}", e.getMessage());
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 	}
 

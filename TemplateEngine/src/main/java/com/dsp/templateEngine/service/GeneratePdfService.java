@@ -25,17 +25,11 @@ public interface GeneratePdfService {
 
 	/**
 	 * @param html
-	 * @param startPageNumber 
+	 * @param startPageNumber
 	 * @param fileName
 	 * @return
 	 */
-	ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi, Long appInstId, Integer startPageNumber);
-
-	/**
-	 * @param html
-	 * @param fileName
-	 * @return
-	 */
-	String downloadHtmlFromMyTask(String html, String fileName);
+	ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi, Long appInstId,
+			Integer startPageNumber);
 
 }

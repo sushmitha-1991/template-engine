@@ -578,44 +578,4 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return pdfOutputStream.toByteArray();
 	}
 
-	@Override
-	public String downloadHtmlFromMyTask(String html, String fileName) {
-		try {
-			// Locate the user's Downloads folder
-			String downloadsPath = System.getProperty("user.home") + "/Downloads";
-			File downloadsDir = new File(downloadsPath);
-			if (!downloadsDir.exists()) {
-				throw new IOException("Downloads directory does not exist: " + downloadsPath);
-			}
-
-			// Create the PDF file path
-			String pdfFilePath = downloadsPath + "/" + fileName + ".pdf";
-
-			// Initialize the PDF writer and document
-			PdfWriter writer = new PdfWriter(pdfFilePath);
-			PdfDocument pdfDocument = new PdfDocument(writer);
-
-			// Configure font provider for better compatibility
-			String fontDirectory = "src/main/resources/font/";
-			ConverterProperties converterProperties = new ConverterProperties();
-			FontProvider fontProvider = new DefaultFontProvider();
-			fontProvider.addDirectory(fontDirectory); // Load fonts from the specified directory
-			converterProperties.setFontProvider(fontProvider);
-			converterProperties.setCharset("UTF-8"); // Ensure proper encoding
-
-			// Convert HTML to PDF
-			HtmlConverter.convertToPdf(html, pdfDocument, converterProperties);
-
-			// Close the document
-			pdfDocument.close();
-
-			// Return the file path of the generated PDF
-			return pdfFilePath;
-		} catch (Exception e) {
-			// Log the error and rethrow as a runtime exception
-			log.error("Error generating PDF: {}", e.getMessage());
-			throw new RuntimeException("Failed to generate PDF: " + e.getMessage(), e);
-		}
-	}
-
 }
