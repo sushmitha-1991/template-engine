@@ -547,7 +547,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return tempPdfFile;
 	}
 
-	private byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
+	public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
 		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
 
 		// Input and output streams for in-memory processing
@@ -582,6 +582,47 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Return the final PDF as a byte array
 		return pdfOutputStream.toByteArray();
+	}
+
+	@Override
+	public byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException {
+		ByteArrayOutputStream mergedOutputStream = new ByteArrayOutputStream();
+		PdfDocument mergedPdf = new PdfDocument(new PdfWriter(mergedOutputStream));
+
+		if (enPdfBytes != null && enPdfBytes.length > 0) {
+			PdfDocument enPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(enPdfBytes)));
+			enPdf.copyPagesTo(1, enPdf.getNumberOfPages(), mergedPdf);
+			enPdf.close();
+		}
+
+		if (hiPdfBytes != null && hiPdfBytes.length > 0) {
+			PdfDocument hiPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(hiPdfBytes)));
+			hiPdf.copyPagesTo(1, hiPdf.getNumberOfPages(), mergedPdf);
+			hiPdf.close();
+		}
+
+		mergedPdf.close();
+		return mergedOutputStream.toByteArray();
+	}
+
+	@Override
+	public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
+		if (htmlContent == null || htmlContent.isEmpty()) {
+			return;
+		}
+
+		// Configure font provider for Hindi/Unicode support
+		String fontDirectory = "src/main/resources/font/";
+		ConverterProperties converterProperties = new ConverterProperties();
+		FontProvider fontProvider = new DefaultFontProvider();
+		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+		converterProperties.setFontProvider(fontProvider);
+
+		// Generate PDF from HTML and write it to the output stream
+		PdfWriter writer = new PdfWriter(outputStream);
+		PdfDocument pdfDocument = new PdfDocument(writer);
+		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+		pdfDocument.close();
 	}
 
 }

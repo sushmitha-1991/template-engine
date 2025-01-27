@@ -5,6 +5,7 @@
  */
 package com.dsp.templateEngine.service;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
 
@@ -31,5 +32,11 @@ public interface GeneratePdfService {
 	 */
 	ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi, Long appInstId,
 			Integer startPageNumber);
+
+	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;
+
+	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
+
+	byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException;
 
 }

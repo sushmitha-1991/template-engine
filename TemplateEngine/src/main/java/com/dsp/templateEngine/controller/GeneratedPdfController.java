@@ -17,12 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
-import com.itextpdf.html2pdf.ConverterProperties;
-import com.itextpdf.html2pdf.HtmlConverter;
-import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.font.FontProvider;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -53,33 +47,32 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/mytask/download")
-	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String html, @RequestParam String fileName) {
+	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
+			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName) {
 		try {
-			// Generate the PDF in memory
-			ByteArrayOutputStream pdfStream = new ByteArrayOutputStream();
+			// Generate the English PDF content in memory
+			ByteArrayOutputStream enPdfStream = new ByteArrayOutputStream();
+			pdfService.createPdfFromHtml(htmlContentEn, enPdfStream);
 
-			// Initialize the PDF writer and document
-			PdfWriter writer = new PdfWriter(pdfStream);
-			PdfDocument pdfDocument = new PdfDocument(writer);
+			// Generate the Hindi PDF content in memory if provided
+			ByteArrayOutputStream hiPdfStream = new ByteArrayOutputStream();
+			if (htmlContentHi != null && !htmlContentHi.isEmpty()) {
+				pdfService.createPdfFromHtml(htmlContentHi, hiPdfStream);
+			}
 
-			// Configure font provider for Hindi/Unicode support
-			String fontDirectory = "src/main/resources/font/";
-			ConverterProperties converterProperties = new ConverterProperties();
-			FontProvider fontProvider = new DefaultFontProvider();
-			fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-			converterProperties.setFontProvider(fontProvider);
+			// Merge English and Hindi PDFs into a single PDF
+			byte[] mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
 
-			// Convert HTML to PDF
-			HtmlConverter.convertToPdf(html, pdfDocument, converterProperties);
-			pdfDocument.close();
+			// Add page numbers to the merged PDF
+			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, 1);
 
 			// Prepare HTTP headers to trigger a download
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_PDF);
 			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
 
-			// Return the generated PDF as a byte array in the response
-			return new ResponseEntity<>(pdfStream.toByteArray(), headers, HttpStatus.OK);
+			// Return the generated PDF with page numbers as a byte array in the response
+			return new ResponseEntity<>(pdfWithPageNumbers, headers, HttpStatus.OK);
 		} catch (Exception e) {
 			// Log error and return an error response
 			log.error("Error generating PDF: {}", e.getMessage());
