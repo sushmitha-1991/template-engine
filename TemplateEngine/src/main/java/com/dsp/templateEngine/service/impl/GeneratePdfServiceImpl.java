@@ -501,6 +501,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// Create a temporary file for the final PDF
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
+		String fontDirectory = "src/main/resources/font/";
+		ConverterProperties converterProperties = new ConverterProperties();
+		FontProvider fontProvider = new DefaultFontProvider();
+		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+		converterProperties.setFontProvider(fontProvider);
+
 		// Generate the English content PDF in memory
 		ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
 		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream);
@@ -508,7 +514,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// Generate the Hindi content PDF in memory (if provided)
 		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
 		if (htmlContentHi != null) {
-			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream);
+			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream, converterProperties);
 		}
 
 		// Merge the PDFs into the final file
