@@ -1,0 +1,10 @@
+FROM openjdk:17-jdk-slim
+
+WORKDIR /app
+
+COPY ./target/Template-Engine-0.0.1-SNAPSHOT.jar app.jar
+COPY src/ /app/src/
+
+EXPOSE 8089
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
