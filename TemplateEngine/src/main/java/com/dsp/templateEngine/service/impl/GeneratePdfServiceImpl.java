@@ -10,9 +10,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.UUID;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -30,8 +32,11 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.entity.WorkflowHistory;
+import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
+import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -66,6 +71,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private RestTemplate restTemplate;
+
+	@Autowired
+	private WorkflowHistoryRepository workflowHistoryRepository;
 
 //    public static void main(String[] args) throws IOException {
 //        GeneratePdfService service = new GeneratePdfService();
@@ -381,7 +389,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Step 4: Update status in workflow history
 			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
 			System.out.println("### workflowHistoryId - " + workflowHistoryId);
-			generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+			// generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+
+			cloneAndPublishWorkflowHistory(workflowHistoryId);
 
 			// Parse and validate the OpenKM response
 			ObjectMapper objectMapper = new ObjectMapper();
@@ -418,6 +428,32 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			errorResponse.put("data", null);
 			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
 		}
+	}
+
+	@Transactional
+	public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
+		Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
+
+		if (optionalHistory.isEmpty()) {
+			throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
+		}
+
+		WorkflowHistory originalHistory = optionalHistory.get();
+
+		// Clone the original entity
+		WorkflowHistory clonedHistory = new WorkflowHistory();
+		BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new record
+
+		// Update the cloned history's status to "Published"
+		clonedHistory.setStatus("Published");
+
+		// Update the original record
+		originalHistory.setIsDeleted(true);
+		originalHistory.setIsActive(false);
+
+		// Save both records
+		workflowHistoryRepository.save(originalHistory);
+		workflowHistoryRepository.save(clonedHistory);
 	}
 
 	public File generatePdfFromHtmlOpenKm(String html, String fileName) throws IOException {
@@ -476,6 +512,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			body.add("referenceId", referenceId);
 			body.add("referenceType", referenceType);
 			body.add("applicationNo", applicationNo);
+
+			System.out.println("### body template - " + body.toString());
 
 			// Prepare the request entity with headers and body
 			HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
