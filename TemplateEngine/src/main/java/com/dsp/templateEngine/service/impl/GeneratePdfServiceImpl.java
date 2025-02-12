@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -38,6 +39,7 @@ import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.util.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.html2pdf.ConverterProperties;
@@ -71,6 +73,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private RestTemplate restTemplate;
+
+	@Autowired
+	private Utils utils;
 
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
@@ -434,6 +439,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
 		Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
 
+		Long userId = utils.getUserIdFromAuthentication();
+		String username = workflowHistoryRepository.getUserName(userId);
+
 		if (optionalHistory.isEmpty()) {
 			throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
 		}
@@ -442,10 +450,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Clone the original entity
 		WorkflowHistory clonedHistory = new WorkflowHistory();
-		BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new record
+		BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new
+																		// record
 
 		// Update the cloned history's status to "Published"
 		clonedHistory.setStatus("Published");
+		clonedHistory.setActionTakenOn(LocalDateTime.now());
+		clonedHistory.setActionTakenBy(userId);
+		clonedHistory.setActionTakenByName(username);
 
 		// Update the original record
 		originalHistory.setIsDeleted(true);
