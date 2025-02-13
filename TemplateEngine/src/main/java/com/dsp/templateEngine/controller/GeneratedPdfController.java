@@ -56,7 +56,7 @@ public class GeneratedPdfController {
 
 			// Generate the Hindi PDF content in memory if provided
 			ByteArrayOutputStream hiPdfStream = new ByteArrayOutputStream();
-			if (htmlContentHi != null && !htmlContentHi.isEmpty() && !htmlContentHi != "null") {
+			if (htmlContentHi != null && !htmlContentHi.isEmpty() && htmlContentHi != "null") {
 				pdfService.createPdfFromHtml(htmlContentHi, hiPdfStream);
 			}
 
