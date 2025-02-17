@@ -9,11 +9,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.UUID;
 
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -33,12 +36,12 @@ import org.springframework.web.client.RestTemplate;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
-import com.dsp.templateEngine.dto.PublishHistoryDTO;
-import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
+import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.util.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.itextpdf.html2pdf.ConverterProperties;
@@ -80,6 +83,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
     @Autowired
     private RestTemplate restTemplate;
+
+	@Autowired
+	private Utils utils;
+
+	@Autowired
+	private WorkflowHistoryRepository workflowHistoryRepository;
 
 //    public static void main(String[] args) throws IOException {
 //        GeneratePdfService service = new GeneratePdfService();
@@ -388,20 +397,23 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Step 2: Convert HTML content to a PDF
             File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
 
-            // Step 3: Upload PDF to OpenKM
-            String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
-                    "ApplicationInstance", "1");
-            // Step 4: Update status in workflow history
+			// Step 3: Upload PDF to OpenKM
+			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+					"ApplicationInstance", "1");
 
-            Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
-            generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
-            // Parse and validate the OpenKM response
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
-            });
-            if (responseMap == null || !responseMap.containsKey("data")) {
-                throw new IllegalStateException("Invalid response: 'data' key is missing.");
-            }
+			// Step 4: Update status in workflow history
+			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
+			System.out.println("### workflowHistoryId - " + workflowHistoryId);
+			generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+
+			// Parse and validate the OpenKM response
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+			});
+
+			if (responseMap == null || !responseMap.containsKey("data")) {
+				throw new IllegalStateException("Invalid response: 'data' key is missing.");
+			}
 
             Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 
@@ -413,44 +425,23 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Update the appropriate column for published status
             generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
 
-            // Add documentUuid to the responseMap
-            Map<String, Object> responseWithUuid = new HashMap<>();
-            responseWithUuid.put("documentUuid", documentUuid.toString());
-            System.out.println("%%%%%%%%%%   appInstId" + appInstId);
-                        // Return success response with UUID
-                        ApplicationInstance instance = applicationInstanceRepository
-                        .findById(appInstId).get();
-                System.out.println("############");
-                System.out.println(instance);
-                PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder()
-                        .lokSabhaNo(instance.getLokSabhaSession())
-                        .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-                        .rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
-                        .applicationId(instance.getApplicationId())
-                        .applicationNo(instance.getApplicationNo())
-                        .applicationName(abbr)
-                        .publishUuid(documentUuid)
-                        .publishUrl(okmPath)
-                        .publishStatus(true)
-                        .publishDate(LocalDate.now())
-                        .forDate(instance.getDocumentDate())
-                        .fileType("pdf")
-                        .build();
-                publishHistoryDto = addPublishHistoryEntry(publishHistoryDto);
+			// Add documentUuid to the responseMap
+			Map<String, Object> responseWithUuid = new HashMap<>();
+			responseWithUuid.put("documentUuid", documentUuid.toString());
 
-            return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
-        } catch (Exception e) {
-            log.error("Error publishing document for appInstId: " + appInstId, e);
-            Map<String, Object> errorResponse = new HashMap<>();
-            errorResponse.put("statusCode", 500);
-            errorResponse.put("success", false);
-            errorResponse.put("message",
-                    "Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
-            errorResponse.put("data", null);
-
-            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+			// Return success response with UUID
+			return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
+		} catch (Exception e) {
+			log.error("Error publishing document for appInstId: " + appInstId, e);
+			Map<String, Object> errorResponse = new HashMap<>();
+			errorResponse.put("statusCode", 500);
+			errorResponse.put("success", false);
+			errorResponse.put("message",
+					"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
+			errorResponse.put("data", null);
+			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+	}
 
     public File generatePdfFromHtmlOpenKm(String html, String fileName) throws IOException {
         try {
@@ -499,18 +490,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Create a FileSystemResource from the file
             FileSystemResource fileResource = new FileSystemResource(pdfFile);
 
-            // Prepare the body with all required fields
-            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-            body.add("folderPath", folderPath);
-            body.add("documentName", documentName);
-            body.add("file", fileResource);
-            body.add("masterId", masterId);
-            body.add("referenceId", referenceId);
-            body.add("referenceType", referenceType);
-            body.add("applicationNo", applicationNo);
-            System.out.println("requestBody");
-            System.out.println(body);
-            System.out.println(openKmUploadEndpoint);
+			// Prepare the body with all required fields
+			MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+			body.add("folderPath", folderPath);
+			body.add("documentName", documentName);
+			body.add("file", fileResource);
+			body.add("masterId", masterId);
+			body.add("referenceId", referenceId);
+			body.add("referenceType", referenceType);
+			body.add("applicationNo", applicationNo);
 
             // Prepare the request entity with headers and body
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);

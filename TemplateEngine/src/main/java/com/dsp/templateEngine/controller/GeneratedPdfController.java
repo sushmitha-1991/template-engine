@@ -50,32 +50,46 @@ public class GeneratedPdfController {
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName) {
 		try {
-			// Generate the English PDF content in memory
+			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
+			// or empty
+			if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
+					|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
+				htmlContentHi = null;
+			}
+
+			// Generate the English PDF content
 			ByteArrayOutputStream enPdfStream = new ByteArrayOutputStream();
 			pdfService.createPdfFromHtml(htmlContentEn, enPdfStream);
 
-			// Generate the Hindi PDF content in memory if provided
-			ByteArrayOutputStream hiPdfStream = new ByteArrayOutputStream();
-			if (htmlContentHi != null && !htmlContentHi.isEmpty()) {
+			ByteArrayOutputStream hiPdfStream = null;
+
+			// Generate Hindi PDF only if htmlContentHi is present
+			if (htmlContentHi != null) {
+				hiPdfStream = new ByteArrayOutputStream();
 				pdfService.createPdfFromHtml(htmlContentHi, hiPdfStream);
 			}
 
-			// Merge English and Hindi PDFs into a single PDF
-			byte[] mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
+			byte[] mergedPdfBytes;
 
-			// Add page numbers to the merged PDF
+			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
+			// output
+			if (hiPdfStream != null) {
+				mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
+			} else {
+				mergedPdfBytes = enPdfStream.toByteArray();
+			}
+
+			// Add page numbers to the final PDF
 			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, 1);
 
-			// Prepare HTTP headers to trigger a download
+			// Set HTTP response headers
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_PDF);
 			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
 
-			// Return the generated PDF with page numbers as a byte array in the response
 			return new ResponseEntity<>(pdfWithPageNumbers, headers, HttpStatus.OK);
 		} catch (Exception e) {
-			// Log error and return an error response
-			log.error("Error generating PDF: {}", e.getMessage());
+			log.error("Error generating PDF: {}", e.getMessage(), e);
 			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
 		}
 	}
