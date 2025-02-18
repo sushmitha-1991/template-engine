@@ -37,6 +37,9 @@ public class JwtUtil {
 	private Claims extractAllClaims(String token) {
 		return Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
 	}
+	public String extractHouseAbbr(String token) {
+        return extractClaim(token, claims -> claims.get("houseAbbr", String.class));
+    }
 
 	public String generateToken(String username) {
 		return Jwts.builder().setSubject(username).setIssuedAt(new Date(System.currentTimeMillis()))

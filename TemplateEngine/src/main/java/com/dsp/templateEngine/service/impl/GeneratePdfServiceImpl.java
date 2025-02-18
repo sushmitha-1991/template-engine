@@ -33,16 +33,19 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
-import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.WorkflowHistory;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
+import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -86,11 +89,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
     @Autowired
     private RestTemplate restTemplate;
 
-	@Autowired
-	private Utils utils;
+@Autowired
+private MyUserRepository userResponsibility;
 
-	@Autowired
-	private WorkflowHistoryRepository workflowHistoryRepository;
+
+    @Autowired
+    private Utils utils;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private WorkflowHistoryRepository workflowHistoryRepository;
 
 //    public static void main(String[] args) throws IOException {
 //        GeneratePdfService service = new GeneratePdfService();
@@ -386,7 +396,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Step 2: Fetch application details
             ApplicationInstanceProjection appDetails = generatedPdfModelRepository
                     .findApplicationDetailsById(appInstId);
-        
+
             if (appDetails == null) {
                 System.out.println("app Details::::::" + appDetails);
                 throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
@@ -399,25 +409,25 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Step 2: Convert HTML content to a PDF
             File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
 
-			// Step 3: Upload PDF to OpenKM
-			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
-					"ApplicationInstance", "1");
+            // Step 3: Upload PDF to OpenKM
+            String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+                    "ApplicationInstance", "1");
 
-			// Step 4: Update status in workflow history
-			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
-			System.out.println("### workflowHistoryId - " + workflowHistoryId);
-			// generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+            // Step 4: Update status in workflow history
+            Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
+            System.out.println("### workflowHistoryId - " + workflowHistoryId);
+            // generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
 
-			cloneAndPublishWorkflowHistory(workflowHistoryId);
+            cloneAndPublishWorkflowHistory(workflowHistoryId);
 
-			// Parse and validate the OpenKM response
-			ObjectMapper objectMapper = new ObjectMapper();
-			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
-			});
+            // Parse and validate the OpenKM response
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+            });
 
-			if (responseMap == null || !responseMap.containsKey("data")) {
-				throw new IllegalStateException("Invalid response: 'data' key is missing.");
-			}
+            if (responseMap == null || !responseMap.containsKey("data")) {
+                throw new IllegalStateException("Invalid response: 'data' key is missing.");
+            }
 
             Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 
@@ -429,15 +439,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Update the appropriate column for published status
             generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
 
-			// Add documentUuid to the responseMap
-			Map<String, Object> responseWithUuid = new HashMap<>();
-			responseWithUuid.put("documentUuid", documentUuid.toString());
+            // Add documentUuid to the responseMap
+            Map<String, Object> responseWithUuid = new HashMap<>();
+            responseWithUuid.put("documentUuid", documentUuid.toString());
 
-        //changes for publish and unpublish entry
-        ApplicationInstance instance = applicationInstanceRepository
+            //changes for publish and unpublish entry
+            ApplicationInstance instance = applicationInstanceRepository
                     .findById(appInstId).get();
-            System.out.println("############");
-            System.out.println(instance);
             PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder()
                     .lokSabhaNo(instance.getLokSabhaSession())
                     .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
@@ -454,52 +462,52 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
                     .build();
             publishHistoryDto = addPublishHistoryEntry(publishHistoryDto);
 
-			// Return success response with UUID
-			return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
-		} catch (Exception e) {
-			log.error("Error publishing document for appInstId: " + appInstId, e);
-			Map<String, Object> errorResponse = new HashMap<>();
-			errorResponse.put("statusCode", 500);
-			errorResponse.put("success", false);
-			errorResponse.put("message",
-					"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
-			errorResponse.put("data", null);
-			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
+            // Return success response with UUID
+            return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Error publishing document for appInstId: " + appInstId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("statusCode", 500);
+            errorResponse.put("success", false);
+            errorResponse.put("message",
+                    "Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
+            errorResponse.put("data", null);
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-	@Transactional
-	public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
-		Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
+    @Transactional
+    public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
+        Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
 
-		Long userId = utils.getUserIdFromAuthentication();
-		String username = workflowHistoryRepository.getUserName(userId);
+        Long userId = utils.getUserIdFromAuthentication();
+        String username = workflowHistoryRepository.getUserName(userId);
 
-		if (optionalHistory.isEmpty()) {
-			throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
-		}
+        if (optionalHistory.isEmpty()) {
+            throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
+        }
 
-		WorkflowHistory originalHistory = optionalHistory.get();
+        WorkflowHistory originalHistory = optionalHistory.get();
 
-		// Clone the original entity
-		WorkflowHistory clonedHistory = new WorkflowHistory();
-		BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new
-																		// record
+        // Clone the original entity
+        WorkflowHistory clonedHistory = new WorkflowHistory();
+        BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new
+        // record
 
-		// Update the cloned history's status to "Published"
-		clonedHistory.setStatus("Published");
-		clonedHistory.setActionTakenOn(LocalDateTime.now());
-		clonedHistory.setActionTakenBy(userId);
-		clonedHistory.setActionTakenByName(username);
+        // Update the cloned history's status to "Published"
+        clonedHistory.setStatus("Published");
+        clonedHistory.setActionTakenOn(LocalDateTime.now());
+        clonedHistory.setActionTakenBy(userId);
+        clonedHistory.setActionTakenByName(username);
 
-		// Update the original record
-		originalHistory.setIsDeleted(true);
-		originalHistory.setIsActive(false);
+        // Update the original record
+        originalHistory.setIsDeleted(true);
+        originalHistory.setIsActive(false);
 
-		// Save both records
-		workflowHistoryRepository.save(originalHistory);
-		workflowHistoryRepository.save(clonedHistory);
-	}
+        // Save both records
+        workflowHistoryRepository.save(originalHistory);
+        workflowHistoryRepository.save(clonedHistory);
+    }
 
     public File generatePdfFromHtmlOpenKm(String html, String fileName) throws IOException {
         try {
@@ -548,17 +556,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
             // Create a FileSystemResource from the file
             FileSystemResource fileResource = new FileSystemResource(pdfFile);
 
-			// Prepare the body with all required fields
-			MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-			body.add("folderPath", folderPath);
-			body.add("documentName", documentName);
-			body.add("file", fileResource);
-			body.add("masterId", masterId);
-			body.add("referenceId", referenceId);
-			body.add("referenceType", referenceType);
-			body.add("applicationNo", applicationNo);
+            // Prepare the body with all required fields
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("folderPath", folderPath);
+            body.add("documentName", documentName);
+            body.add("file", fileResource);
+            body.add("masterId", masterId);
+            body.add("referenceId", referenceId);
+            body.add("referenceType", referenceType);
+            body.add("applicationNo", applicationNo);
 
-			System.out.println("### body template - " + body.toString());
+            System.out.println("### body template - " + body.toString());
 
             // Prepare the request entity with headers and body
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
@@ -700,7 +708,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
         FontProvider fontProvider = new DefaultFontProvider();
         fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
         converterProperties.setFontProvider(fontProvider);
-
         // Generate PDF from HTML and write it to the output stream
         PdfWriter writer = new PdfWriter(outputStream);
         PdfDocument pdfDocument = new PdfDocument(writer);
@@ -717,21 +724,25 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
         System.out.println("Done In  GetToken method");
         return null;
     }
-
     private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
         String url = draftedServiceUrl + "/publish-history/create";
-        System.out.println("########### url" + url);
-
+        System.out.println("########### url::" + url);
         String token = getTokenFromRequest();
         if (token == null) {
             throw new IllegalStateException("Authorization token is missing");
-        }
+        }       
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Bearer " + token);
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
-        HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto, headers);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String sub = jwtUtil.extractUsername(token); // Retrieves "sub"
+        String houseAbbr = jwtUtil.extractHouseAbbr(token);
+        BaseUser userDetails=userResponsibility.findByUsername(sub);
+        Long officeId= generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
+        publishHistoryDto.setPublishByUser(userDetails.getFirstName()+" "+userDetails.getMiddleName()+" "+userDetails.getLastName());
+        publishHistoryDto.setOfficeId(officeId);
+        // HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto, headers);
+        HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
         try {
-
             return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
         } catch (Exception e) {
             System.err.println("Error during API call: " + e.getMessage());
