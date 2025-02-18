@@ -86,6 +86,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
     @Value("${openKm.service.upload.endpoint}")
     private String openKmUploadEndpoint;
 
+    @Value("${openKm.service.download.endpoint}")
+    private String openKmDownloadEndPoint;
+
+
     @Autowired
     private RestTemplate restTemplate;
 
@@ -446,6 +450,7 @@ private MyUserRepository userResponsibility;
             //changes for publish and unpublish entry
             ApplicationInstance instance = applicationInstanceRepository
                     .findById(appInstId).get();
+                    
             PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder()
                     .lokSabhaNo(instance.getLokSabhaSession())
                     .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
@@ -454,7 +459,7 @@ private MyUserRepository userResponsibility;
                     .applicationNo(instance.getApplicationNo())
                     .applicationName(abbr)
                     .publishUuid(documentUuid)
-                    .publishUrl(okmPath)
+                    .publishUrl(openKmDownloadEndPoint+"/"+documentUuid)
                     .publishStatus(true)
                     .publishDate(LocalDate.now())
                     .forDate(instance.getDocumentDate())
