@@ -45,5 +45,6 @@ public class PublishHistoryDTO {
     private LocalDate unpublishDate;
     
     private Long officeId;
+    private String locale;
  
 }

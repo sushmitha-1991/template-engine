@@ -731,6 +731,8 @@ private MyUserRepository userResponsibility;
     }
     private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
         String url = draftedServiceUrl + "/publish-history/create";
+        // String url = "http://localhost:8087/workflow/publish-history/create";
+
         System.out.println("########### url::" + url);
         String token = getTokenFromRequest();
         if (token == null) {
@@ -745,6 +747,7 @@ private MyUserRepository userResponsibility;
         Long officeId= generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
         publishHistoryDto.setPublishByUser(userDetails.getFirstName()+" "+userDetails.getMiddleName()+" "+userDetails.getLastName());
         publishHistoryDto.setOfficeId(officeId);
+        publishHistoryDto.setLocale("en");
         // HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto, headers);
         HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
         try {
