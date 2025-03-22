@@ -22,9 +22,11 @@ import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Data
+@EqualsAndHashCode(callSuper=false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
@@ -104,11 +106,11 @@ public class BaseUser extends Auditable implements UserDetails {
 		return true;
 	}
 
-//    @Override
-//    public boolean isEnabled() {
-//        // Return true if the user is enabled
-//        return this.isActive;
-//    }
+   @Override
+   public boolean isEnabled() {
+       // Return true if the user is enabled
+       return true;
+   }
 
 	// Ensuring the method exists for AuditorAware
 	public Long getUserId() {

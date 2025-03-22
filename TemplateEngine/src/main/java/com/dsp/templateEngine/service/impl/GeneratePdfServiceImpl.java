@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,12 +34,19 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.entity.ApplicationInstance;
+import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.WorkflowHistory;
+import com.dsp.templateEngine.exception.OpenKMException;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
+import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
+import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -55,6 +63,8 @@ import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,80 +72,96 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class GeneratePdfServiceImpl implements GeneratePdfService {
 
-	@Autowired
-	Environment environment;
+    @Autowired
+    Environment environment;
+    @Value("${workflow.service.url}")
+    private String draftedServiceUrl;
 
-	@Autowired
-	private GeneratedPdfModelRepository generatedPdfModelRepository;
+    @Autowired
+    private ApplicationInstanceRepository applicationInstanceRepository;
+    @Autowired
+    private HttpServletRequest httpRequest;
 
-	@Value("${openKm.service.upload.endpoint}")
-	private String openKmUploadEndpoint;
+    @Autowired
+    private GeneratedPdfModelRepository generatedPdfModelRepository;
 
-	@Autowired
-	private RestTemplate restTemplate;
+    @Value("${openKm.service.upload.endpoint}")
+    private String openKmUploadEndpoint;
 
-	@Autowired
-	private Utils utils;
+    @Value("${openKm.service.download.endpoint}")
+    private String openKmDownloadEndPoint;
 
-	@Autowired
-	private WorkflowHistoryRepository workflowHistoryRepository;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+@Autowired
+private MyUserRepository userResponsibility;
+
+
+    @Autowired
+    private Utils utils;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private WorkflowHistoryRepository workflowHistoryRepository;
 
 //    public static void main(String[] args) throws IOException {
 //        GeneratePdfService service = new GeneratePdfService();
 //        String html=null;
 //        service.generatePdfFromHtml(html, "testpdf1");
 //    }
+    public String generatePdfFromHtml(String html, String fileName) throws IOException {
+        Path finalPath = null;
+        try {
+            String SERVER_PATH = "C:\\\\Users\\\\LQ917SL\\\\TestPdf";
+            GeneratedPdfModel pdfModel = new GeneratedPdfModel();
+            Path uploadPath = Paths.get(SERVER_PATH).toAbsolutePath().normalize();
 
-	public String generatePdfFromHtml(String html, String fileName) throws IOException {
-		Path finalPath = null;
-		try {
-			String SERVER_PATH = "C:\\\\Users\\\\LQ917SL\\\\TestPdf";
-			GeneratedPdfModel pdfModel = new GeneratedPdfModel();
-			Path uploadPath = Paths.get(SERVER_PATH).toAbsolutePath().normalize();
-
-			Scanner s = new Scanner(html).useDelimiter("\\A");
-			String result = s.hasNext() ? s.next() : "";
+            Scanner s = new Scanner(html).useDelimiter("\\A");
+            String result = s.hasNext() ? s.next() : "";
 
 //            //check record exist
 //            GeneratedPdfModel temp = generatedPdfModelRepository.findTopByRefIdAndRefType(refId, refType).orElse(null);
 //            if (temp != null) {
 //                pdfModel.setVersion(temp.getVersion() + 1);
 //            }
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
-			if (!Files.exists(uploadPath)) {
-				Files.createDirectories(uploadPath);
-			}
+            finalPath = uploadPath.resolve(fileName);
 
-			finalPath = uploadPath.resolve(fileName);
+            Path temp = uploadPath.resolve("temp.pdf");
 
-			Path temp = uploadPath.resolve("temp.pdf");
+            String FONTS = "src/main/resources/font/BOOKOS.woff";
+            BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp.toString()));
+            ConverterProperties properties = new ConverterProperties();
+            FontProvider fontProvider = new DefaultFontProvider();
+            fontProvider.addDirectory(FONTS);
+            properties.setFontProvider(fontProvider);
 
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
-			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp.toString()));
-			ConverterProperties properties = new ConverterProperties();
-			FontProvider fontProvider = new DefaultFontProvider();
-			fontProvider.addDirectory(FONTS);
-			properties.setFontProvider(fontProvider);
+            String filePath = "C:\\Test\\temp.pdf";
+            String filePathDest = "C:\\Test\\temp1.pdf";
+            // dest - finalPath.toString()
+            // src - temp.toString()
+            // addPageNumberingAndWatermark(filePath, filePathDest, null, true, true);
 
-			String filePath = "C:\\Test\\temp.pdf";
-			String filePathDest = "C:\\Test\\temp1.pdf";
-			// dest - finalPath.toString()
-			// src - temp.toString()
-			// addPageNumberingAndWatermark(filePath, filePathDest, null, true, true);
+            HtmlConverter.convertToPdf(result, out, properties);
 
-			HtmlConverter.convertToPdf(result, out, properties);
+            log.info("PDF path:" + SERVER_PATH + "/" + fileName);
 
-			log.info("PDF path:" + SERVER_PATH + "/" + fileName);
+            String fileList = "";
+            // manipulatePdf(finalPath.toString());
+            // addPageNumberingAndWatermark(src, dest, null, true, true);
 
-			String fileList = "";
-			// manipulatePdf(finalPath.toString());
-			// addPageNumberingAndWatermark(src, dest, null, true, true);
-
-		} catch (Exception e) {
-			log.error("encountered exception", e);
-		}
-		return finalPath.toString();
-	}
+        } catch (Exception e) {
+            log.error("encountered exception", e);
+        }
+        return finalPath.toString();
+    }
 
 //	public static void addPageNumberingAndWatermark(String src, String dest, String base64Image, boolean showWaterMark,
 //			boolean showNumbering) throws IOException, DocumentException {
@@ -148,7 +174,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 //		PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(dest));
 //		PdfContentByte pagecontent;
 //		Rectangle pagesize;
-//// image watermark
+    //// image watermark
 //		Image img = getImageFile(base64Image);
 //		float w = img.getScaledWidth();
 //		float h = img.getScaledHeight();
@@ -355,324 +381,388 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 //	}
 
 	@Transactional
-	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
-			Long appInstId, Integer startPageNumber) {
-		try {
-			// Step 1: Check if the document is already published
-			Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
+    public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
+            Long appInstId, Integer startPageNumber) {
+        try {
 
-			if (Boolean.TRUE.equals(isPublished)) {
-				log.info("Document is already published for appInstId: {}", appInstId);
-				Map<String, Object> alreadyPublishedResponse = new HashMap<>();
-				alreadyPublishedResponse.put("statusCode", 409);
-				alreadyPublishedResponse.put("success", false);
-				alreadyPublishedResponse.put("message",
-						"The document for this application instance is already published.");
-				alreadyPublishedResponse.put("data", null);
-				return new ResponseEntity<>(alreadyPublishedResponse, HttpStatus.CONFLICT);
-			}
+            // Step 1: Check if the document is already published
+            Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
 
-			// Step 2: Fetch application details
-			ApplicationInstanceProjection appDetails = generatedPdfModelRepository
-					.findApplicationDetailsById(appInstId);
-			if (appDetails == null) {
-				throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
-			}
+            if (Boolean.TRUE.equals(isPublished)) {
+                log.info("Document is already published for appInstId: {}", appInstId);
+                Map<String, Object> alreadyPublishedResponse = new HashMap<>();
+                alreadyPublishedResponse.put("statusCode", 409);
+                alreadyPublishedResponse.put("success", false);
+                alreadyPublishedResponse.put("message",
+                        "The document for this application instance is already published.");
+                alreadyPublishedResponse.put("data", null);
+                return new ResponseEntity<>(alreadyPublishedResponse, HttpStatus.CONFLICT);
+            }
 
-			// Generate filename with the language suffix
-			String appNo = appDetails.getAppNo() + ".pdf";
-			String abbr = appDetails.getAbbr();
-			String okmPath = "/okm:root/" + abbr;
+            // Step 2: Fetch application details
+            ApplicationInstanceProjection appDetails = generatedPdfModelRepository
+                    .findApplicationDetailsById(appInstId);
 
-			// Step 2: Convert HTML content to a PDF
-			File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
+            if (appDetails == null) {
+                System.out.println("app Details::::::" + appDetails);
+                throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
+            }
+            // Generate filename with the language suffix
+            String appNo = appDetails.getAppNo() + ".pdf";
+            String abbr = appDetails.getAbbr();
+            String okmPath = "/okm:root/" + abbr;
 
-			// Step 3: Upload PDF to OpenKM
-			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
-					"ApplicationInstance", "1");
+            // Step 2: Convert HTML content to a PDF
+            File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
 
-			// Step 4: Update status in workflow history
-			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
-			System.out.println("### workflowHistoryId - " + workflowHistoryId);
-			// generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
+            // Step 3: Upload PDF to OpenKM
+            String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+                    "ApplicationInstance", "1");
 
-			cloneAndPublishWorkflowHistory(workflowHistoryId);
+            // Step 4: Update status in workflow history
+            Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
+            System.out.println("### workflowHistoryId - " + workflowHistoryId);
+            // generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
 
-			// Parse and validate the OpenKM response
-			ObjectMapper objectMapper = new ObjectMapper();
-			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
-			});
+            cloneAndPublishWorkflowHistory(workflowHistoryId);
 
-			if (responseMap == null || !responseMap.containsKey("data")) {
-				throw new IllegalStateException("Invalid response: 'data' key is missing.");
-			}
+            // Parse and validate the OpenKM response
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+            });
 
-			Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
-			if (data == null || !data.containsKey("documentUuid")) {
-				throw new IllegalStateException("Invalid response: 'documentUuid' is missing in 'data'.");
-			}
+            if (responseMap == null || !responseMap.containsKey("data")) {
+                throw new IllegalStateException("Invalid response: 'data' key is missing.");
+            }
 
-			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
+            Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 
-			// Update the appropriate column for published status
-			generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
+            // if (data == null || !data.containsKey("documentUuid")) {
+            //     throw new IllegalStateException("Invalid response: 'documentUuid' is missing in 'data'.");
+            // }
+          
+            if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
+                throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
+            }  
+            UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
+            // Update the appropriate column for published status
+            generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
 
-			// Add documentUuid to the responseMap
-			Map<String, Object> responseWithUuid = new HashMap<>();
-			responseWithUuid.put("documentUuid", documentUuid.toString());
+            // Add documentUuid to the responseMap
+            Map<String, Object> responseWithUuid = new HashMap<>();
+            responseWithUuid.put("documentUuid", documentUuid.toString());
 
-			// Return success response with UUID
-			return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
-		} catch (Exception e) {
-			log.error("Error publishing document for appInstId: " + appInstId, e);
-			Map<String, Object> errorResponse = new HashMap<>();
-			errorResponse.put("statusCode", 500);
-			errorResponse.put("success", false);
-			errorResponse.put("message",
-					"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
-			errorResponse.put("data", null);
-			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-		}
-	}
+            //changes for publish and unpublish entry
+            // ApplicationInstance instance = applicationInstanceRepository
+            //         .findById(appInstId).get();
+            ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
+    .orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
+            PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder()
+                    .lokSabhaNo(instance.getLokSabhaSession())
+                    .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+                    .rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
+                    .applicationId(instance.getApplicationId())
+                    .applicationNo(instance.getApplicationNo())
+                    .applicationName(abbr)
+                    .publishUuid(documentUuid)
+                    .publishUrl(openKmDownloadEndPoint+"/"+documentUuid)
+                    .publishStatus(true)
+                    .publishDate(LocalDate.now())
+                    .forDate(instance.getDocumentDate())
+                    .fileType("pdf")
+                    .build();
+            publishHistoryDto = addPublishHistoryEntry(publishHistoryDto);
 
-	@Transactional
-	public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
-		Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
+            // Return success response with UUID
+            return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Error publishing document for appInstId: " + appInstId, e);
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("statusCode", 500);
+            errorResponse.put("success", false);
+            errorResponse.put("message",
+                    "Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
+            errorResponse.put("data", null);
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
-		Long userId = utils.getUserIdFromAuthentication();
-		String username = workflowHistoryRepository.getUserName(userId);
+    @Transactional
+    public void cloneAndPublishWorkflowHistory(Long workflowHistoryId) {
+        Optional<WorkflowHistory> optionalHistory = workflowHistoryRepository.findById(workflowHistoryId);
 
-		if (optionalHistory.isEmpty()) {
-			throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
-		}
+        Long userId = utils.getUserIdFromAuthentication();
+        String username = workflowHistoryRepository.getUserName(userId);
 
-		WorkflowHistory originalHistory = optionalHistory.get();
+        if (optionalHistory.isEmpty()) {
+            throw new ResourceNotFoundException("WorkflowHistory not found for ID: " + workflowHistoryId);
+        }
 
-		// Clone the original entity
-		WorkflowHistory clonedHistory = new WorkflowHistory();
-		BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new
-																		// record
+        WorkflowHistory originalHistory = optionalHistory.get();
 
-		// Update the cloned history's status to "Published"
-		clonedHistory.setStatus("Published");
-		clonedHistory.setActionTakenOn(LocalDateTime.now());
-		clonedHistory.setActionTakenBy(userId);
-		clonedHistory.setActionTakenByName(username);
+        // Clone the original entity
+        WorkflowHistory clonedHistory = new WorkflowHistory();
+        BeanUtils.copyProperties(originalHistory, clonedHistory, "id"); // Exclude ID to create a new
+        // record
 
-		// Update the original record
-		originalHistory.setIsDeleted(true);
-		originalHistory.setIsActive(false);
+        // Update the cloned history's status to "Published"
+        clonedHistory.setStatus("Published");
+        clonedHistory.setActionTakenOn(LocalDateTime.now());
+        clonedHistory.setActionTakenBy(userId);
+        clonedHistory.setActionTakenByName(username);
 
-		// Save both records
-		workflowHistoryRepository.save(originalHistory);
-		workflowHistoryRepository.save(clonedHistory);
-	}
+        // Update the original record
+        originalHistory.setIsDeleted(true);
+        originalHistory.setIsActive(false);
 
-	public File generatePdfFromHtmlOpenKm(String html, String fileName) throws IOException {
-		try {
-			// Define the directory where the PDF will be stored
-			String SERVER_PATH = "C:\\Users\\LQ917SL\\TestPdf";
-			Path uploadPath = Paths.get(SERVER_PATH).toAbsolutePath().normalize();
+        // Save both records
+        workflowHistoryRepository.save(originalHistory);
+        workflowHistoryRepository.save(clonedHistory);
+    }
 
-			// Ensure the upload directory exists
-			if (!Files.exists(uploadPath)) {
-				Files.createDirectories(uploadPath);
-			}
+    public File generatePdfFromHtmlOpenKm(String html, String fileName) throws IOException {
+        try {
+            // Define the directory where the PDF will be stored
+            String SERVER_PATH = "C:\\Users\\LQ917SL\\TestPdf";
+            Path uploadPath = Paths.get(SERVER_PATH).toAbsolutePath().normalize();
 
-			// Define the final path for the PDF file
-			Path finalPath = uploadPath.resolve(fileName);
+            // Ensure the upload directory exists
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
 
-			// Convert HTML to a PDF
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
-			ConverterProperties properties = new ConverterProperties();
-			FontProvider fontProvider = new DefaultFontProvider();
-			fontProvider.addDirectory(FONTS);
-			properties.setFontProvider(fontProvider);
+            // Define the final path for the PDF file
+            Path finalPath = uploadPath.resolve(fileName);
 
-			try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(finalPath.toString()))) {
-				Scanner s = new Scanner(html).useDelimiter("\\A");
-				String result = s.hasNext() ? s.next() : "";
-				HtmlConverter.convertToPdf(result, out, properties);
-			}
+            // Convert HTML to a PDF
+            String FONTS = "src/main/resources/font/BOOKOS.woff";
+            ConverterProperties properties = new ConverterProperties();
+            FontProvider fontProvider = new DefaultFontProvider();
+            fontProvider.addDirectory(FONTS);
+            properties.setFontProvider(fontProvider);
 
-			log.info("PDF generated at path: " + finalPath.toString());
+            try (BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(finalPath.toString()))) {
+                Scanner s = new Scanner(html).useDelimiter("\\A");
+                String result = s.hasNext() ? s.next() : "";
+                HtmlConverter.convertToPdf(result, out, properties);
+            }
 
-			// Return the generated File
-			return finalPath.toFile();
-		} catch (Exception e) {
-			log.error("Error generating PDF", e);
-			throw new RuntimeException("Failed to generate PDF", e);
-		}
-	}
+            log.info("PDF generated at path: " + finalPath.toString());
 
-	public String uploadPdfToOpenKM(File pdfFile, String documentName, String folderPath, String masterId,
-			String referenceId, String referenceType, String applicationNo) {
-		try {
-			// The JWT token is automatically added by the RestTemplate interceptor
-			HttpHeaders headers = new HttpHeaders();
-			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            // Return the generated File
+            return finalPath.toFile();
+        } catch (Exception e) {
+            log.error("Error generating PDF", e);
+            throw new RuntimeException("Failed to generate PDF", e);
+        }
+    }
 
-			// Create a FileSystemResource from the file
-			FileSystemResource fileResource = new FileSystemResource(pdfFile);
+    public String uploadPdfToOpenKM(File pdfFile, String documentName, String folderPath, String masterId,
+            String referenceId, String referenceType, String applicationNo) {
+        try {
+            // The JWT token is automatically added by the RestTemplate interceptor
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-			// Prepare the body with all required fields
-			MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
-			body.add("folderPath", folderPath);
-			body.add("documentName", documentName);
-			body.add("file", fileResource);
-			body.add("masterId", masterId);
-			body.add("referenceId", referenceId);
-			body.add("referenceType", referenceType);
-			body.add("applicationNo", applicationNo);
+            // Create a FileSystemResource from the file
+            FileSystemResource fileResource = new FileSystemResource(pdfFile);
 
-			System.out.println("### body template - " + body.toString());
+            // Prepare the body with all required fields
+            MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+            body.add("folderPath", folderPath);
+            body.add("documentName", documentName);
+            body.add("file", fileResource);
+            body.add("masterId", masterId);
+            body.add("referenceId", referenceId);
+            body.add("referenceType", referenceType);
+            body.add("applicationNo", applicationNo);
 
-			// Prepare the request entity with headers and body
-			HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            System.out.println("### body template - " + body.toString());
 
-			// String openKmUrl = "https://dsptest.sansad.in/dms/openkm/document/upload";
+            // Prepare the request entity with headers and body
+            HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+            System.out.println("Request data for upload doc");
+            System.out.println(requestEntity);
+            // String openKmUrl = "https://dsptest.sansad.in/dms/openkm/document/upload";
+            ResponseEntity<String> response = restTemplate.exchange(openKmUploadEndpoint, HttpMethod.POST,
+                    requestEntity, String.class);
 
-			ResponseEntity<String> response = restTemplate.exchange(openKmUploadEndpoint, HttpMethod.POST,
-					requestEntity, String.class);
+            // Return the response body as a string
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            log.error("Error in HTTP request to OpenKM: ", e);
+            throw new RuntimeException("Error uploading document to OpenKM. HTTP Error: " + e.getMessage());
+        } catch (Exception e) {
+            log.error("Error uploading PDF to OpenKM", e);
+            throw new RuntimeException("Error uploading document to OpenKM.", e);
+        }
+    }
 
-			// Return the response body as a string
-			return response.getBody();
-		} catch (HttpClientErrorException e) {
-			log.error("Error in HTTP request to OpenKM: ", e);
-			throw new RuntimeException("Error uploading document to OpenKM. HTTP Error: " + e.getMessage());
-		} catch (Exception e) {
-			log.error("Error uploading PDF to OpenKM", e);
-			throw new RuntimeException("Error uploading document to OpenKM.", e);
-		}
-	}
+    public File convertHtmlToPdf(String htmlContentEn, String htmlContentHi, String fileName, Integer startPageNumber)
+            throws IOException {
+        // Create a temporary file for the final PDF
+        File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-	public File convertHtmlToPdf(String htmlContentEn, String htmlContentHi, String fileName, Integer startPageNumber)
-			throws IOException {
-		// Create a temporary file for the final PDF
-		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+        String fontDirectory = "src/main/resources/font/";
+        ConverterProperties converterProperties = new ConverterProperties();
+        FontProvider fontProvider = new DefaultFontProvider();
+        fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+        converterProperties.setFontProvider(fontProvider);
 
-		String fontDirectory = "src/main/resources/font/";
-		ConverterProperties converterProperties = new ConverterProperties();
-		FontProvider fontProvider = new DefaultFontProvider();
-		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-		converterProperties.setFontProvider(fontProvider);
+        // Generate the English content PDF in memory
+        ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
+        HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream);
 
-		// Generate the English content PDF in memory
-		ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
-		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream);
+        // Generate the Hindi content PDF in memory (if provided)
+        ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
+        if (htmlContentHi != null) {
+            HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream, converterProperties);
+        }
 
-		// Generate the Hindi content PDF in memory (if provided)
-		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
-		if (htmlContentHi != null) {
-			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream, converterProperties);
-		}
+        // Merge the PDFs into the final file
+        try (PdfWriter writer = new PdfWriter(tempPdfFile); PdfDocument finalPdfDocument = new PdfDocument(writer)) {
+            // Add English content
+            try (PdfDocument enPdfDocument = new PdfDocument(
+                    new PdfReader(new ByteArrayInputStream(enPdfOutputStream.toByteArray())))) {
+                enPdfDocument.copyPagesTo(1, enPdfDocument.getNumberOfPages(), finalPdfDocument);
+            }
 
-		// Merge the PDFs into the final file
-		try (PdfWriter writer = new PdfWriter(tempPdfFile); PdfDocument finalPdfDocument = new PdfDocument(writer)) {
-			// Add English content
-			try (PdfDocument enPdfDocument = new PdfDocument(
-					new PdfReader(new ByteArrayInputStream(enPdfOutputStream.toByteArray())))) {
-				enPdfDocument.copyPagesTo(1, enPdfDocument.getNumberOfPages(), finalPdfDocument);
-			}
+            // Add Hindi content if provided
+            if (htmlContentHi != null) {
+                try (PdfDocument hiPdfDocument = new PdfDocument(
+                        new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
+                    hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
+                }
+            }
+        }
 
-			// Add Hindi content if provided
-			if (htmlContentHi != null) {
-				try (PdfDocument hiPdfDocument = new PdfDocument(
-						new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
-					hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
-				}
-			}
-		}
+        // Add page numbers to the final PDF
+        byte[] numberedPdfBytes = addPageNumbersToPdf(java.nio.file.Files.readAllBytes(tempPdfFile.toPath()),
+                startPageNumber);
 
-		// Add page numbers to the final PDF
-		byte[] numberedPdfBytes = addPageNumbersToPdf(java.nio.file.Files.readAllBytes(tempPdfFile.toPath()),
-				startPageNumber);
+        // Write the numbered PDF bytes back to the temporary file
+        try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+            fileOutputStream.write(numberedPdfBytes);
+        }
 
-		// Write the numbered PDF bytes back to the temporary file
-		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
-			fileOutputStream.write(numberedPdfBytes);
-		}
+        // Return the temporary file
+        return tempPdfFile;
+    }
 
-		// Return the temporary file
-		return tempPdfFile;
-	}
+    public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
+        int startingPage = (startPageNumber != null) ? startPageNumber : 1;
 
-	public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
-		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
+        // Input and output streams for in-memory processing
+        ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfBytes);
+        ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
 
-		// Input and output streams for in-memory processing
-		ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfBytes);
-		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+        // Open the source PDF from the input stream
+        PdfReader reader = new PdfReader(pdfInputStream);
+        PdfWriter writer = new PdfWriter(pdfOutputStream);
+        PdfDocument pdfDoc = new PdfDocument(reader, writer);
 
-		// Open the source PDF from the input stream
-		PdfReader reader = new PdfReader(pdfInputStream);
-		PdfWriter writer = new PdfWriter(pdfOutputStream);
-		PdfDocument pdfDoc = new PdfDocument(reader, writer);
+        // Create a Document object
+        Document document = new Document(pdfDoc);
+        int totalPages = pdfDoc.getNumberOfPages();
 
-		// Create a Document object
-		Document document = new Document(pdfDoc);
-		int totalPages = pdfDoc.getNumberOfPages();
+        // Add page numbers at the center of each page's bottom margin
+        for (int i = 1; i <= totalPages; i++) {
+            document.showTextAligned(new Paragraph(String.valueOf(startingPage + i - 1)) // Page number with offset
+                    .setFontSize(12) // Set font size for better visibility
+                    .setBold(), // Make it bold if needed
+                    297.5f, // X position (center for A4 width: 595 / 2)
+                    15, // Y position (bottom margin)
+                    i, // Page number
+                    TextAlignment.CENTER, // Align text to the center horizontally
+                    VerticalAlignment.BOTTOM, // Align text to the bottom vertically
+                    0 // Rotation angle (0 for no rotation)
+            );
+        }
 
-		// Add page numbers at the center of each page's bottom margin
-		for (int i = 1; i <= totalPages; i++) {
-			document.showTextAligned(new Paragraph(String.valueOf(startingPage + i - 1)) // Page number with offset
-					.setFontSize(12) // Set font size for better visibility
-					.setBold(), // Make it bold if needed
-					297.5f, // X position (center for A4 width: 595 / 2)
-					15, // Y position (bottom margin)
-					i, // Page number
-					TextAlignment.CENTER, // Align text to the center horizontally
-					VerticalAlignment.BOTTOM, // Align text to the bottom vertically
-					0 // Rotation angle (0 for no rotation)
-			);
-		}
+        // Close the document
+        document.close();
 
-		// Close the document
-		document.close();
+        // Return the final PDF as a byte array
+        return pdfOutputStream.toByteArray();
+    }
 
-		// Return the final PDF as a byte array
-		return pdfOutputStream.toByteArray();
-	}
+    @Override
+    public byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException {
+        ByteArrayOutputStream mergedOutputStream = new ByteArrayOutputStream();
+        PdfDocument mergedPdf = new PdfDocument(new PdfWriter(mergedOutputStream));
 
-	@Override
-	public byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException {
-		ByteArrayOutputStream mergedOutputStream = new ByteArrayOutputStream();
-		PdfDocument mergedPdf = new PdfDocument(new PdfWriter(mergedOutputStream));
+        if (enPdfBytes != null && enPdfBytes.length > 0) {
+            PdfDocument enPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(enPdfBytes)));
+            enPdf.copyPagesTo(1, enPdf.getNumberOfPages(), mergedPdf);
+            enPdf.close();
+        }
 
-		if (enPdfBytes != null && enPdfBytes.length > 0) {
-			PdfDocument enPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(enPdfBytes)));
-			enPdf.copyPagesTo(1, enPdf.getNumberOfPages(), mergedPdf);
-			enPdf.close();
-		}
+        if (hiPdfBytes != null && hiPdfBytes.length > 0) {
+            PdfDocument hiPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(hiPdfBytes)));
+            hiPdf.copyPagesTo(1, hiPdf.getNumberOfPages(), mergedPdf);
+            hiPdf.close();
+        }
 
-		if (hiPdfBytes != null && hiPdfBytes.length > 0) {
-			PdfDocument hiPdf = new PdfDocument(new PdfReader(new ByteArrayInputStream(hiPdfBytes)));
-			hiPdf.copyPagesTo(1, hiPdf.getNumberOfPages(), mergedPdf);
-			hiPdf.close();
-		}
+        mergedPdf.close();
+        return mergedOutputStream.toByteArray();
+    }
 
-		mergedPdf.close();
-		return mergedOutputStream.toByteArray();
-	}
+    @Override
+    public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
+        if (htmlContent == null || htmlContent.isEmpty()) {
+            return;
+        }
 
-	@Override
-	public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
-		if (htmlContent == null || htmlContent.isEmpty()) {
-			return;
-		}
+        // Configure font provider for Hindi/Unicode support
+        String fontDirectory = "src/main/resources/font/";
+        ConverterProperties converterProperties = new ConverterProperties();
+        FontProvider fontProvider = new DefaultFontProvider();
+        fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+        converterProperties.setFontProvider(fontProvider);
+        // Generate PDF from HTML and write it to the output stream
+        PdfWriter writer = new PdfWriter(outputStream);
+        PdfDocument pdfDocument = new PdfDocument(writer);
+        HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+        pdfDocument.close();
+    }
 
-		// Configure font provider for Hindi/Unicode support
-		String fontDirectory = "src/main/resources/font/";
-		ConverterProperties converterProperties = new ConverterProperties();
-		FontProvider fontProvider = new DefaultFontProvider();
-		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-		converterProperties.setFontProvider(fontProvider);
+    public String getTokenFromRequest() {
+        System.out.println("Inside GetToken");
+        String authorizationHeader = httpRequest.getHeader("Authorization");
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7);
+        }
+        System.out.println("Done In  GetToken method");
+        return null;
+    }
+    private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
+        String url = draftedServiceUrl + "/publish-history/create";
+        // String url = "http://localhost:8087/workflow/publish-history/create";
 
-		// Generate PDF from HTML and write it to the output stream
-		PdfWriter writer = new PdfWriter(outputStream);
-		PdfDocument pdfDocument = new PdfDocument(writer);
-		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
-		pdfDocument.close();
-	}
+        System.out.println("########### url::" + url);
+        String token = getTokenFromRequest();
+        if (token == null) {
+            throw new IllegalStateException("Authorization token is missing");
+        }       
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        String sub = jwtUtil.extractUsername(token); // Retrieves "sub"
+        String houseAbbr = jwtUtil.extractHouseAbbr(token);
+        BaseUser userDetails=userResponsibility.findByUsername(sub);
+        Long officeId= generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
+        publishHistoryDto.setPublishByUser(userDetails.getFirstName()+" "+userDetails.getMiddleName()+" "+userDetails.getLastName());
+        publishHistoryDto.setOfficeId(officeId);
+        publishHistoryDto.setLocale("en");
+        // HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto, headers);
+        HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
+        try {
+            return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
+        } catch (Exception e) {
+            System.err.println("Error during API call: " + e.getMessage());
+            log.error("Error in Api Call", e);
+            throw e;
+        }
+    }
 
 }
