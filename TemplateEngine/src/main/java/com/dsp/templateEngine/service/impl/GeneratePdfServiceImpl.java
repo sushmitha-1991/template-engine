@@ -38,6 +38,7 @@ import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.WorkflowHistory;
+import com.dsp.templateEngine.exception.OpenKMException;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
@@ -62,6 +63,7 @@ import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -435,10 +437,13 @@ private MyUserRepository userResponsibility;
 
             Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 
-            if (data == null || !data.containsKey("documentUuid")) {
-                throw new IllegalStateException("Invalid response: 'documentUuid' is missing in 'data'.");
-            }
-
+            // if (data == null || !data.containsKey("documentUuid")) {
+            //     throw new IllegalStateException("Invalid response: 'documentUuid' is missing in 'data'.");
+            // }
+          
+            if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
+                throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
+            }  
             UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
             // Update the appropriate column for published status
             generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
@@ -448,9 +453,10 @@ private MyUserRepository userResponsibility;
             responseWithUuid.put("documentUuid", documentUuid.toString());
 
             //changes for publish and unpublish entry
-            ApplicationInstance instance = applicationInstanceRepository
-                    .findById(appInstId).get();
-                    
+            // ApplicationInstance instance = applicationInstanceRepository
+            //         .findById(appInstId).get();
+            ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
+    .orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
             PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder()
                     .lokSabhaNo(instance.getLokSabhaSession())
                     .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
