@@ -11,6 +11,8 @@ import java.util.Map;
 
 import org.springframework.http.ResponseEntity;
 
+import com.dsp.templateEngine.dto.PublishHistoryDTO;
+
 /**
  * 
  */
@@ -38,5 +40,11 @@ public interface GeneratePdfService {
 	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
 
 	byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException;
+
+	/**
+	 * @param dto
+	 * @return
+	 */
+	PublishHistoryDTO publishNotice(PublishHistoryDTO dto);
 
 }

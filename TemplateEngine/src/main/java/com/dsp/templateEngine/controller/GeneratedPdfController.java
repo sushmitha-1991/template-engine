@@ -11,10 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
 
@@ -133,6 +135,13 @@ public class GeneratedPdfController {
 		GenericResponse<Map<String, Object>> conflictGenericResponse = new GenericResponse<>(HttpStatus.OK.value(),
 				false, (responseBody != null) ? (String) responseBody.get("message") : "Conflict occurred.", null);
 		return new ResponseEntity<>(conflictGenericResponse, HttpStatus.OK);
+	}
+
+	@PostMapping("/balloting/publish")
+	public GenericResponse<PublishHistoryDTO> save(@RequestBody PublishHistoryDTO dto) {
+		pdfService.publishNotice(dto);
+
+		return new GenericResponse<>(200, true, "Balloting published successfully", null);
 	}
 
 }

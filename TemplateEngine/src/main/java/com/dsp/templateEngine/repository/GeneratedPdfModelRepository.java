@@ -65,9 +65,21 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 	@Query(value = " select MAX(wh.id) from workflow.workflow_history wh where wh.application_instance_id = :appInstId", nativeQuery = true)
 	Long getWorkflowIdByAppInstanceId(Long appInstId);
 
-
 	@Query(value = " select ur.office_id from authentication.user_roles ur where user_id =:userId limit 1", nativeQuery = true)
-	Long getOfficeIdUsingUserId(@Param("userId")Long userId);
+	Long getOfficeIdUsingUserId(@Param("userId") Long userId);
 
+	/**
+	 * @param applicationId
+	 * @return
+	 */
+	@Query(value = " select a.abbr from master.applications a where a.id =:applicationId ", nativeQuery = true)
+	String findAbbrByApplicationId(Long applicationId);
+
+	/**
+	 * @param applicationId
+	 * @return
+	 */
+	@Query(value = " select a.dsp1_document_name from master.applications a where a.id =:applicationId ", nativeQuery = true)
+	String findDSPAppNameByApplicationId(Long applicationId);
 
 }
