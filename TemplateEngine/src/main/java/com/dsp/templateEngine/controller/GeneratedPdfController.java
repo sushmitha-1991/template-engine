@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -99,12 +100,14 @@ public class GeneratedPdfController {
 	@PostMapping("/publish-document")
 	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam Long appInstId,
-			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber) {
+			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
+			@RequestParam(required = false) UUID uploadedDoc) {
+
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
 
 		try {
 			ResponseEntity<Map<String, Object>> response = pdfService.publishDocument(htmlContentEn, htmlContentHi,
-					appInstId, startPageNumber);
+					appInstId, startPageNumber, uploadedDoc);
 
 			if (response.getStatusCode() == HttpStatus.CONFLICT) {
 				return handleConflict(response);
