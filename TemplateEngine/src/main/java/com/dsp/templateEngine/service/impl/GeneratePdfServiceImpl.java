@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -386,102 +385,110 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Transactional
 	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
-			Long appInstId, Integer startPageNumber) {
+			Long appInstId, Integer startPageNumber, UUID uploadedDoc) {
 		try {
-
-			// Step 1: Check if the document is already published
-			Boolean isPublished = generatedPdfModelRepository.isApplicationInstancePublished(appInstId);
-
-			if (Boolean.TRUE.equals(isPublished)) {
-				log.info("Document is already published for appInstId: {}", appInstId);
-				Map<String, Object> alreadyPublishedResponse = new HashMap<>();
-				alreadyPublishedResponse.put("statusCode", 409);
-				alreadyPublishedResponse.put("success", false);
-				alreadyPublishedResponse.put("message",
-						"The document for this application instance is already published.");
-				alreadyPublishedResponse.put("data", null);
-				return new ResponseEntity<>(alreadyPublishedResponse, HttpStatus.CONFLICT);
+			if (isAlreadyPublished(appInstId)) {
+				return buildAlreadyPublishedResponse(appInstId);
 			}
 
-			// Step 2: Fetch application details
-			ApplicationInstanceProjection appDetails = generatedPdfModelRepository
-					.findApplicationDetailsById(appInstId);
+			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
 
-			if (appDetails == null) {
-				System.out.println("app Details::::::" + appDetails);
-				throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
-			}
-			// Generate filename with the language suffix
-			String appNo = appDetails.getAppNo() + ".pdf";
-			String abbr = appDetails.getAbbr();
-			String okmPath = "/okm:root/" + abbr;
+			UUID documentUuid = uploadedDoc != null ? uploadedDoc
+					: generateAndUploadPdf(htmlContentEn, htmlContentHi, startPageNumber, appDetails, appInstId);
 
-			// Step 2: Convert HTML content to a PDF
-			File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
+			updatePublishedStatus(appInstId, documentUuid);
+			updateWorkflowHistory(appInstId);
+			savePublishHistory(appInstId, appDetails, documentUuid);
 
-			// Step 3: Upload PDF to OpenKM
-			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
-					"ApplicationInstance", "1");
-
-			// Step 4: Update status in workflow history
-			Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
-			System.out.println("### workflowHistoryId - " + workflowHistoryId);
-			// generatedPdfModelRepository.updateStatusInWorkflowHistory(workflowHistoryId);
-
-			cloneAndPublishWorkflowHistory(workflowHistoryId);
-
-			// Parse and validate the OpenKM response
-			ObjectMapper objectMapper = new ObjectMapper();
-			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
-			});
-
-			if (responseMap == null || !responseMap.containsKey("data")) {
-				throw new IllegalStateException("Invalid response: 'data' key is missing.");
-			}
-
-			Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
-
-			// if (data == null || !data.containsKey("documentUuid")) {
-			// throw new IllegalStateException("Invalid response: 'documentUuid' is missing
-			// in 'data'.");
-			// }
-
-			if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
-				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
-			}
-			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
-			// Update the appropriate column for published status
-			generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
-
-			// Add documentUuid to the responseMap
-			Map<String, Object> responseWithUuid = new HashMap<>();
-			responseWithUuid.put("documentUuid", documentUuid.toString());
-
-			// changes for publish and unpublish entry
-			// ApplicationInstance instance = applicationInstanceRepository
-			// .findById(appInstId).get();
-			ApplicationInstance instance = applicationInstanceRepository.findById(appInstId).orElseThrow(
-					() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
-			PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
-					.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-					.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
-					.applicationNo(instance.getApplicationNo()).applicationName(abbr).publishUuid(documentUuid)
-					.publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
-					.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
-			publishHistoryDto = addPublishHistoryEntry(publishHistoryDto);
-
-			// Return success response with UUID
-			return new ResponseEntity<>(responseWithUuid, HttpStatus.OK);
+			return buildSuccessResponse(documentUuid);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
-			Map<String, Object> errorResponse = new HashMap<>();
-			errorResponse.put("statusCode", 500);
-			errorResponse.put("success", false);
-			errorResponse.put("message",
-					"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage());
-			errorResponse.put("data", null);
-			return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+			return buildErrorResponse(appInstId, e);
 		}
+	}
+
+	private boolean isAlreadyPublished(Long appInstId) {
+		return Boolean.TRUE.equals(generatedPdfModelRepository.isApplicationInstancePublished(appInstId));
+	}
+
+	private ResponseEntity<Map<String, Object>> buildAlreadyPublishedResponse(Long appInstId) {
+		log.info("Document is already published for appInstId: {}", appInstId);
+		Map<String, Object> response = Map.of("statusCode", 409, "success", false, "message",
+				"The document for this application instance is already published.", "data", null);
+		return new ResponseEntity<>(response, HttpStatus.CONFLICT);
+	}
+
+	private ApplicationInstanceProjection getAppDetails(Long appInstId) {
+		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
+		if (details == null) {
+			throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
+		}
+		return details;
+	}
+
+	private UUID generateAndUploadPdf(String htmlContentEn, String htmlContentHi, Integer startPageNumber,
+			ApplicationInstanceProjection appDetails, Long appInstId) throws Exception {
+		String appNo = appDetails.getAppNo() + ".pdf";
+		String okmPath = "/okm:root/" + appDetails.getAbbr();
+
+		File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
+
+		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+				"ApplicationInstance", "1");
+
+		return extractUuidFromOpenKmResponse(uploadResult);
+	}
+
+	private UUID extractUuidFromOpenKmResponse(String uploadResult) throws Exception {
+		ObjectMapper objectMapper = new ObjectMapper();
+		Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+		});
+
+		if (responseMap == null || !responseMap.containsKey("data")) {
+			throw new IllegalStateException("Invalid response: 'data' key is missing.");
+		}
+
+		Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
+
+		if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
+			throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
+		}
+
+		return UUID.fromString(data.get("documentUuid").toString());
+	}
+
+	private void updatePublishedStatus(Long appInstId, UUID documentUuid) {
+		generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
+	}
+
+	private void updateWorkflowHistory(Long appInstId) {
+		Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
+		cloneAndPublishWorkflowHistory(workflowHistoryId);
+	}
+
+	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
+		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
+				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
+
+		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
+				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
+				.applicationNo(instance.getApplicationNo()).applicationName(appDetails.getAbbr())
+				.publishUuid(documentUuid).publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
+				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
+
+		addPublishHistoryEntry(publishHistoryDto);
+	}
+
+	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID documentUuid) {
+		Map<String, Object> response = Map.of("documentUuid", documentUuid.toString());
+		return new ResponseEntity<>(response, HttpStatus.OK);
+	}
+
+	private ResponseEntity<Map<String, Object>> buildErrorResponse(Long appInstId, Exception e) {
+		Map<String, Object> error = Map.of("statusCode", 500, "success", false, "message",
+				"Failed to publish document for appInstId: " + appInstId + ". Error: " + e.getMessage(), "data", null);
+		return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
 	@Transactional

@@ -8,6 +8,7 @@ package com.dsp.templateEngine.service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 
@@ -29,11 +30,12 @@ public interface GeneratePdfService {
 	/**
 	 * @param html
 	 * @param startPageNumber
+	 * @param uploadedDoc 
 	 * @param fileName
 	 * @return
 	 */
 	ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi, Long appInstId,
-			Integer startPageNumber);
+			Integer startPageNumber, UUID uploadedDoc);
 
 	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;
 
