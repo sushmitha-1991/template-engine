@@ -13,4 +13,5 @@ public interface ApplicationInstanceProjection {
 	String getAppNo();
 
 	String getAbbr();
+	String getAppName();
 }

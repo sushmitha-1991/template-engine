@@ -469,13 +469,16 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
-
+		String applicationName=appDetails.getAppName();
+		if(applicationName.isBlank())
+		applicationName=appDetails.getAbbr();
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
-				.applicationNo(instance.getApplicationNo()).applicationName(appDetails.getAbbr())
+				.applicationNo(instance.getApplicationNo()).applicationName(applicationName)
 				.publishUuid(documentUuid).publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
-				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
+				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf")
+				.build();
 
 		addPublishHistoryEntry(publishHistoryDto);
 	}
