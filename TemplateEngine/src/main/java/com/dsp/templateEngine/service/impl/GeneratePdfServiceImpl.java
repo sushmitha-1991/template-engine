@@ -16,6 +16,7 @@ import java.util.Random;
 import java.util.Scanner;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -470,7 +471,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
 		String applicationName=appDetails.getAppName();
-		if(applicationName.isBlank())
+		if(StringUtils.isBlank(applicationName))
 		applicationName=appDetails.getAbbr();
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
