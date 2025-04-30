@@ -1,6 +1,8 @@
 package com.dsp.templateEngine.dto;
 
 import java.time.LocalDate;
+import java.time.Month;
+import java.time.Year;
 import java.util.UUID;
 
 import lombok.AllArgsConstructor;
@@ -39,5 +41,6 @@ public class PublishHistoryDTO {
 
 	private Long officeId;
 	private String htmlContent;
-
+	private int year;
+	private int month;
 }
