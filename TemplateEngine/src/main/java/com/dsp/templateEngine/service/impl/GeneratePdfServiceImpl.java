@@ -478,7 +478,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName)
 				.publishUuid(documentUuid).publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
-				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf")
+				.publishDate(LocalDate.now())
+				.forDate(instance.getDocumentDate())
+				.month((instance.getDocumentDate()).getMonthValue())
+				.year((instance.getDocumentDate()).getYear())
+				.fileType("pdf")
 				.build();
 
 		addPublishHistoryEntry(publishHistoryDto);
