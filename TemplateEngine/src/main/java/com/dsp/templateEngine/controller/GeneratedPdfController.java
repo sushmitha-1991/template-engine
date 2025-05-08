@@ -146,5 +146,30 @@ public class GeneratedPdfController {
 
 		return new GenericResponse<>(200, true, "Balloting published successfully", null);
 	}
+	
+	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<?> uploadHtmlEnglish(
+	        @RequestParam String htmlContentEn,
+	        @RequestParam int startingPageNo,
+	        @RequestParam Long applicationId) {
+
+	    try {
+	        UUID documentUuid = pdfService.uploadEnglishHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId);
+
+	        Map<String, Object> response = new HashMap<>();
+	        response.put("documentUuid", documentUuid.toString());
+
+	        return ResponseEntity.ok(response);
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        Map<String, Object> error = new HashMap<>();
+	        error.put("statusCode", 500);
+	        error.put("success", false);
+	        error.put("message", "Failed to upload PDF: " + e.getMessage());
+	        error.put("documentUuid", null);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+	    }
+	}
 
 }

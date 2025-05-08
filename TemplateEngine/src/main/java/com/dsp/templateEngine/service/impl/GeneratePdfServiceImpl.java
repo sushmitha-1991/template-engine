@@ -470,20 +470,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
-		String applicationName=appDetails.getAppName();
-		if(StringUtils.isBlank(applicationName))
-		applicationName=appDetails.getAbbr();
+		String applicationName = appDetails.getAppName();
+		if (StringUtils.isBlank(applicationName))
+			applicationName = appDetails.getAbbr();
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
-				.applicationNo(instance.getApplicationNo()).applicationName(applicationName)
-				.publishUuid(documentUuid).publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
-				.publishDate(LocalDate.now())
-				.forDate(instance.getDocumentDate())
-				.month((instance.getDocumentDate()).getMonthValue())
-				.year((instance.getDocumentDate()).getYear())
-				.fileType("pdf")
-				.build();
+				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
+				.publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
+				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate())
+				.month((instance.getDocumentDate()).getMonthValue()).year((instance.getDocumentDate()).getYear())
+				.fileType("pdf").build();
 
 		addPublishHistoryEntry(publishHistoryDto);
 	}
@@ -846,6 +843,50 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} catch (IOException e) {
 			e.printStackTrace(); // Log the exception
 			throw new RuntimeException("Error while processing notice publishing", e);
+		}
+	}
+
+	public UUID uploadEnglishHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId) {
+		try {
+//			// Step 1: Fetch application abbreviation
+//			String abbr = generatedPdfModelRepository.findAbbrByApplicationId(applicationId);
+//			if (abbr == null) {
+//				throw new IllegalArgumentException("Application instance not found for ID: " + applicationId);
+//			}
+
+			// Step 2: Generate a random file name
+			String fileName = "BallotingEn_" + UUID.randomUUID() + ".pdf";
+//			String okmPath = "/okm:root/" + abbr;
+			String okmPath = "/okm:root/";
+
+			// Step 3: Convert HTML content to PDF
+			File pdfFile = convertHtmlToPdf(htmlContentEn, null, fileName, startingPageNo);
+			if (pdfFile == null || !pdfFile.exists()) {
+				throw new IOException("Failed to generate PDF from HTML content.");
+			}
+
+			// Step 4: Upload to OpenKM
+			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", applicationId.toString(),
+					"ApplicationInstance", "1");
+
+			ObjectMapper objectMapper = new ObjectMapper();
+			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+			});
+			if (responseMap == null || !responseMap.containsKey("data")) {
+				throw new IllegalStateException("Invalid response: 'data' key is missing.");
+			}
+
+			Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
+			if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
+				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
+			}
+
+			// Step 5: Return the document UUID
+			return UUID.fromString(data.get("documentUuid").toString());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error while processing HTML to PDF upload", e);
 		}
 	}
 
