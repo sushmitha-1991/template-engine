@@ -619,7 +619,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		converterProperties.setFontProvider(fontProvider);
 		// Generate the English content PDF in memory
 		ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
-		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream);
+		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream, converterProperties);
 
 		// Generate the Hindi content PDF in memory (if provided)
 		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
@@ -855,7 +855,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 //			}
 
 			// Step 2: Generate a random file name
-			String fileName = "BallotingEn_" + UUID.randomUUID() + ".pdf";
+			String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
 //			String okmPath = "/okm:root/" + abbr;
 			String okmPath = "/okm:root/";
 
