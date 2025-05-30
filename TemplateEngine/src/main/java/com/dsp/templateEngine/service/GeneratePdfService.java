@@ -49,4 +49,12 @@ public interface GeneratePdfService {
 	 */
 	PublishHistoryDTO publishNotice(PublishHistoryDTO dto);
 
+	/**
+	 * @param htmlContentEn
+	 * @param startingPageNo
+	 * @param applicationId
+	 * @return
+	 */
+	UUID uploadEnglishHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId);
+
 }
