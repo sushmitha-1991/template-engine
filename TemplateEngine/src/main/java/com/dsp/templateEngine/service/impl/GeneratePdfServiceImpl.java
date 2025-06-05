@@ -57,6 +57,8 @@ import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
 import com.itextpdf.io.source.ByteArrayOutputStream;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -660,37 +662,30 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
 		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
 
-		// Input and output streams for in-memory processing
 		ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfBytes);
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
 
-		// Open the source PDF from the input stream
 		PdfReader reader = new PdfReader(pdfInputStream);
 		PdfWriter writer = new PdfWriter(pdfOutputStream);
 		PdfDocument pdfDoc = new PdfDocument(reader, writer);
-
-		// Create a Document object
 		Document document = new Document(pdfDoc);
 		int totalPages = pdfDoc.getNumberOfPages();
 
-		// Add page numbers at the center of each page's bottom margin
+		// Load Tahoma font from resources or file system
+		// Replace this path with actual location if needed
+		PdfFont tahomaFont = PdfFontFactory.createFont("src/main/resources/font/tahoma.ttf");
+
 		for (int i = 1; i <= totalPages; i++) {
-			document.showTextAligned(new Paragraph(String.valueOf(startingPage + i - 1)) // Page number with offset
-					.setFontSize(12) // Set font size for better visibility
-					.setBold(), // Make it bold if needed
-					297.5f, // X position (center for A4 width: 595 / 2)
-					15, // Y position (bottom margin)
-					i, // Page number
-					TextAlignment.CENTER, // Align text to the center horizontally
-					VerticalAlignment.BOTTOM, // Align text to the bottom vertically
-					0 // Rotation angle (0 for no rotation)
-			);
+			document.showTextAligned(
+					new Paragraph(String.valueOf(startingPage + i - 1)).setFontSize(10).setFont(tahomaFont), 297.5f, // X
+																														// position
+																														// (A4
+																														// center)
+					15, // Y position (bottom)
+					i, TextAlignment.CENTER, VerticalAlignment.BOTTOM, 0);
 		}
 
-		// Close the document
 		document.close();
-
-		// Return the final PDF as a byte array
 		return pdfOutputStream.toByteArray();
 	}
 
@@ -767,6 +762,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto,
 		// headers);
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
+		System.out.println("### entity- " + entity);
 		try {
 			return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
 		} catch (Exception e) {
