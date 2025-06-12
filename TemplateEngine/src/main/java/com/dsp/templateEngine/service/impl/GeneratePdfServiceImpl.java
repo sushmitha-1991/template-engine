@@ -93,6 +93,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Value("${openKm.service.download.endpoint}")
 	private String openKmDownloadEndPoint;
+	@Value("${openKm.dsp1.download.endpoint}")
+	private String openKmDsp1DownloadEndPoint;
+	//openKm.dsp1.download.endpoint
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -433,7 +436,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 
 		File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
-
+		System.out.println("okm path "+okmPath);
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -477,7 +480,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
-				.publishUrl(openKmDownloadEndPoint + "/" + documentUuid).publishStatus(true)
+				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate())
 				.month((instance.getDocumentDate()).getMonthValue()).year((instance.getDocumentDate()).getYear())
 				.fileType("pdf").build();
@@ -572,10 +575,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// The JWT token is automatically added by the RestTemplate interceptor
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-
 			// Create a FileSystemResource from the file
 			FileSystemResource fileResource = new FileSystemResource(pdfFile);
-
 			// Prepare the body with all required fields
 			MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 			body.add("folderPath", folderPath);
@@ -759,6 +760,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String sub = jwtUtil.extractUsername(token); // Retrieves "sub"
 		String houseAbbr = jwtUtil.extractHouseAbbr(token);
 		BaseUser userDetails = userResponsibility.findByUsername(sub);
+		System.out.println("user Data "+userDetails);
 		Long officeId = generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
 		publishHistoryDto.setPublishByUser(
 				userDetails.getFirstName() + " " + userDetails.getMiddleName() + " " + userDetails.getLastName());
@@ -826,7 +828,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
 			System.out.println("### documentUuid - " + documentUuid);
 			// Assuming the method should return some DTO after processing
-			String publishedUrl = openKmDownloadEndPoint + "/" + documentUuid;
+			String publishedUrl = openKmDsp1DownloadEndPoint + "/" + documentUuid;
 			System.out.println("### publishedUrl - " + publishedUrl);
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
@@ -837,9 +839,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).build();
 			entry = publishRepository.save(entry);
-
 			return dto;
-
 		} catch (IOException e) {
 			e.printStackTrace(); // Log the exception
 			throw new RuntimeException("Error while processing notice publishing", e);
