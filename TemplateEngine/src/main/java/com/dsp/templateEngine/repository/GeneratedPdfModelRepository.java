@@ -9,7 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
-import com.dsp.templateEngine.model.GeneratedPdfModel;
+import com.dsp.templateEngine.entity.GeneratedPdfModel;
 
 import jakarta.transaction.Transactional;
 

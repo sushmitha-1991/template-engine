@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
@@ -40,6 +41,8 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.entity.WorkflowHistory;
+import com.dsp.templateEngine.entity.nelss.NewEventsLss;
+import com.dsp.templateEngine.entity.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.exception.OpenKMException;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
@@ -48,11 +51,14 @@ import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
+import com.dsp.templateEngine.repository.nelss.NewEventsLssRepository;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.service.NewEventsLssService;
 import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.icu.text.RuleBasedNumberFormat;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
@@ -86,9 +92,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private ApplicationInstanceRepository applicationInstanceRepository;
 	@Autowired
 	private HttpServletRequest httpRequest;
-
+	@Autowired
+  private  NewEventsLssService nelssService;
 	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
+		@Autowired
+	private NewEventsLssRepository newEventsLssRepository;
 
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
@@ -401,7 +410,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			UUID documentUuid = uploadedDoc != null ? uploadedDoc
 					: generateAndUploadPdf(htmlContentEn, htmlContentHi, startPageNumber, appDetails, appInstId);
-
+System.out.println("uuid "+documentUuid);
 			updatePublishedStatus(appInstId, documentUuid);
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuid);
@@ -473,6 +482,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
+		String token = getTokenFromRequest();
+		if (token == null) {
+			throw new IllegalStateException("Authorization token is missing");
+		}
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
 		String applicationName = appDetails.getAppName();
@@ -486,8 +499,121 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate())
 				.month((instance.getDocumentDate()).getMonthValue()).year((instance.getDocumentDate()).getYear())
 				.fileType("pdf").build();
+		if((appDetails.getAbbr()).equals("SN") || (appDetails.getAbbr()).equals("PN"))
+		{
+			Integer sesNo=romanToInt(publishHistoryDto.getLokSabhaSessionNo());
+			RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+			String ordinalLs=ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
+			String ordinal = ordinalFmt.format(sesNo);
+			String ordinalRs = ordinalFmt.format(
+				Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
+			String ordNo=ordinalToWord(ordinal);
+			String ordNoRs=ordinalToWord(ordinalRs);
+			String ordNoLs=ordinalToWord(ordinalLs);
+				String houseAbbr = jwtUtil.extractHouseAbbr(token);
+			String eTitle="";
+			System.out.println("  inside SN or PN");
+			if(appDetails.getAbbr().equals("SN"))
+			{
+				if(houseAbbr.equals("LS"))
+				{
+					eTitle+="Summoning of "+ordinal+" Session of "+ordNoLs+" Lok Sabha.";
+				}
+				else if(houseAbbr.equals("RS"))
+				{
+					eTitle+="Prorogation of "+ordinalRs+" Session of Rajya Sabha.";
 
+				}
+			}
+			else if(appDetails.getAbbr().equals("PN"))
+			{
+				if(houseAbbr.equals("LS"))
+				{
+					eTitle+="Prorogation of "+ordNo+" Session of "+ordNoLs+" Lok Sabha.";
+				}
+				else if(houseAbbr.equals("RS"))
+				{
+					eTitle+="Prorogation of "+ordNoRs+" Session of Rajya Sabha.";
+
+				}
+			}
+			NewEventsLssDTO nELss=NewEventsLssDTO.builder()
+			.isActive(1)
+			.edate(publishHistoryDto.getForDate())
+			.eurl(publishHistoryDto.getPublishUrl())
+			.etitle(eTitle)
+			.build();
+			NewEventsLss  lss=nelssService.saveNewEvent(nELss);
+			// addDsp1Table(nELss);
+			System.out.println(lss);
+		}
+		else
+		{
 		addPublishHistoryEntry(publishHistoryDto);
+		}
+	}
+		public static String getOrdinalSuffix(long value) {
+		if (value >= 11 && value <= 13) {
+			return value + "TH";
+		}
+		switch ((int) (value % 10)) {
+			case 1:
+				return value + "ST";
+			case 2:
+				return value + "ND";
+			case 3:
+				return value + "RD";
+			default:
+				return value + "TH";
+		}
+	}
+
+	public static String ordinalToWord(String ordinal) {
+		switch (ordinal) {
+			case "1ST":
+				return "FITRST";
+			case "2ND":
+				return "SECOND";
+			case "3RD":
+				return "THIRD";
+			case "4TH":
+				return "FOUTH";
+			case "5TH":
+				return "FIFTH";
+
+			case "6TH":
+				return "SIXTH";
+			case "7TH":
+				return "SEVENTH";
+			case "8TH":
+				return "EIGHTH";
+			case "9TH":
+				return "NINTH";
+			case "10TH":
+				return "TENTH";
+			// Add more as needed
+			default:
+				return ordinal;
+		}
+	}
+
+public Integer romanToInt(String roman) {
+		Map<Character, Integer> romanMap = Map.of('I', 1, 'V', 5, 'X', 10, 'L', 50, 'C', 100, 'D', 500, 'M', 1000);
+
+		int result = 0;
+		int prev = 0;
+
+		for (int i = roman.length() - 1; i >= 0; i--) {
+			int current = romanMap.getOrDefault(roman.charAt(i), 0);
+			if (current < prev) {
+				result -= current;
+			} else {
+				result += current;
+			}
+			prev = current;
+		}
+
+		return result;
 	}
 
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID documentUuid) {
@@ -626,7 +752,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Generate the Hindi content PDF in memory (if provided)
 		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
-		if (htmlContentHi != null) {
+		if (!(StringUtils.isBlank(htmlContentHi))) {
 			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream, converterProperties);
 		}
 
@@ -639,7 +765,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			// Add Hindi content if provided
-			if (htmlContentHi != null) {
+			if (!(StringUtils.isBlank(htmlContentHi))){
 				try (PdfDocument hiPdfDocument = new PdfDocument(
 						new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
 					hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
@@ -648,7 +774,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 
 		// Add page numbers to the final PDF
-		byte[] numberedPdfBytes = addPageNumbersToPdf(java.nio.file.Files.readAllBytes(tempPdfFile.toPath()),
+		byte[] numberedPdfBytes = addPageNumbersToPdf(Files.readAllBytes(tempPdfFile.toPath()),
 				startPageNumber);
 
 		// Write the numbered PDF bytes back to the temporary file
@@ -739,7 +865,37 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		System.out.println("Done In  GetToken method");
 		return null;
 	}
+// @Override
+// 	public NewEventsLssDTO addDsp1Table(NewEventsLssDTO lssDTO)
+// 	{
+// 		try{
 
+// 		NewEventsLss lss=NewEventsLss.builder()
+// 			.active(lssDTO.getActive())
+// 			.date(lssDTO.getDate())
+// 			.eUrl(lssDTO.getEUrl())
+// 			.eTitle(lssDTO.getETitle())
+// 			.build();
+// 		lss=newEventsLssRepository.save(lss);
+// 		System.out.println(lss);
+// 		return mapToDTO(lss);
+// 		}
+// 		catch(Exception e)
+// 		{
+// 			System.out.println("Exception "+e);
+// 			return null;
+// 		}
+// 	}
+
+// 	private NewEventsLssDTO mapToDTO(NewEventsLss lss)
+// 	{
+// 		return NewEventsLssDTO.builder()
+// 		.date(lss.getDate())
+// 		.active(lss.getActive())
+// 		.eTitle(lss.getETitle())
+// 		.eUrl(lss.getEUrl())
+// 		.build();
+// 	}
 	private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
 		String url = draftedServiceUrl + "/publish-history/create";
 		// String url = "http://localhost:8087/workflow/publish-history/create";

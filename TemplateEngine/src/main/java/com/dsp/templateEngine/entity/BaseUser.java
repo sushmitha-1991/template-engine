@@ -31,7 +31,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Builder
-@Table(schema = "authentication") // Updated table name to match entity
+@Table(schema = "authentication",name="base_user") // Updated table name to match entity
 public class BaseUser extends Auditable implements UserDetails {
 
 	@Id
