@@ -93,10 +93,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private HttpServletRequest httpRequest;
 	@Autowired
-	private NewEventsLssService nelssService;
+  private  NewEventsLssService nelssService;
 	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
-	@Autowired
+		@Autowired
 	private NewEventsLssRepository newEventsLssRepository;
 
 	@Value("${openKm.service.upload.endpoint}")
@@ -106,7 +106,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private String openKmDownloadEndPoint;
 	@Value("${openKm.dsp1.download.endpoint}")
 	private String openKmDsp1DownloadEndPoint;
-	// openKm.dsp1.download.endpoint
+	//openKm.dsp1.download.endpoint
 
 	@Autowired
 	private RestTemplate restTemplate;
@@ -125,6 +125,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
+	
+	private final String LOK_SABHA = "LS";
+	
+	private final String RAJYA_SABHA = "RS";
+	
+	private final String SUMMON = "SN";
+	
+	private final String PROROGATION = "PN";
+	
 
 //    public static void main(String[] args) throws IOException {
 //        GeneratePdfService service = new GeneratePdfService();
@@ -407,9 +416,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+
 			UUID documentUuid = uploadedDoc != null ? uploadedDoc
 					: generateAndUploadPdf(htmlContentEn, htmlContentHi, startPageNumber, appDetails, appInstId);
-			System.out.println("uuid " + documentUuid);
+System.out.println("uuid "+documentUuid);
 			updatePublishedStatus(appInstId, documentUuid);
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuid);
@@ -446,7 +456,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 
 		File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
-		System.out.println("okm path " + okmPath);
+		System.out.println("okm path "+okmPath);
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -480,121 +490,222 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		cloneAndPublishWorkflowHistory(workflowHistoryId);
 	}
 
+	/**
+	 * 
+	 * @param appInstId
+	 * @param appDetails
+	 * @param documentUuid
+	 */
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
+		
 		String token = getTokenFromRequest();
+		
 		if (token == null) {
 			throw new IllegalStateException("Authorization token is missing");
 		}
+		
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
+		
 		String applicationName = appDetails.getAppName();
+		
 		if (StringUtils.isBlank(applicationName))
 			applicationName = appDetails.getAbbr();
+		
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
 				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate())
-				.month((instance.getDocumentDate()).getMonthValue()).year((instance.getDocumentDate()).getYear())
 				.fileType("pdf").build();
-		if ((appDetails.getAbbr()).equals("SN") || (appDetails.getAbbr()).equals("PN")) {
-			Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
-			RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-
-			String ordinal = null;
-			String ordinalLs = null;
-			String ordNo = null;
-			String ordNoLs = null;
-			String ordinalRs = null;
-			String ordNoRs = null;
-			String houseAbbr = jwtUtil.extractHouseAbbr(token);
-			String eTitle = "";
-
-			if (publishHistoryDto.getLokSabhaNo() != null) {
-				ordinalLs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
-				ordinal = ordinalFmt.format(sesNo);
-				ordNo = ordinalToWord(ordinal);
-				ordNoLs = ordinalToWord(ordinalLs);
-			}
-
-			if (publishHistoryDto.getRajyaSabhaSessionNo() != null) {
-				ordinalRs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
-				ordNoRs = ordinalToWord(ordinalRs);
-			}
-
-			System.out.println("  inside SN or PN");
-
-			if (appDetails.getAbbr().equals("SN")) {
-				if (houseAbbr.equals("LS")) {
-					eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				} else if (houseAbbr.equals("RS")) {
-					eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
-
+				if(instance.getDocumentDate()!=null)
+				{
+					publishHistoryDto.setMonth((instance.getDocumentDate()).getMonthValue());
+					publishHistoryDto.setYear((instance.getDocumentDate()).getYear());
 				}
-			} else if (appDetails.getAbbr().equals("PN")) {
-				if (houseAbbr.equals("LS")) {
-					eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
-				} else if (houseAbbr.equals("RS")) {
-					eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
-
-				}
-			}
-			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
-					.eurl(publishHistoryDto.getPublishUrl()).etitle(eTitle).build();
-			NewEventsLss lss = nelssService.saveNewEvent(nELss);
-			// addDsp1Table(nELss);
-			System.out.println(lss);
-		} else {
-			addPublishHistoryEntry(publishHistoryDto);
+		
+		
+		if(SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
+			writeToDSP1(appDetails, publishHistoryDto);
 		}
-	}
 
+		addPublishHistoryEntry(publishHistoryDto);
+
+	}
+	
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 */
+	private void writeToDSP1 (ApplicationInstanceProjection appDetails,
+								PublishHistoryDTO publishHistoryDto) {
+
+		String eTitle = getTitle(appDetails, publishHistoryDto);
+
+		NewEventsLssDTO nELss = NewEventsLssDTO.builder()
+								.isActive(1)
+								.edate(publishHistoryDto.getForDate())
+								.eurl(publishHistoryDto.getPublishUrl())
+								.etitle(eTitle)
+								.build();
+		
+		NewEventsLss  lss=nelssService.saveNewEvent(nELss);
+		System.out.println(lss);
+	}
+	
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	private String getTitle(ApplicationInstanceProjection appDetails,
+							PublishHistoryDTO publishHistoryDto) {
+		
+		String token = getTokenFromRequest();
+		String houseAbbr = jwtUtil.extractHouseAbbr(token);
+
+		String eTitle = "";
+
+		switch (houseAbbr) {
+		case LOK_SABHA:
+			eTitle = getTitleLS(appDetails, publishHistoryDto);
+			break;
+		case RAJYA_SABHA:
+			eTitle = getTitleRS(appDetails, publishHistoryDto);
+			break;
+		}
+	
+		return eTitle;
+	}
+	
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	private String getTitleLS (ApplicationInstanceProjection appDetails,
+								PublishHistoryDTO publishHistoryDto) {
+		
+		Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
+
+		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+		String ordinalLs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
+
+		String ordinal = ordinalFmt.format(sesNo);
+
+		String ordNo = ordinalToWord(ordinal);
+		String ordNoLs = ordinalToWord(ordinalLs);
+		
+		String eTitle = "";
+		
+		switch (appDetails.getAbbr()) {
+
+			case SUMMON:
+				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+			case PROROGATION:
+				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+		}
+
+		return eTitle;
+	}
+	
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	private String getTitleRS (ApplicationInstanceProjection appDetails,
+								PublishHistoryDTO publishHistoryDto) {
+		
+		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+
+		String ordinalRs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
+
+		String ordNoRs = ordinalToWord(ordinalRs);
+		
+		String eTitle = "";
+		
+		switch (appDetails.getAbbr() ) {
+		
+			case SUMMON: 
+				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
+				break;
+
+			case PROROGATION:		
+				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
+				break;
+		}
+
+		return eTitle;
+	}
+	
+	/**
+	 * 
+	 * @param value
+	 * @return
+	 */
 	public static String getOrdinalSuffix(long value) {
 		if (value >= 11 && value <= 13) {
 			return value + "TH";
 		}
 		switch ((int) (value % 10)) {
-		case 1:
-			return value + "ST";
-		case 2:
-			return value + "ND";
-		case 3:
-			return value + "RD";
-		default:
-			return value + "TH";
+			case 1:
+				return value + "ST";
+			case 2:
+				return value + "ND";
+			case 3:
+				return value + "RD";
+			default:
+				return value + "TH";
 		}
 	}
 
+	/**
+	 * 
+	 * @param ordinal
+	 * @return
+	 */
 	public static String ordinalToWord(String ordinal) {
 		switch (ordinal) {
-		case "1ST":
-			return "FITRST";
-		case "2ND":
-			return "SECOND";
-		case "3RD":
-			return "THIRD";
-		case "4TH":
-			return "FOUTH";
-		case "5TH":
-			return "FIFTH";
+			case "1ST":
+				return "FITRST";
+			case "2ND":
+				return "SECOND";
+			case "3RD":
+				return "THIRD";
+			case "4TH":
+				return "FOUTH";
+			case "5TH":
+				return "FIFTH";
 
-		case "6TH":
-			return "SIXTH";
-		case "7TH":
-			return "SEVENTH";
-		case "8TH":
-			return "EIGHTH";
-		case "9TH":
-			return "NINTH";
-		case "10TH":
-			return "TENTH";
-		// Add more as needed
-		default:
-			return ordinal;
+			case "6TH":
+				return "SIXTH";
+			case "7TH":
+				return "SEVENTH";
+			case "8TH":
+				return "EIGHTH";
+			case "9TH":
+				return "NINTH";
+			case "10TH":
+				return "TENTH";
+			// Add more as needed
+			default:
+				return ordinal;
 		}
 	}
 
+	/**
+	 * 
+	 * @param roman
+	 * @return
+	 */
 	public Integer romanToInt(String roman) {
 		Map<Character, Integer> romanMap = Map.of('I', 1, 'V', 5, 'X', 10, 'L', 50, 'C', 100, 'D', 500, 'M', 1000);
 
@@ -763,7 +874,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			// Add Hindi content if provided
-			if (!(StringUtils.isBlank(htmlContentHi))) {
+			if (!(StringUtils.isBlank(htmlContentHi))){
 				try (PdfDocument hiPdfDocument = new PdfDocument(
 						new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
 					hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
@@ -772,7 +883,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 
 		// Add page numbers to the final PDF
-		byte[] numberedPdfBytes = addPageNumbersToPdf(Files.readAllBytes(tempPdfFile.toPath()), startPageNumber);
+		byte[] numberedPdfBytes = addPageNumbersToPdf(Files.readAllBytes(tempPdfFile.toPath()),
+				startPageNumber);
 
 		// Write the numbered PDF bytes back to the temporary file
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
@@ -908,7 +1020,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String sub = jwtUtil.extractUsername(token); // Retrieves "sub"
 		String houseAbbr = jwtUtil.extractHouseAbbr(token);
 		BaseUser userDetails = userResponsibility.findByUsername(sub);
-		System.out.println("user Data " + userDetails);
+		System.out.println("user Data "+userDetails);
 		Long officeId = generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
 		publishHistoryDto.setPublishByUser(
 				userDetails.getFirstName() + " " + userDetails.getMiddleName() + " " + userDetails.getLastName());
