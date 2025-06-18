@@ -568,6 +568,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.eurl(publishHistoryDto.getPublishUrl())
 				.efile(fileName)
 				.etitle(eTitle)
+				.isNew(1)
+				.etype("dsp2En")
 				.build();
 
 		NewEventsLss lss = nelssService.saveNewEvent(nELss);
