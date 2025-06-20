@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -433,14 +434,25 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
 
-			UUID documentUuid = uploadedDoc != null ? uploadedDoc
-					: generateAndUploadPdf(htmlContentEn, htmlContentHi, startPageNumber, appDetails, appInstId);
-			System.out.println("uuid " + documentUuid);
-			updatePublishedStatus(appInstId, documentUuid);
-			updateWorkflowHistory(appInstId);
-			savePublishHistory(appInstId, appDetails, documentUuid);
+			UUID documentUuidEn = null;
+			UUID documentUuidHi = null;
 
-			return buildSuccessResponse(documentUuid);
+			if (uploadedDoc != null) {
+				documentUuidEn = uploadedDoc;
+			} else {
+				if (!StringUtils.isBlank(htmlContentEn)) {
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en");
+				}
+				if (!StringUtils.isBlank(htmlContentHi)) {
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi");
+				}
+			}
+
+			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
+			updateWorkflowHistory(appInstId);
+			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi);
+
+			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
@@ -466,13 +478,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-	private UUID generateAndUploadPdf(String htmlContentEn, String htmlContentHi, Integer startPageNumber,
-			ApplicationInstanceProjection appDetails, Long appInstId) throws Exception {
-		String appNo = appDetails.getAppNo() + ".pdf";
+	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
+
+		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 
-		File pdfFile = convertHtmlToPdf(htmlContentEn, htmlContentHi, appNo, startPageNumber);
-		System.out.println("okm path " + okmPath);
+		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -497,8 +509,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return UUID.fromString(data.get("documentUuid").toString());
 	}
 
-	private void updatePublishedStatus(Long appInstId, UUID documentUuid) {
-		generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid);
+	private void updatePublishedStatus(Long appInstId, UUID documentUuid, UUID documentUuidHi) {
+		generatedPdfModelRepository.updateApplicationInstanceStatusToPublishedEn(appInstId, documentUuid,
+				documentUuidHi);
 	}
 
 	private void updateWorkflowHistory(Long appInstId) {
@@ -512,7 +525,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param appDetails
 	 * @param documentUuid
 	 */
-	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid) {
+	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid,
+			UUID documentUuidHi) {
 
 		String token = getTokenFromRequest();
 
@@ -533,8 +547,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
 				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
-				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate())
-				.fileType("pdf").build();
+				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
 		if (instance.getDocumentDate() != null) {
 			publishHistoryDto.setMonth((instance.getDocumentDate()).getMonthValue());
 			publishHistoryDto.setYear((instance.getDocumentDate()).getYear());
@@ -553,8 +566,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param appDetails
 	 * @param publishHistoryDto
 	 */
-	private void writeToDSP1(ApplicationInstanceProjection appDetails,
-			PublishHistoryDTO publishHistoryDto) {
+	private void writeToDSP1(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		String eTitle = getTitle(appDetails, publishHistoryDto);
 
@@ -562,14 +574,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String[] parts = url.split("/");
 		String fileName = parts[parts.length - 1];
 
-		NewEventsLssDTO nELss = NewEventsLssDTO.builder()
-				.isActive(1)
-				.edate(publishHistoryDto.getForDate())
-				.eurl(publishHistoryDto.getPublishUrl())
-				.efile(fileName)
-				.etitle(eTitle)
-				.isNew(1)
-				.etype("dsp2En")
+		NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
+				.eurl(publishHistoryDto.getPublishUrl()).efile(fileName).etitle(eTitle).isNew(1).etype("dsp2En")
 				.build();
 
 		NewEventsLss lss = nelssService.saveNewEvent(nELss);
@@ -582,8 +588,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param publishHistoryDto
 	 * @return
 	 */
-	private String getTitle(ApplicationInstanceProjection appDetails,
-			PublishHistoryDTO publishHistoryDto) {
+	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		String token = getTokenFromRequest();
 		String houseAbbr = jwtUtil.extractHouseAbbr(token);
@@ -591,12 +596,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String eTitle = "";
 
 		switch (houseAbbr) {
-			case LOK_SABHA:
-				eTitle = getTitleLS(appDetails, publishHistoryDto);
-				break;
-			case RAJYA_SABHA:
-				eTitle = getTitleRS(appDetails, publishHistoryDto);
-				break;
+		case LOK_SABHA:
+			eTitle = getTitleLS(appDetails, publishHistoryDto);
+			break;
+		case RAJYA_SABHA:
+			eTitle = getTitleRS(appDetails, publishHistoryDto);
+			break;
 		}
 
 		return eTitle;
@@ -608,8 +613,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param publishHistoryDto
 	 * @return
 	 */
-	private String getTitleLS(ApplicationInstanceProjection appDetails,
-			PublishHistoryDTO publishHistoryDto) {
+	private String getTitleLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
 
@@ -625,12 +629,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		switch (appDetails.getAbbr()) {
 
-			case SUMMON:
-				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
+		case SUMMON:
+			eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+			break;
+		case PROROGATION:
+			eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
+			break;
 		}
 
 		return eTitle;
@@ -642,8 +646,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param publishHistoryDto
 	 * @return
 	 */
-	private String getTitleRS(ApplicationInstanceProjection appDetails,
-			PublishHistoryDTO publishHistoryDto) {
+	private String getTitleRS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
 
@@ -655,13 +658,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		switch (appDetails.getAbbr()) {
 
-			case SUMMON:
-				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
-				break;
+		case SUMMON:
+			eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
+			break;
 
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
-				break;
+		case PROROGATION:
+			eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
+			break;
 		}
 
 		return eTitle;
@@ -677,14 +680,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			return value + "TH";
 		}
 		switch ((int) (value % 10)) {
-			case 1:
-				return value + "ST";
-			case 2:
-				return value + "ND";
-			case 3:
-				return value + "RD";
-			default:
-				return value + "TH";
+		case 1:
+			return value + "ST";
+		case 2:
+			return value + "ND";
+		case 3:
+			return value + "RD";
+		default:
+			return value + "TH";
 		}
 	}
 
@@ -695,30 +698,30 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 */
 	public static String ordinalToWord(String ordinal) {
 		switch (ordinal) {
-			case "1ST":
-				return "FITRST";
-			case "2ND":
-				return "SECOND";
-			case "3RD":
-				return "THIRD";
-			case "4TH":
-				return "FOUTH";
-			case "5TH":
-				return "FIFTH";
+		case "1ST":
+			return "FITRST";
+		case "2ND":
+			return "SECOND";
+		case "3RD":
+			return "THIRD";
+		case "4TH":
+			return "FOUTH";
+		case "5TH":
+			return "FIFTH";
 
-			case "6TH":
-				return "SIXTH";
-			case "7TH":
-				return "SEVENTH";
-			case "8TH":
-				return "EIGHTH";
-			case "9TH":
-				return "NINTH";
-			case "10TH":
-				return "TENTH";
-			// Add more as needed
-			default:
-				return ordinal;
+		case "6TH":
+			return "SIXTH";
+		case "7TH":
+			return "SEVENTH";
+		case "8TH":
+			return "EIGHTH";
+		case "9TH":
+			return "NINTH";
+		case "10TH":
+			return "TENTH";
+		// Add more as needed
+		default:
+			return ordinal;
 		}
 	}
 
@@ -746,9 +749,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return result;
 	}
 
-	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID documentUuid) {
-		Map<String, Object> response = Map.of("documentUuid", documentUuid.toString());
-		return new ResponseEntity<>(response, HttpStatus.OK);
+	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
+		Map<String, Object> response = new HashMap<>();
+		response.put("status", "success");
+		response.put("message", "Document(s) published successfully.");
+		response.put("englishDocumentUuid", enUuid);
+		response.put("hindiDocumentUuid", hiUuid);
+		return ResponseEntity.ok(response);
 	}
 
 	private ResponseEntity<Map<String, Object>> buildErrorResponse(Long appInstId, Exception e) {
@@ -866,53 +873,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
-	public File convertHtmlToPdf(String htmlContentEn, String htmlContentHi, String fileName, Integer startPageNumber)
-			throws IOException {
-		// Create a temporary file for the final PDF
+	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
 		String fontDirectory = "src/main/resources/font/";
 		ConverterProperties converterProperties = new ConverterProperties();
 		FontProvider fontProvider = new DefaultFontProvider();
-		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+		fontProvider.addDirectory(fontDirectory);
 		converterProperties.setFontProvider(fontProvider);
-		// Generate the English content PDF in memory
-		ByteArrayOutputStream enPdfOutputStream = new ByteArrayOutputStream();
-		HtmlConverter.convertToPdf(htmlContentEn, enPdfOutputStream, converterProperties);
 
-		// Generate the Hindi content PDF in memory (if provided)
-		ByteArrayOutputStream hiPdfOutputStream = new ByteArrayOutputStream();
-		if (!(StringUtils.isBlank(htmlContentHi))) {
-			HtmlConverter.convertToPdf(htmlContentHi, hiPdfOutputStream, converterProperties);
-		}
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream, converterProperties);
 
-		// Merge the PDFs into the final file
-		try (PdfWriter writer = new PdfWriter(tempPdfFile); PdfDocument finalPdfDocument = new PdfDocument(writer)) {
-			// Add English content
-			try (PdfDocument enPdfDocument = new PdfDocument(
-					new PdfReader(new ByteArrayInputStream(enPdfOutputStream.toByteArray())))) {
-				enPdfDocument.copyPagesTo(1, enPdfDocument.getNumberOfPages(), finalPdfDocument);
-			}
+		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), startPageNumber);
 
-			// Add Hindi content if provided
-			if (!(StringUtils.isBlank(htmlContentHi))) {
-				try (PdfDocument hiPdfDocument = new PdfDocument(
-						new PdfReader(new ByteArrayInputStream(hiPdfOutputStream.toByteArray())))) {
-					hiPdfDocument.copyPagesTo(1, hiPdfDocument.getNumberOfPages(), finalPdfDocument);
-				}
-			}
-		}
-
-		// Add page numbers to the final PDF
-		byte[] numberedPdfBytes = addPageNumbersToPdf(Files.readAllBytes(tempPdfFile.toPath()),
-				startPageNumber);
-
-		// Write the numbered PDF bytes back to the temporary file
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
 			fileOutputStream.write(numberedPdfBytes);
 		}
 
-		// Return the temporary file
 		return tempPdfFile;
 	}
 
@@ -1082,7 +1060,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			System.out.println("### okmPath - " + okmPath);
 
 			// Step 2: Convert HTML content to a PDF
-			File pdfFile = convertHtmlToPdf(dto.getHtmlContent(), null, appNo, 1);
+			File pdfFile = convertHtmlToPdf(dto.getHtmlContent(), appNo, 1);
 
 			System.out.println("### pdfFile - " + pdfFile);
 
@@ -1144,7 +1122,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String okmPath = "/okm:root/";
 
 			// Step 3: Convert HTML content to PDF
-			File pdfFile = convertHtmlToPdf(htmlContentEn, null, fileName, startingPageNo);
+			File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content.");
 			}

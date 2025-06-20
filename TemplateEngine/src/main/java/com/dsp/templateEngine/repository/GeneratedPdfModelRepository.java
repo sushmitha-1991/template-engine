@@ -25,8 +25,8 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 
 	@Transactional
 	@Modifying
-	@Query(value = "UPDATE master.application_instance SET current_status = 'Published', is_published = true, published_document_uuid_en = :documentUuid WHERE id = :appInstId", nativeQuery = true)
-	void updateApplicationInstanceStatusToPublishedEn(Long appInstId, UUID documentUuid);
+	@Query(value = "UPDATE master.application_instance SET current_status = 'Published', is_published = true, published_document_uuid_en = :documentUuid, published_document_uuid_hi = :documentUuidHi  WHERE id = :appInstId", nativeQuery = true)
+	void updateApplicationInstanceStatusToPublishedEn(Long appInstId, UUID documentUuid, UUID documentUuidHi);
 
 	@Transactional
 	@Modifying
