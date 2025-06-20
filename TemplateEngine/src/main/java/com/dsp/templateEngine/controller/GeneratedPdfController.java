@@ -33,9 +33,8 @@ public class GeneratedPdfController {
 
 	@Autowired
 	private GeneratePdfService pdfService;
-		@Autowired
-  private  NewEventsLssService nelssService;
-
+	@Autowired
+	private NewEventsLssService nelssService;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -121,7 +120,10 @@ public class GeneratedPdfController {
 
 			Map<String, Object> responseBody = response.getBody();
 			Map<String, Object> resultData = new HashMap<>();
-			resultData.put("documentUuid", responseBody != null ? responseBody.get("documentUuid") : null);
+			if (responseBody != null) {
+				resultData.put("englishDocumentUuid", responseBody.get("englishDocumentUuid"));
+				resultData.put("hindiDocumentUuid", responseBody.get("hindiDocumentUuid"));
+			}
 
 			log.info("Document published successfully for appInstId: {}", appInstId);
 
@@ -152,35 +154,33 @@ public class GeneratedPdfController {
 
 		return new GenericResponse<>(200, true, "Balloting published successfully", null);
 	}
-	
+
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtmlEnglish(
-	        @RequestParam String htmlContentEn,
-	        @RequestParam int startingPageNo,
-	        @RequestParam Long applicationId) {
+	public ResponseEntity<?> uploadHtmlEnglish(@RequestParam String htmlContentEn, @RequestParam int startingPageNo,
+			@RequestParam Long applicationId) {
 
-	    try {
-	        UUID documentUuid = pdfService.uploadEnglishHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId);
+		try {
+			UUID documentUuid = pdfService.uploadEnglishHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId);
 
-	        Map<String, Object> response = new HashMap<>();
-	        response.put("documentUuid", documentUuid.toString());
+			Map<String, Object> response = new HashMap<>();
+			response.put("documentUuid", documentUuid.toString());
 
-	        return ResponseEntity.ok(response);
+			return ResponseEntity.ok(response);
 
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	        Map<String, Object> error = new HashMap<>();
-	        error.put("statusCode", 500);
-	        error.put("success", false);
-	        error.put("message", "Failed to upload PDF: " + e.getMessage());
-	        error.put("documentUuid", null);
-	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-	    }
+		} catch (Exception e) {
+			e.printStackTrace();
+			Map<String, Object> error = new HashMap<>();
+			error.put("statusCode", 500);
+			error.put("success", false);
+			error.put("message", "Failed to upload PDF: " + e.getMessage());
+			error.put("documentUuid", null);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+		}
 	}
 
-@PostMapping("/update-dsp1-table")
-public ResponseEntity<NewEventsLss> addDsp1Table(@RequestBody NewEventsLssDTO dto) {
-    NewEventsLss response = nelssService.saveNewEvent(dto);
-    return ResponseEntity.ok(response);
-}
+	@PostMapping("/update-dsp1-table")
+	public ResponseEntity<NewEventsLss> addDsp1Table(@RequestBody NewEventsLssDTO dto) {
+		NewEventsLss response = nelssService.saveNewEvent(dto);
+		return ResponseEntity.ok(response);
+	}
 }
