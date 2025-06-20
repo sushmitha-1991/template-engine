@@ -33,47 +33,69 @@ public class PublishHistoryEntity extends Auditable {
 	@SequenceGenerator(name = "publish_history_seq", sequenceName = "workflow.publish_history_seq", allocationSize = 1)
 	private Long id;
 
+	@Column(name = "lok_sabha_no")
 	private String lokSabhaNo;
+
+	@Column(name = "lok_sabha_session_no")
 	private String lokSabhaSessionNo;
+
+	@Column(name = "rajya_sabha_session_no")
 	private String rajyaSabhaSessionNo;
 
-	@Column(nullable = false)
+	@Column(name = "application_id", nullable = false)
 	private Long applicationId;
 
-	@Column(nullable = false, length = 100)
+	@Column(name = "application_name", nullable = false, length = 100)
 	private String applicationName;
 
-	@Column(nullable = false, length = 100)
+	@Column(name = "application_no", nullable = false, length = 100, unique = true)
 	private String applicationNo;
 
-	@Column(nullable = false)
+	@Column(name = "publish_uuid", nullable = false)
 	private UUID publishUuid;
-	@Column(nullable = false)
 
-	private String fileType;
-
-	@Column(nullable = false, columnDefinition = "text")
+	@Column(name = "publish_url", columnDefinition = "text", nullable = false)
 	private String publishUrl;
 
-	@Column(nullable = false)
+	@Column(name = "for_date")
 	private LocalDate forDate;
 
-	@Column(nullable = false)
+	@Column(name = "publish_status", nullable = false)
 	private Boolean publishStatus;
 
-	@Column(nullable = false, length = 100)
+	@Column(name = "publish_by_user", nullable = false, length = 100)
 	private String publishByUser;
 
-	@Column(nullable = false)
+	@Column(name = "publish_date", nullable = false)
 	private LocalDate publishDate;
 
+	@Column(name = "unpublish_by_user")
 	private String unpublishByUser;
+
+	@Column(name = "unpublish_date")
 	private LocalDate unpublishDate;
 
-	@Column(nullable = false)
+	@Column(name = "office_id")
 	private Long officeId;
 
-	@Column(nullable = false)
+	@Column(name = "file_type", nullable = false)
+	private String fileType;
+
+	@Column(name = "locale")
 	private String locale;
 
+	@Column(name = "year")
+	private String year;
+
+	@Column(name = "month")
+	private String month;
+
+	@Column(name = "file_type_name")
+	private String fileTypeName;
+
+	@Column(name = "house")
+	private String house;
+
+	@Column(name = "title")
+	private String title;
 }
