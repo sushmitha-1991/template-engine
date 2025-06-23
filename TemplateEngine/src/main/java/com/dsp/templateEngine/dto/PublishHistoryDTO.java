@@ -41,6 +41,7 @@ public class PublishHistoryDTO {
 
 	private Long officeId;
 	private String htmlContent;
+	private String house;
 	private int year;
 	private int month;
 }
