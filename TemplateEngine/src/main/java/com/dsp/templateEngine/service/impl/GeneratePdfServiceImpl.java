@@ -165,7 +165,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			Path temp = uploadPath.resolve("temp.pdf");
 
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
+			String FONTS = "src/main/resources/font/";
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp.toString()));
 			ConverterProperties properties = new ConverterProperties();
 			FontProvider fontProvider = new DefaultFontProvider();
@@ -532,7 +532,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		if (token == null) {
 			throw new IllegalStateException("Authorization token is missing");
-		}
+		}	
+			String houseAbbr = jwtUtil.extractHouseAbbr(token);
 
 		ApplicationInstance instance = applicationInstanceRepository.findById(appInstId)
 				.orElseThrow(() -> new EntityNotFoundException("ApplicationInstance not found for ID: " + appInstId));
@@ -543,21 +544,39 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			applicationName = appDetails.getAbbr();
 
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
-				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber()).locale("en").house(houseAbbr)
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
 				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
-		if (instance.getDocumentDate() != null) {
-			publishHistoryDto.setMonth((instance.getDocumentDate()).getMonthValue());
-			publishHistoryDto.setYear((instance.getDocumentDate()).getYear());
-		}
+		
+			PublishHistoryDTO dtoHi = PublishHistoryDTO.builder()
+					.lokSabhaNo(instance.getLokSabhaSession())
+					.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+					.rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
+					.applicationId(instance.getApplicationId())
+					.applicationNo(instance.getApplicationNo())
+					.applicationName(applicationName)
+					.publishUuid(documentUuid)
+					.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
+					.publishStatus(true)
+					.publishDate(LocalDate.now())
+					.house(houseAbbr)
+					.locale("hi")
+					.forDate(instance.getDocumentDate())
+					.fileType("pdf").build();
+
 
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
-			writeToDSP1(appDetails, publishHistoryDto);
+			writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
 
 		addPublishHistoryEntry(publishHistoryDto);
+		if (documentUuidHi != null) {
+
+			addPublishHistoryEntry(dtoHi);
+
+		}
 
 	}
 
@@ -566,42 +585,48 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 * @param appDetails
 	 * @param publishHistoryDto
 	 */
-	private void writeToDSP1(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
-		String eTitle = getTitle(appDetails, publishHistoryDto);
-
-		String url = publishHistoryDto.getPublishUrl();
+	 private String fetchUuid(String url)
+	 {
 		String[] parts = url.split("/");
 		String fileName = parts[parts.length - 1];
+		return fileName;
+	 }
+	private void writeToDSP1(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,PublishHistoryDTO hindiDTO ,String houseAbbr) {
 
 		NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
-				.eurl(publishHistoryDto.getPublishUrl()).efile(fileName).etitle(eTitle).isNew(1).etype("dsp2En")
+				.eurl(publishHistoryDto.getPublishUrl())
+				.hurl(hindiDTO.getPublishUrl())
+				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
+				.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
+				.etitle(getTitle(appDetails, publishHistoryDto,houseAbbr))
+				.htitle(getTitle(appDetails, hindiDTO,houseAbbr))
+				.isNew(1)
+				.etype("dsp2En")
+				.htype("dsp2Hi")
 				.build();
-
 		NewEventsLss lss = nelssService.saveNewEvent(nELss);
 		System.out.println(lss);
 	}
-
 	/**
 	 * 
 	 * @param appDetails
 	 * @param publishHistoryDto
 	 * @return
 	 */
-	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
+	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,String houseAbbr) {
 
 		String token = getTokenFromRequest();
-		String houseAbbr = jwtUtil.extractHouseAbbr(token);
 
 		String eTitle = "";
 
 		switch (houseAbbr) {
-		case LOK_SABHA:
-			eTitle = getTitleLS(appDetails, publishHistoryDto);
-			break;
-		case RAJYA_SABHA:
-			eTitle = getTitleRS(appDetails, publishHistoryDto);
-			break;
+			case LOK_SABHA:
+				eTitle = getTitleLS(appDetails, publishHistoryDto);
+				break;
+			case RAJYA_SABHA:
+				eTitle = getTitleRS(appDetails, publishHistoryDto);
+				break;
 		}
 
 		return eTitle;
@@ -629,12 +654,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		switch (appDetails.getAbbr()) {
 
-		case SUMMON:
-			eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-			break;
-		case PROROGATION:
-			eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
-			break;
+			case SUMMON:
+				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+			case PROROGATION:
+				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
 		}
 
 		return eTitle;
@@ -658,13 +683,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		switch (appDetails.getAbbr()) {
 
-		case SUMMON:
-			eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
-			break;
+			case SUMMON:
+				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
+				break;
 
-		case PROROGATION:
-			eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
-			break;
+			case PROROGATION:
+				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
+				break;
 		}
 
 		return eTitle;
@@ -680,14 +705,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			return value + "TH";
 		}
 		switch ((int) (value % 10)) {
-		case 1:
-			return value + "ST";
-		case 2:
-			return value + "ND";
-		case 3:
-			return value + "RD";
-		default:
-			return value + "TH";
+			case 1:
+				return value + "ST";
+			case 2:
+				return value + "ND";
+			case 3:
+				return value + "RD";
+			default:
+				return value + "TH";
 		}
 	}
 
@@ -698,30 +723,30 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	 */
 	public static String ordinalToWord(String ordinal) {
 		switch (ordinal) {
-		case "1ST":
-			return "FITRST";
-		case "2ND":
-			return "SECOND";
-		case "3RD":
-			return "THIRD";
-		case "4TH":
-			return "FOUTH";
-		case "5TH":
-			return "FIFTH";
+			case "1ST":
+				return "FITRST";
+			case "2ND":
+				return "SECOND";
+			case "3RD":
+				return "THIRD";
+			case "4TH":
+				return "FOUTH";
+			case "5TH":
+				return "FIFTH";
 
-		case "6TH":
-			return "SIXTH";
-		case "7TH":
-			return "SEVENTH";
-		case "8TH":
-			return "EIGHTH";
-		case "9TH":
-			return "NINTH";
-		case "10TH":
-			return "TENTH";
-		// Add more as needed
-		default:
-			return ordinal;
+			case "6TH":
+				return "SIXTH";
+			case "7TH":
+				return "SEVENTH";
+			case "8TH":
+				return "EIGHTH";
+			case "9TH":
+				return "NINTH";
+			case "10TH":
+				return "TENTH";
+			// Add more as needed
+			default:
+				return ordinal;
 		}
 	}
 
@@ -812,7 +837,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			Path finalPath = uploadPath.resolve(fileName);
 
 			// Convert HTML to a PDF
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
+			String FONTS = "src/main/resources/font/";
 			ConverterProperties properties = new ConverterProperties();
 			FontProvider fontProvider = new DefaultFontProvider();
 			fontProvider.addDirectory(FONTS);
