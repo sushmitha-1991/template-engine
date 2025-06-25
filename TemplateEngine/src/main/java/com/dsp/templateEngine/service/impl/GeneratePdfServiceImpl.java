@@ -165,7 +165,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			Path temp = uploadPath.resolve("temp.pdf");
 
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
+			String FONTS = "src/main/resources/font/";
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp.toString()));
 			ConverterProperties properties = new ConverterProperties();
 			FontProvider fontProvider = new DefaultFontProvider();
@@ -812,7 +812,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			Path finalPath = uploadPath.resolve(fileName);
 
 			// Convert HTML to a PDF
-			String FONTS = "src/main/resources/font/BOOKOS.woff";
+			String FONTS = "src/main/resources/font/";
 			ConverterProperties properties = new ConverterProperties();
 			FontProvider fontProvider = new DefaultFontProvider();
 			fontProvider.addDirectory(FONTS);
