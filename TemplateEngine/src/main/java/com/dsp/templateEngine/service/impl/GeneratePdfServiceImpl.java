@@ -36,6 +36,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.converter.ConverterFactory;
+import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
@@ -124,6 +126,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private JwtUtil jwtUtil;
 
+	@Autowired
+	private ConverterFactory factory;
+	
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
 
@@ -478,13 +483,32 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+//	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+//			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
+//
+//		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
+//		String okmPath = "/okm:root/" + appDetails.getAbbr();
+//
+//		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+//		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+//				"ApplicationInstance", "1");
+//
+//		return extractUuidFromOpenKmResponse(uploadResult);
+//	}
+
+	
+	private UUID generateAndUploadPdf (String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 
-		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		// Get Generator Engine
+		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
+		File pdfFile = converter.convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		
+//		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
