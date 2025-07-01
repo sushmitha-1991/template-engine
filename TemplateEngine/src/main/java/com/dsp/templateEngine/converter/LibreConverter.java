@@ -3,6 +3,8 @@ package com.dsp.templateEngine.converter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
+import java.util.Locale.LanguageRange;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,6 +36,7 @@ public class LibreConverter implements IConverter {
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.TEXT_HTML);
+		headers.set("Accept-Language", "hi-IN");
 		
 		// Prepare the request entity with headers and body
 		HttpEntity<String> requestEntity = new HttpEntity<>(htmlContent, headers);
