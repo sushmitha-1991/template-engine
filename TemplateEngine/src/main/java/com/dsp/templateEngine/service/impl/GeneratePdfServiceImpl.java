@@ -457,7 +457,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				if (!StringUtils.isBlank(htmlContentHi)) {
 					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi");
 				}
-			}
+			} 
 
 //			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 //			updateWorkflowHistory(appInstId);
