@@ -20,8 +20,8 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class LibreConverter implements IConverter {
 
-	@Autowired
-	RestTemplate restTemplate;
+	//@Autowired
+	//RestTemplate restTemplate;
 	
 	@Value("${libre.service.url}")
 	private String libreServiceUrl;
@@ -42,6 +42,7 @@ public class LibreConverter implements IConverter {
 		HttpEntity<String> requestEntity = new HttpEntity<>(htmlContent, headers);
 
 		// Use Rest Template to call Libre Converter
+		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, 
 																requestEntity, byte[].class);
 		
