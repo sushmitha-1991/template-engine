@@ -20,13 +20,13 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class LibreConverter implements IConverter {
 
-	@Autowired
-	RestTemplate restTemplate;
+	//@Autowired
+	//RestTemplate restTemplate;
 	
 	@Value("${libre.service.url}")
 	private String libreServiceUrl;
 	
-	private static final String LIBRE_END_POINT = "/convert";
+	private static final String LIBRE_END_POINT = "/convert"; 
 	
 	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 
@@ -42,6 +42,7 @@ public class LibreConverter implements IConverter {
 		HttpEntity<String> requestEntity = new HttpEntity<>(htmlContent, headers);
 
 		// Use Rest Template to call Libre Converter
+		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, 
 																requestEntity, byte[].class);
 		
