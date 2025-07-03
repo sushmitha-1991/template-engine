@@ -439,9 +439,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
 			Long appInstId, Integer startPageNumber, UUID uploadedDoc) {
 		try {
-			if (isAlreadyPublished(appInstId)) {
-				return buildAlreadyPublishedResponse(appInstId);
-			}
+//			if (isAlreadyPublished(appInstId)) {
+//				return buildAlreadyPublishedResponse(appInstId);
+//			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
 
@@ -459,9 +459,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				}
 			}
 
-			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
-			updateWorkflowHistory(appInstId);
-			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi);
+//			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
+//			updateWorkflowHistory(appInstId);
+//			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi);
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
