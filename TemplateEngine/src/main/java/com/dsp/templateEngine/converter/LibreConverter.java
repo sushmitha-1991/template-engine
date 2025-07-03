@@ -26,7 +26,7 @@ public class LibreConverter implements IConverter {
 	@Value("${libre.service.url}")
 	private String libreServiceUrl;
 	
-	private static final String LIBRE_END_POINT = "/convert";
+	private static final String LIBRE_END_POINT = "/convert"; 
 	
 	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 
