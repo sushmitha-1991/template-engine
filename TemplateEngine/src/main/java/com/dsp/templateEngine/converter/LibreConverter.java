@@ -35,7 +35,8 @@ public class LibreConverter implements IConverter {
 		String endpointUrl = libreServiceUrl + LIBRE_END_POINT;
 		
 		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.TEXT_HTML);
+		headers.setContentType(MediaType.parseMediaType("text/html; charset=UTF-8"));
+//		headers.setContentType(MediaType.TEXT_HTML);
 		headers.set("Accept-Language", "hi-IN");
 		
 		// Prepare the request entity with headers and body
