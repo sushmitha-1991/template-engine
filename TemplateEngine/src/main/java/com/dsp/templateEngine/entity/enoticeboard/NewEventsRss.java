@@ -6,7 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "new_events_lss", schema = "dbo")
+@Table(name = "NoticeBoard", schema = "dbo")
 @Getter
 @Setter
 @NoArgsConstructor
