@@ -1,10 +1,12 @@
 package com.dsp.templateEngine.converter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
 public interface IConverter {
 
-	File convertHtmlToPdf (String htmlContent, String fileName, Integer startPageNumber) throws IOException;
-
+	File convertHtmlToPdfFile (String htmlContent, String fileName, Integer startPageNumber) throws IOException;
+	
+	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream);
 }
