@@ -67,7 +67,7 @@ public class GeneratedPdfController {
 
 			// Generate the English PDF content
 			ByteArrayOutputStream enPdfStream = null;
-			if (htmlContentHi != null) {
+			if (htmlContentEn != null) {
 				enPdfStream = new ByteArrayOutputStream();
 				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en");
 			}
