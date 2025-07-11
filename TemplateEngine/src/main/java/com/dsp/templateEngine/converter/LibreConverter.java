@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.converter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -28,15 +29,41 @@ public class LibreConverter implements IConverter {
 	
 	private static final String LIBRE_END_POINT = "/convert"; 
 	
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+
+//		String endpointUrl = libreServiceUrl + LIBRE_END_POINT;
+//		
+//		HttpHeaders headers = new HttpHeaders();
+//		headers.setContentType(MediaType.parseMediaType("text/html; charset=UTF-8"));
+//		headers.set("Accept-Language", "hi-IN");
+//		
+//		// Prepare the request entity with headers and body
+//		HttpEntity<String> requestEntity = new HttpEntity<>(htmlContent, headers);
+//
+//		// Use Rest Template to call Libre Converter
+//		RestTemplate restTemplate = new RestTemplate();
+//		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, 
+//																requestEntity, byte[].class);
+		
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+		convertHtmlToPdfByteArray(htmlContent, pdfOutputStream);
+		
+		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+//			fileOutputStream.write(response.getBody());
+			fileOutputStream.write(pdfOutputStream.toByteArray());
+		}
+
+		return tempPdfFile;
+	}
+
+	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream)  {
 
 		String endpointUrl = libreServiceUrl + LIBRE_END_POINT;
 		
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.parseMediaType("text/html; charset=UTF-8"));
-//		headers.setContentType(MediaType.TEXT_HTML);
 		headers.set("Accept-Language", "hi-IN");
 		
 		// Prepare the request entity with headers and body
@@ -47,11 +74,6 @@ public class LibreConverter implements IConverter {
 		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, 
 																requestEntity, byte[].class);
 		
-		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
-			fileOutputStream.write(response.getBody());
-		}
-
-		return tempPdfFile;
+		outputStream.write(response.getBody(), 0, response.getBody().length);
 	}
-
 }

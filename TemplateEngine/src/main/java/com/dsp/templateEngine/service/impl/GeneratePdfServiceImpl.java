@@ -523,7 +523,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		// Get Generator Engine
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
-		File pdfFile = converter.convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, appNo, startPageNumber);
 		
 //		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
 		
@@ -607,9 +607,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.locale("hi")
 					.forDate(instance.getDocumentDate())
 					.fileType("pdf").build();
+
+
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
 			writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
+
 		addPublishHistoryEntry(publishHistoryDto);
 		if (documentUuidHi != null) {
 
@@ -1128,6 +1131,33 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		pdfDocument.close();
 	}
 
+	@Override
+	public void createPdfFromHtmlV2(String htmlContent, 
+									java.io.ByteArrayOutputStream outputStream,
+									String locale) {
+
+		if (htmlContent == null || htmlContent.isEmpty()) {
+			return;
+		}
+
+		IConverter converter = factory.getConverter(null, locale);
+		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
+		
+//		// Configure font provider for Hindi/Unicode support
+//		String fontDirectory = "src/main/resources/font/";
+//		ConverterProperties converterProperties = new ConverterProperties();
+//		FontProvider fontProvider = new DefaultFontProvider();
+//		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+//		converterProperties.setFontProvider(fontProvider);
+//		// Generate PDF from HTML and write it to the output stream
+//		PdfWriter writer = new PdfWriter(outputStream);
+//		PdfDocument pdfDocument = new PdfDocument(writer);
+//		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+//		pdfDocument.close();
+		
+	}
+
+	
 	public String getTokenFromRequest() {
 		System.out.println("Inside GetToken");
 		String authorizationHeader = httpRequest.getHeader("Authorization");

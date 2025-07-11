@@ -66,25 +66,26 @@ public class GeneratedPdfController {
 			}
 
 			// Generate the English PDF content
-			ByteArrayOutputStream enPdfStream = new ByteArrayOutputStream();
-			pdfService.createPdfFromHtml(htmlContentEn, enPdfStream);
-
-			ByteArrayOutputStream hiPdfStream = null;
-
-			// Generate Hindi PDF only if htmlContentHi is present
+			ByteArrayOutputStream enPdfStream = null;
 			if (htmlContentHi != null) {
-				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtml(htmlContentHi, hiPdfStream);
+				enPdfStream = new ByteArrayOutputStream();
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en");
 			}
 
+			// Generate Hindi PDF only if htmlContentHi is present
+			ByteArrayOutputStream hiPdfStream = null;
+			if (htmlContentHi != null) {
+				hiPdfStream = new ByteArrayOutputStream();
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi");
+			}
+
+			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final output
 			byte[] mergedPdfBytes;
 
-			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
-			// output
-			if (hiPdfStream != null) {
+			if (enPdfStream != null && hiPdfStream != null) {
 				mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
 			} else {
-				mergedPdfBytes = enPdfStream.toByteArray();
+				mergedPdfBytes = enPdfStream != null ? enPdfStream.toByteArray() : hiPdfStream.toByteArray();
 			}
 
 			// Add page numbers to the final PDF
