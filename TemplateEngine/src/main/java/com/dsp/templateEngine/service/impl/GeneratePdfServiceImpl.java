@@ -37,6 +37,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.converter.ConverterFactory;
+import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
@@ -79,7 +81,9 @@ import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.persistence.NoResultException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -131,6 +135,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private JwtUtil jwtUtil;
 
 	@Autowired
+	private ConverterFactory factory;
+	
+	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
 
 	private final String LOK_SABHA = "LS";
@@ -140,7 +147,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private final String SUMMON = "SN";
 
 	private final String PROROGATION = "PN";
+	
+	private final String  BALLOTING_OF_NOTICES = "BON";
 
+	@Autowired
+	private EntityManager entityManager;
 	// public static void main(String[] args) throws IOException {
 	// GeneratePdfService service = new GeneratePdfService();
 	// String html=null;
@@ -447,12 +458,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				documentUuidEn = uploadedDoc;
 			} else {
 				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en");
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, 
+					"_en");
 				}
 				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi");
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, 
+					"_hi");
 				}
-			}
+			} 
 
 			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 			updateWorkflowHistory(appInstId);
@@ -485,14 +498,35 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-	private UUID 
-	generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+
+	// private UUID 
+	// generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+//	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+//			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
+//
+//		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
+//		String okmPath = "/okm:root/" + appDetails.getAbbr();
+//
+//		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+//		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+//				"ApplicationInstance", "1");
+//
+//		return extractUuidFromOpenKmResponse(uploadResult);
+//	}
+
+	
+	private UUID generateAndUploadPdf (String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 
-		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		// Get Generator Engine
+		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
+		File pdfFile = converter.convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		
+//		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+		
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -664,6 +698,51 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			 */
 		}
 	}
+	private void writeToBallotingDSP1( PublishHistoryEntity publishHistoryEntity,String houseAbbr,String ballotTitle) {
+		
+		try {
+		    Long sessionId = Long.parseLong(publishHistoryEntity.getLokSabhaSessionNo());  
+		    Long lokSabhaId = Long.parseLong(publishHistoryEntity.getLokSabhaNo());        
+
+		    Integer sessionNo = (Integer) entityManager.createNativeQuery(
+		        "SELECT session_number_int FROM master.lok_sabha_session_masters WHERE id = :id")
+		        .setParameter("id", sessionId)
+		        .getSingleResult();  // 3
+
+		    String lokSabhaNumberStr = (String) entityManager.createNativeQuery(
+		        "SELECT lok_sabha_number FROM master.lok_sabha_masters WHERE id = :id")
+		        .setParameter("id", lokSabhaId)
+		        .getSingleResult();  // "18"
+		    
+		    int lokSabhaNo = Integer.parseInt(lokSabhaNumberStr);
+		    RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+		    String ordinal = ordinalFmt.format(sessionNo);
+		    String ordinalLs = ordinalFmt.format(lokSabhaNo);
+
+		    // 5. Convert to word form (optional)
+		    String ordNo = ordinalToWord(ordinal);       
+		    String ordNoLs = ordinalToWord(ordinalLs);  
+
+		    // 6. Final title
+		    String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+
+		NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
+				.eurl(publishHistoryEntity.getPublishUrl())
+				.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
+				.etitle(eTitle)
+				.isNew(1)
+				.etype("dsp2En")
+				.build();
+		NewEventsLss lss = nelssService.saveNewEvent(nELss);
+		System.out.println( "Function call which table "+lss);
+		 } catch (NoResultException e) {
+		        throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
+		    } catch (Exception e) {
+		        e.printStackTrace();
+		        throw new RuntimeException("Error in writeToBallotingDSP1", e);
+		    }
+		}
+	 
 	/**
 	 * 
 	 * @param appDetails
@@ -716,6 +795,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			case PROROGATION:
 				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
 				break;
+			case BALLOTING_OF_NOTICES:
+				eTitle += "Balloting of Notices  " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+		
 		}
 
 		return eTitle;
@@ -1136,6 +1219,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			System.out.println("### suffix - " + randomInt);
 			// Generate filename with the language suffix
 			String appNo = "Balloting" + randomInt + ".pdf";
+			String ballotTitle ="Balloting" + randomInt;
 			String okmPath = "/okm:root/" + abbr;
 			System.out.println("### appNo - " + appNo);
 			System.out.println("### okmPath - " + okmPath);
@@ -1171,6 +1255,16 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Assuming the method should return some DTO after processing
 			String publishedUrl = openKmDsp1DownloadEndPoint + "/" + documentUuid;
 			System.out.println("### publishedUrl - " + publishedUrl);
+			//ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+			//ApplicationInstanceProjection appDetails = getAppDetails(dto.getApplicationId());
+			//System.out.println(" appDetails iiiiii "+appDetails);
+
+			String token = getTokenFromRequest();
+			if (token == null) {
+				throw new IllegalStateException("Authorization token is missing");
+			}
+			String houseAbbr = jwtUtil.extractHouseAbbr(token);
+			System.out.println("### publishedUrl - " + publishedUrl);
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
 					.lokSabhaSessionNo(dto.getLokSabhaSessionNo()).applicationId(dto.getApplicationId())
@@ -1178,8 +1272,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
 					.fileType("pdf").locale(dto.getLocale()).forDate(dto.getForDate())
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
-					.unpublishDate(dto.getUnpublishDate()).build();
+					.unpublishDate(dto.getUnpublishDate())
+					.house(houseAbbr).
+					build();
 			entry = publishRepository.save(entry);
+			//Writing to DSP1
+			 // writeToBallDSP1(entry, houseAbbr,ballotTitle);
+			  try {
+				  writeToBallotingDSP1(entry, houseAbbr, ballotTitle);
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new RuntimeException("Error in writeToBallDSP1", e);
+				}
+
 			return dto;
 		} catch (IOException e) {
 			e.printStackTrace(); // Log the exception
