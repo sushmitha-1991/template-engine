@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -42,6 +43,8 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.entity.WorkflowHistory;
+import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
+import com.dsp.templateEngine.entity.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.entity.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.exception.OpenKMException;
@@ -53,6 +56,7 @@ import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.repository.nelss.NewEventsLssRepository;
+import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
 import com.dsp.templateEngine.util.JwtUtil;
@@ -95,6 +99,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private HttpServletRequest httpRequest;
 	@Autowired
 	private NewEventsLssService nelssService;
+	@Autowired
+	private ENoticeBoardService eNoticeBoardService;
 	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
 	@Autowired
@@ -471,6 +477,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private ApplicationInstanceProjection getAppDetails(Long appInstId) {
+		System.out.println("app id "+appInstId);
 		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
 		if (details == null) {
 			throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
@@ -478,7 +485,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
+	private UUID 
+	generateAndUploadPdf(String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
@@ -565,12 +573,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.locale("hi")
 					.forDate(instance.getDocumentDate())
 					.fileType("pdf").build();
-
-
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
 			writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
-
 		addPublishHistoryEntry(publishHistoryDto);
 		if (documentUuidHi != null) {
 
@@ -592,9 +597,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String fileName = parts[parts.length - 1];
 		return fileName;
 	 }
-	private void writeToDSP1(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,PublishHistoryDTO hindiDTO ,String houseAbbr) {
+	private void writeToDSP1(ApplicationInstanceProjection appDetails, 
+	PublishHistoryDTO publishHistoryDto,PublishHistoryDTO hindiDTO ,String houseAbbr) {
 
-		NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
+		if(houseAbbr.equalsIgnoreCase("LS"))
+		{
+			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
 				.eurl(publishHistoryDto.getPublishUrl())
 				.hurl(hindiDTO.getPublishUrl())
 				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
@@ -607,6 +615,54 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.build();
 		NewEventsLss lss = nelssService.saveNewEvent(nELss);
 		System.out.println(lss);
+		}
+		else if(houseAbbr.equalsIgnoreCase("RS")){
+			
+				NewEventsRssDTO nERss = NewEventsRssDTO.builder()
+				.startDate(publishHistoryDto.getForDate().atStartOfDay())
+				.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
+				.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
+				.title(getTitle(appDetails, publishHistoryDto,houseAbbr))
+				.language("English")
+     			.pdfFileUrl(publishHistoryDto.getPublishUrl())
+				.build();
+				NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
+				.startDate(hindiDTO.getForDate().atStartOfDay())
+				.fileName(fetchUuid(hindiDTO.getPublishUrl()))
+				.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
+				.title(getTitle(appDetails, hindiDTO,houseAbbr))
+				.language("Hindi")
+     			.pdfFileUrl(hindiDTO.getPublishUrl())
+				.build();
+		NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
+		if(hindiDTO!=null)
+		{
+			NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
+			System.out.println(rssHi);
+		}
+		System.out.println(rss);
+			/*
+			 * 
+			 * SELECT TOP (1000) [Id]
+      ,[Title]
+      ,[venue]
+      ,[StartDate]
+      ,[EndDate]
+      ,[PdfFileUrl]
+      ,[ImageFileUrl]
+      ,[Section]
+      ,[FileNo]
+      ,[Type]
+      ,[CreateOn]
+      ,[IsArchived]
+      ,[FileSize]
+      ,[FileName]
+      ,[AddImageOrNot]
+      ,[Language]
+  FROM [RS_DB].[dbo].[NoticeBoard]
+			 * 
+			 */
+		}
 	}
 	/**
 	 * 
