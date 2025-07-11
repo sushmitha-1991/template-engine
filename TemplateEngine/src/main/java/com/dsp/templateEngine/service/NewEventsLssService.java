@@ -35,8 +35,7 @@ public NewEventsLss saveNewEvent(NewEventsLssDTO dto) {
     entity.setHtype(dto.getHtype());
     entity.setIsNew(dto.getIsNew());
     entity.setIsActive(dto.getIsActive());
-    // entity.setUsername(dto.getUsername());
-    // entity.setUserId(dto.getUserId());
+
     
     nelssEntityManager.persist(entity);
     return entity;
