@@ -1322,15 +1322,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
-	public UUID uploadEnglishHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId) {
+	@Override
+	public UUID uploadHtmlAndReturnUuid(String htmlContent, 
+												int startingPageNo, 
+												Long applicationId, 
+												String locale) {
 		try {
-			// // Step 1: Fetch application abbreviation
-			// String abbr =
-			// generatedPdfModelRepository.findAbbrByApplicationId(applicationId);
-			// if (abbr == null) {
-			// throw new IllegalArgumentException("Application instance not found for ID: "
-			// + applicationId);
-			// }
 
 			// Step 2: Generate a random file name
 			String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
@@ -1338,7 +1335,16 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String okmPath = "/okm:root/";
 
 			// Step 3: Convert HTML content to PDF
-			File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
+			if (StringUtils.isEmpty(locale)) {
+				locale = "en"; // Default is english
+			}
+			
+			IConverter converter = factory.getConverter(null, locale);
+			File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startingPageNo);			
+
+//			File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
+			
+			
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content.");
 			}
