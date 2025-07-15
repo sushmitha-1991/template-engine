@@ -60,7 +60,7 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadEnglishHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId);
+	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale);
 	// NewEventsLssDTO addDsp1Table(NewEventsLssDTO lss);
 
 }
