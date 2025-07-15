@@ -158,13 +158,13 @@ public class GeneratedPdfController {
 
 	
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContent, 
+	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, 
 										@RequestParam int startingPageNo,
 										@RequestParam Long applicationId,
 										@RequestParam (defaultValue = "en", required=false) String locale) {
 
 		try {
-			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(htmlContent, startingPageNo, applicationId, locale);
+			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId, locale);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("documentUuid", documentUuid.toString());

@@ -100,8 +100,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
 	@Autowired
-	private HttpServletRequest httpRequest;
-	@Autowired
 	private NewEventsLssService nelssService;
 	@Autowired
 	private ENoticeBoardService eNoticeBoardService;
@@ -140,23 +138,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
 
-	private final String LOK_SABHA = "LS";
-
-	private final String RAJYA_SABHA = "RS";
-
-	private final String SUMMON = "SN";
-
-	private final String PROROGATION = "PN";
-	
-	private final String  BALLOTING_OF_NOTICES = "BON";
-
 	@Autowired
 	private EntityManager entityManager;
-	// public static void main(String[] args) throws IOException {
-	// GeneratePdfService service = new GeneratePdfService();
-	// String html=null;
-	// service.generatePdfFromHtml(html, "testpdf1");
-	// }
+
+	@Autowired
+	private Utils util;
+	
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
 		Path finalPath = null;
 		try {
@@ -570,7 +557,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid,
 			UUID documentUuidHi) {
 
-		String token = getTokenFromRequest();
+		String token = util.getTokenFromRequest();
 
 		if (token == null) {
 			throw new IllegalStateException("Authorization token is missing");
@@ -609,7 +596,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.fileType("pdf").build();
 
 
-		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
+		if (Utils.SUMMON.equals(appDetails.getAbbr()) || Utils.PROROGATION.equals(appDetails.getAbbr())) {
 			writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
 
@@ -644,8 +631,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.hurl(hindiDTO.getPublishUrl())
 				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
 				.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.etitle(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.htitle(getTitle(appDetails, hindiDTO,houseAbbr))
+				.etitle(util.getTitle(appDetails, publishHistoryDto, houseAbbr))
+				.htitle(util.getTitle(appDetails, hindiDTO, houseAbbr))
 				.isNew(1)
 				.etype("dsp2En")
 				.htype("dsp2Hi")
@@ -659,7 +646,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.startDate(publishHistoryDto.getForDate().atStartOfDay())
 				.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
 				.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.title(getTitle(appDetails, publishHistoryDto,houseAbbr))
+				.title(util.getTitle(appDetails, publishHistoryDto,houseAbbr))
 				.language("English")
      			.pdfFileUrl(publishHistoryDto.getPublishUrl())
 				.build();
@@ -667,7 +654,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.startDate(hindiDTO.getForDate().atStartOfDay())
 				.fileName(fetchUuid(hindiDTO.getPublishUrl()))
 				.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
-				.title(getTitle(appDetails, hindiDTO,houseAbbr))
+				.title(util.getTitle(appDetails, hindiDTO,houseAbbr))
 				.language("Hindi")
      			.pdfFileUrl(hindiDTO.getPublishUrl())
 				.build();
@@ -723,8 +710,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		    String ordinalLs = ordinalFmt.format(lokSabhaNo);
 
 		    // 5. Convert to word form (optional)
-		    String ordNo = ordinalToWord(ordinal);       
-		    String ordNoLs = ordinalToWord(ordinalLs);  
+		    String ordNo = Utils.ordinalToWord(ordinal);       
+		    String ordNoLs = Utils.ordinalToWord(ordinalLs);  
 
 		    // 6. Final title
 		    String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
@@ -746,175 +733,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		    }
 		}
 	 
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,String houseAbbr) {
-
-		String token = getTokenFromRequest();
-
-		String eTitle = "";
-
-		switch (houseAbbr) {
-			case LOK_SABHA:
-				eTitle = getTitleLS(appDetails, publishHistoryDto);
-				break;
-			case RAJYA_SABHA:
-				eTitle = getTitleRS(appDetails, publishHistoryDto);
-				break;
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	private String getTitleLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
-
-		Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
-
-		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-		String ordinalLs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
-
-		String ordinal = ordinalFmt.format(sesNo);
-
-		String ordNo = ordinalToWord(ordinal);
-		String ordNoLs = ordinalToWord(ordinalLs);
-
-		String eTitle = "";
-
-		switch (appDetails.getAbbr()) {
-
-			case SUMMON:
-				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-			case BALLOTING_OF_NOTICES:
-				eTitle += "Balloting of Notices  " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-		
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	private String getTitleRS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
-
-		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-
-		String ordinalRs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
-
-		String ordNoRs = ordinalToWord(ordinalRs);
-
-		String eTitle = "";
-
-		switch (appDetails.getAbbr()) {
-
-			case SUMMON:
-				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
-				break;
-
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
-				break;
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
-	 * @param value
-	 * @return
-	 */
-	public static String getOrdinalSuffix(long value) {
-		if (value >= 11 && value <= 13) {
-			return value + "TH";
-		}
-		switch ((int) (value % 10)) {
-			case 1:
-				return value + "ST";
-			case 2:
-				return value + "ND";
-			case 3:
-				return value + "RD";
-			default:
-				return value + "TH";
-		}
-	}
-
-	/**
-	 * 
-	 * @param ordinal
-	 * @return
-	 */
-	public static String ordinalToWord(String ordinal) {
-		switch (ordinal) {
-			case "1ST":
-				return "FITRST";
-			case "2ND":
-				return "SECOND";
-			case "3RD":
-				return "THIRD";
-			case "4TH":
-				return "FOUTH";
-			case "5TH":
-				return "FIFTH";
-
-			case "6TH":
-				return "SIXTH";
-			case "7TH":
-				return "SEVENTH";
-			case "8TH":
-				return "EIGHTH";
-			case "9TH":
-				return "NINTH";
-			case "10TH":
-				return "TENTH";
-			// Add more as needed
-			default:
-				return ordinal;
-		}
-	}
-
-	/**
-	 * 
-	 * @param roman
-	 * @return
-	 */
-	public Integer romanToInt(String roman) {
-		Map<Character, Integer> romanMap = Map.of('I', 1, 'V', 5, 'X', 10, 'L', 50, 'C', 100, 'D', 500, 'M', 1000);
-
-		int result = 0;
-		int prev = 0;
-
-		for (int i = roman.length() - 1; i >= 0; i--) {
-			int current = romanMap.getOrDefault(roman.charAt(i), 0);
-			if (current < prev) {
-				result -= current;
-			} else {
-				result += current;
-			}
-			prev = current;
-		}
-
-		return result;
-	}
 
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
 		Map<String, Object> response = new HashMap<>();
@@ -1143,30 +961,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		IConverter converter = factory.getConverter(null, locale);
 		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
 		
-//		// Configure font provider for Hindi/Unicode support
-//		String fontDirectory = "src/main/resources/font/";
-//		ConverterProperties converterProperties = new ConverterProperties();
-//		FontProvider fontProvider = new DefaultFontProvider();
-//		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-//		converterProperties.setFontProvider(fontProvider);
-//		// Generate PDF from HTML and write it to the output stream
-//		PdfWriter writer = new PdfWriter(outputStream);
-//		PdfDocument pdfDocument = new PdfDocument(writer);
-//		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
-//		pdfDocument.close();
-		
 	}
 
-	
-	public String getTokenFromRequest() {
-		System.out.println("Inside GetToken");
-		String authorizationHeader = httpRequest.getHeader("Authorization");
-		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-			return authorizationHeader.substring(7);
-		}
-		System.out.println("Done In  GetToken method");
-		return null;
-	}
 	// @Override
 	// public NewEventsLssDTO addDsp1Table(NewEventsLssDTO lssDTO)
 	// {
@@ -1203,7 +999,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// String url = "http://localhost:8087/workflow/publish-history/create";
 
 		System.out.println("########### url::" + url);
-		String token = getTokenFromRequest();
+		String token = util.getTokenFromRequest();
 		if (token == null) {
 			throw new IllegalStateException("Authorization token is missing");
 		}
@@ -1289,7 +1085,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			//ApplicationInstanceProjection appDetails = getAppDetails(dto.getApplicationId());
 			//System.out.println(" appDetails iiiiii "+appDetails);
 
-			String token = getTokenFromRequest();
+			String token = util.getTokenFromRequest();
 			if (token == null) {
 				throw new IllegalStateException("Authorization token is missing");
 			}
@@ -1324,17 +1120,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Override
 	public UUID uploadHtmlAndReturnUuid(String htmlContent, 
-												int startingPageNo, 
-												Long applicationId, 
-												String locale) {
+										int startingPageNo, 
+										Long applicationId, 
+										String locale) {
 		try {
 
-			// Step 2: Generate a random file name
+			// Step 1: Generate a random file name
 			String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
 			// String okmPath = "/okm:root/" + abbr;
 			String okmPath = "/okm:root/";
 
-			// Step 3: Convert HTML content to PDF
+			// Step 2: Convert HTML content to PDF
 			if (StringUtils.isEmpty(locale)) {
 				locale = "en"; // Default is english
 			}
@@ -1349,7 +1145,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new IOException("Failed to generate PDF from HTML content.");
 			}
 
-			// Step 4: Upload to OpenKM
+			// Step 3: Upload to OpenKM
 			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", applicationId.toString(),
 					"ApplicationInstance", "1");
 
@@ -1365,7 +1161,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
 			}
 
-			// Step 5: Return the document UUID
+			// Step 4: Return the document UUID
 			return UUID.fromString(data.get("documentUuid").toString());
 
 		} catch (IOException e) {
