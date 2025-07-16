@@ -66,25 +66,26 @@ public class GeneratedPdfController {
 			}
 
 			// Generate the English PDF content
-			ByteArrayOutputStream enPdfStream = new ByteArrayOutputStream();
-			pdfService.createPdfFromHtml(htmlContentEn, enPdfStream);
-
-			ByteArrayOutputStream hiPdfStream = null;
-
-			// Generate Hindi PDF only if htmlContentHi is present
-			if (htmlContentHi != null) {
-				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtml(htmlContentHi, hiPdfStream);
+			ByteArrayOutputStream enPdfStream = null;
+			if (htmlContentEn != null) {
+				enPdfStream = new ByteArrayOutputStream();
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en");
 			}
 
+			// Generate Hindi PDF only if htmlContentHi is present
+			ByteArrayOutputStream hiPdfStream = null;
+			if (htmlContentHi != null) {
+				hiPdfStream = new ByteArrayOutputStream();
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi");
+			}
+
+			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final output
 			byte[] mergedPdfBytes;
 
-			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
-			// output
-			if (hiPdfStream != null) {
+			if (enPdfStream != null && hiPdfStream != null) {
 				mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
 			} else {
-				mergedPdfBytes = enPdfStream.toByteArray();
+				mergedPdfBytes = enPdfStream != null ? enPdfStream.toByteArray() : hiPdfStream.toByteArray();
 			}
 
 			// Add page numbers to the final PDF
@@ -155,12 +156,15 @@ public class GeneratedPdfController {
 		return new GenericResponse<>(200, true, "Balloting published successfully", null);
 	}
 
+	
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtmlEnglish(@RequestParam String htmlContentEn, @RequestParam int startingPageNo,
-			@RequestParam Long applicationId) {
+	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, 
+										@RequestParam int startingPageNo,
+										@RequestParam Long applicationId,
+										@RequestParam (defaultValue = "en", required=false) String locale) {
 
 		try {
-			UUID documentUuid = pdfService.uploadEnglishHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId);
+			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId, locale);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("documentUuid", documentUuid.toString());

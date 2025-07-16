@@ -25,17 +25,19 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 @Component
 public class ITextConverter implements IConverter{
 
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-		String fontDirectory = "src/main/resources/font/";
-		ConverterProperties converterProperties = new ConverterProperties();
-		FontProvider fontProvider = new DefaultFontProvider();
-		fontProvider.addDirectory(fontDirectory);
-		converterProperties.setFontProvider(fontProvider);
+//		String fontDirectory = "src/main/resources/font/";
+//		ConverterProperties converterProperties = new ConverterProperties();
+//		FontProvider fontProvider = new DefaultFontProvider();
+//		fontProvider.addDirectory(fontDirectory);
+//		converterProperties.setFontProvider(fontProvider);
 
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
-		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream, converterProperties);
+//		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream, converterProperties);
+		
+		convertHtmlToPdfByteArray(htmlContent, pdfOutputStream);
 
 		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), startPageNumber);
 
@@ -45,6 +47,25 @@ public class ITextConverter implements IConverter{
 
 		return tempPdfFile;
 	}
+
+	public void convertHtmlToPdfByteArray(String htmlContent, 
+			java.io.ByteArrayOutputStream outputStream)  {
+
+		String fontDirectory = "src/main/resources/font/";
+
+		ConverterProperties converterProperties = new ConverterProperties();
+		FontProvider fontProvider = new DefaultFontProvider();
+		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+		converterProperties.setFontProvider(fontProvider);
+
+		// Generate PDF from HTML and write it to the output stream
+		PdfWriter writer = new PdfWriter(outputStream);
+		PdfDocument pdfDocument = new PdfDocument(writer);
+		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+		pdfDocument.close();
+
+	}
+
 	
 	public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
 		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
@@ -72,4 +93,6 @@ public class ITextConverter implements IConverter{
 		document.close();
 		return pdfOutputStream.toByteArray();
 	}
+	
+	
 }

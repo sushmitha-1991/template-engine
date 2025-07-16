@@ -19,20 +19,26 @@ public class ConverterFactory {
 		
 		IConverter con = null;
 		
-		switch (applicationName) {
-			
-			case "SN":
-			case "PN":
-			case "ES": 
-				con = "_hi".equalsIgnoreCase(lang) ? libreConverter : itextConverter;
-				break;
-			default:
-				con = itextConverter;
-				break;
-		}		
-
-		System.out.println("Selected converter: " + con);
-		return con;
+		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) {
+			return libreConverter;
+		} 
+		
+		return itextConverter;
+		
+//		switch (applicationName) {
+//			
+//			case "SN":
+//			case "PN":
+//			case "ES": 
+//				con = "_hi".equalsIgnoreCase(lang) ? libreConverter : itextConverter;
+//				break;
+//			default:
+//				con = itextConverter;
+//				break;
+//		}		
+//
+//		System.out.println("Selected converter: " + con);
+//		return con;
 
 	}
 

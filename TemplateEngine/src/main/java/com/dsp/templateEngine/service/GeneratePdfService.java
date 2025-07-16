@@ -27,6 +27,8 @@ public interface GeneratePdfService {
 	 */
 	String generatePdfFromHtml(String html, String fileName) throws IOException;
 
+	
+
 	/**
 	 * @param html
 	 * @param startPageNumber
@@ -38,6 +40,9 @@ public interface GeneratePdfService {
 			Integer startPageNumber, UUID uploadedDoc);
 
 	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;
+	
+	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale);
+
 
 	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
 
@@ -55,7 +60,7 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadEnglishHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId);
+	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale);
 	// NewEventsLssDTO addDsp1Table(NewEventsLssDTO lss);
 
 }

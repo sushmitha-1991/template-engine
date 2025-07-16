@@ -7,6 +7,8 @@ package com.dsp.templateEngine.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -14,11 +16,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.repository.MyUserRepository;
+import com.ibm.icu.text.RuleBasedNumberFormat;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * 
@@ -31,7 +37,20 @@ public class Utils {
 
 	@Autowired
 	private EntityManager entityManager; // For native query execution
+	
+	@Autowired
+	private HttpServletRequest httpRequest;	
 
+	private final String LOK_SABHA = "LS";
+
+	private final String RAJYA_SABHA = "RS";
+
+	public static final String SUMMON = "SN";
+
+	public static final String PROROGATION = "PN";
+	
+	public static final String  BALLOTING_OF_NOTICES = "BON";
+	
 	/**
 	 * Fetches the user ID of the currently authenticated user
 	 * 
@@ -180,5 +199,186 @@ public class Utils {
 		}
 		return false;
 	}
+	
+	public String getTokenFromRequest() {
+		System.out.println("Inside GetToken");
+		String authorizationHeader = httpRequest.getHeader("Authorization");
+		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+			return authorizationHeader.substring(7);
+		}
+		System.out.println("Done In  GetToken method");
+		return null;
+	}
+	
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	public String getTitle(ApplicationInstanceProjection appDetails, 
+							PublishHistoryDTO publishHistoryDto,
+							String houseAbbr) {
+
+		String eTitle = "";
+
+		switch (houseAbbr) {
+			case LOK_SABHA:
+				eTitle = getTitleLS(appDetails, publishHistoryDto);
+				break;
+			case RAJYA_SABHA:
+				eTitle = getTitleRS(appDetails, publishHistoryDto);
+				break;
+		}
+
+		return eTitle;
+	}
+
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	private String getTitleLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
+
+		Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
+
+		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+		String ordinalLs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
+
+		String ordinal = ordinalFmt.format(sesNo);
+
+		String ordNo = ordinalToWord(ordinal);
+		String ordNoLs = ordinalToWord(ordinalLs);
+
+		String eTitle = "";
+
+		switch (appDetails.getAbbr()) {
+
+			case SUMMON:
+				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+			case PROROGATION:
+				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+			case BALLOTING_OF_NOTICES:
+				eTitle += "Balloting of Notices  " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+				break;
+		
+		}
+
+		return eTitle;
+	}
+
+	/**
+	 * 
+	 * @param appDetails
+	 * @param publishHistoryDto
+	 * @return
+	 */
+	private String getTitleRS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
+
+		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+
+		String ordinalRs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
+
+		String ordNoRs = ordinalToWord(ordinalRs);
+
+		String eTitle = "";
+
+		switch (appDetails.getAbbr()) {
+
+			case SUMMON:
+				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
+				break;
+
+			case PROROGATION:
+				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
+				break;
+		}
+
+		return eTitle;
+	}
+
+	/**
+	 * 
+	 * @param value
+	 * @return
+	 */
+	public static String getOrdinalSuffix(long value) {
+		if (value >= 11 && value <= 13) {
+			return value + "TH";
+		}
+		switch ((int) (value % 10)) {
+			case 1:
+				return value + "ST";
+			case 2:
+				return value + "ND";
+			case 3:
+				return value + "RD";
+			default:
+				return value + "TH";
+		}
+	}
+
+	/**
+	 * 
+	 * @param ordinal
+	 * @return
+	 */
+	public static String ordinalToWord(String ordinal) {
+		switch (ordinal) {
+			case "1ST":
+				return "FITRST";
+			case "2ND":
+				return "SECOND";
+			case "3RD":
+				return "THIRD";
+			case "4TH":
+				return "FOUTH";
+			case "5TH":
+				return "FIFTH";
+
+			case "6TH":
+				return "SIXTH";
+			case "7TH":
+				return "SEVENTH";
+			case "8TH":
+				return "EIGHTH";
+			case "9TH":
+				return "NINTH";
+			case "10TH":
+				return "TENTH";
+			// Add more as needed
+			default:
+				return ordinal;
+		}
+	}
+
+	/**
+	 * 
+	 * @param roman
+	 * @return
+	 */
+	public Integer romanToInt(String roman) {
+		Map<Character, Integer> romanMap = Map.of('I', 1, 'V', 5, 'X', 10, 'L', 50, 'C', 100, 'D', 500, 'M', 1000);
+
+		int result = 0;
+		int prev = 0;
+
+		for (int i = roman.length() - 1; i >= 0; i--) {
+			int current = romanMap.getOrDefault(roman.charAt(i), 0);
+			if (current < prev) {
+				result -= current;
+			} else {
+				result += current;
+			}
+			prev = current;
+		}
+
+		return result;
+	}
+	
 
 }
