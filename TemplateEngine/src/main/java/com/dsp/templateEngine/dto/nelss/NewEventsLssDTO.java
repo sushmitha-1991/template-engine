@@ -1,4 +1,4 @@
-package com.dsp.templateEngine.entity.nelss;
+package com.dsp.templateEngine.dto.nelss;
 import java.time.LocalDate;
 
 import lombok.AllArgsConstructor;

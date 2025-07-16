@@ -1,4 +1,4 @@
-package com.dsp.templateEngine.entity.enoticeboard;
+package com.dsp.templateEngine.dto.enoticeboard;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
