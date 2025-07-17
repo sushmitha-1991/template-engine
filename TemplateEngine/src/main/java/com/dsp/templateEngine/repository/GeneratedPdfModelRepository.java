@@ -37,9 +37,9 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 			    SELECT ai.application_no AS appNo,
 			           a.abbr AS abbr,
 					   a.dsp1_document_name AS appName,
-					   a.lok_sabha_session AS lsNo,
-					   a.lok_sabha_session_number AS lsSesNo,
-					   a.rajya_sabha_session AS rsSesNo
+					   ai.lok_sabha_session AS lsNo,
+					   ai.lok_sabha_session_number AS lsSesNo,
+					   ai.rajya_sabha_session AS rsSesNo
 			    FROM master.application_instance ai
 			    LEFT JOIN master.applications a ON a.id = ai.application_id
 			    WHERE ai.id = :appInstId

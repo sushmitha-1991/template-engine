@@ -150,11 +150,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private final String SUMMON = "SN";
 
 	private final String PROROGATION = "PN";
-	
-	private final String  BALLOTING_OF_NOTICES = "BON";
+
+	private final String BALLOTING_OF_NOTICES = "BON";
 
 	@Autowired
 	private EntityManager entityManager;
+
 	// public static void main(String[] args) throws IOException {
 	// GeneratePdfService service = new GeneratePdfService();
 	// String html=null;
@@ -519,21 +520,42 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	// return extractUuidFromOpenKmResponse(uploadResult);
 	// }
 
+	private String getHouseAbbr() {
+		Long houseId = utils.getHouseIdFromAuthentication();
+		Optional<String> abbr = userResponsibility.findHouseAbbrById(houseId);
+		// if(abbr.isEmpty())
+		// throw
+		return abbr.get();
+	}
+
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
 		// String okmPath = "/okm:root/" + appDetails.getAbbr();
-		System.out.println("appDetails "+appDetails);
+		System.out.println("appDetails " + appDetails.getLsNo());
+		System.out.println("appDetails " + appDetails.getLsSesNo());
+
+		System.out.println("appDetails " + appDetails.getRsSesNo());
+
 		List<String> folders = new ArrayList();
 
+		String houseAbbr = getHouseAbbr();
+		folders.add(houseAbbr);
+		if ("LS".equals(houseAbbr)) {
+			folders.add(appDetails.getLsNo());
+			folders.add(appDetails.getLsSesNo());
+		} else {
+			folders.add(appDetails.getRsSesNo());
+		}
+		System.out.println("folder "+folders);
 		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
 		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, appNo, startPageNumber);
-		
-//		File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
-		
+
+		// File pdfFile = convertHtmlToPdf(htmlContent, appNo, startPageNumber);
+
 		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -588,24 +610,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
 				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
-		
-			PublishHistoryDTO dtoHi = PublishHistoryDTO.builder()
-					.lokSabhaNo(instance.getLokSabhaSession())
-					.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-					.rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
-					.applicationId(instance.getApplicationId())
-					.applicationNo(instance.getApplicationNo())
-					.applicationName(applicationName)
-					.publishUuid(documentUuid)
-					.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
-					.publishStatus(true)
-					.publishDate(LocalDate.now())
-					.house(houseAbbr)
-					.locale("hi")
-					.forDate(instance.getDocumentDate())
-					.fileType("pdf").build();
+
+		PublishHistoryDTO dtoHi = PublishHistoryDTO.builder()
+				.lokSabhaNo(instance.getLokSabhaSession())
+				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
+				.applicationId(instance.getApplicationId())
+				.applicationNo(instance.getApplicationNo())
+				.applicationName(applicationName)
+				.publishUuid(documentUuid)
+				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
+				.publishStatus(true)
+				.publishDate(LocalDate.now())
+				.house(houseAbbr)
+				.locale("hi")
+				.forDate(instance.getDocumentDate())
+				.fileType("pdf").build();
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
-			writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
+			writeToDSP1(appDetails, publishHistoryDto, dtoHi, houseAbbr);
 		}
 
 		addPublishHistoryEntry(publishHistoryDto);
@@ -625,69 +647,68 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		if (houseAbbr.equalsIgnoreCase("LS")) {
 			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
-				.eurl(publishHistoryDto.getPublishUrl())
-				.hurl(hindiDTO.getPublishUrl())
-				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
-				.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.etitle(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.htitle(getTitle(appDetails, hindiDTO,houseAbbr))
-				.isNew(1)
-				.etype("dsp2En")
-				.htype("dsp2Hi")
-				.build();
-		NewEventsLss lss = nelssService.saveNewEvent(nELss);
-		System.out.println(lss);
-		}
-		else if(houseAbbr.equalsIgnoreCase("RS")){
-			
-				NewEventsRssDTO nERss = NewEventsRssDTO.builder()
-				.startDate(publishHistoryDto.getForDate().atStartOfDay())
-				.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
-				.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.title(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.language("English")
-     			.pdfFileUrl(publishHistoryDto.getPublishUrl())
-				.build();
-				NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
-				.startDate(hindiDTO.getForDate().atStartOfDay())
-				.fileName(fetchUuid(hindiDTO.getPublishUrl()))
-				.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
-				.title(getTitle(appDetails, hindiDTO,houseAbbr))
-				.language("Hindi")
-     			.pdfFileUrl(hindiDTO.getPublishUrl())
-				.build();
-		NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
-		if(hindiDTO!=null)
-		{
-			NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
-			System.out.println(rssHi);
-		}
-		System.out.println(rss);
+					.eurl(publishHistoryDto.getPublishUrl())
+					.hurl(hindiDTO.getPublishUrl())
+					.hfile(fetchUuid(hindiDTO.getPublishUrl()))
+					.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
+					.etitle(getTitle(appDetails, publishHistoryDto, houseAbbr))
+					.htitle(getTitle(appDetails, hindiDTO, houseAbbr))
+					.isNew(1)
+					.etype("dsp2En")
+					.htype("dsp2Hi")
+					.build();
+			NewEventsLss lss = nelssService.saveNewEvent(nELss);
+			System.out.println(lss);
+		} else if (houseAbbr.equalsIgnoreCase("RS")) {
+
+			NewEventsRssDTO nERss = NewEventsRssDTO.builder()
+					.startDate(publishHistoryDto.getForDate().atStartOfDay())
+					.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
+					.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
+					.title(getTitle(appDetails, publishHistoryDto, houseAbbr))
+					.language("English")
+					.pdfFileUrl(publishHistoryDto.getPublishUrl())
+					.build();
+			NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
+					.startDate(hindiDTO.getForDate().atStartOfDay())
+					.fileName(fetchUuid(hindiDTO.getPublishUrl()))
+					.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
+					.title(getTitle(appDetails, hindiDTO, houseAbbr))
+					.language("Hindi")
+					.pdfFileUrl(hindiDTO.getPublishUrl())
+					.build();
+			NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
+			if (hindiDTO != null) {
+				NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
+				System.out.println(rssHi);
+			}
+			System.out.println(rss);
 			/*
 			 * 
 			 * SELECT TOP (1000) [Id]
-      ,[Title]
-      ,[venue]
-      ,[StartDate]
-      ,[EndDate]
-      ,[PdfFileUrl]
-      ,[ImageFileUrl]
-      ,[Section]
-      ,[FileNo]
-      ,[Type]
-      ,[CreateOn]
-      ,[IsArchived]
-      ,[FileSize]
-      ,[FileName]
-      ,[AddImageOrNot]
-      ,[Language]
-  FROM [RS_DB].[dbo].[NoticeBoard]
+			 * ,[Title]
+			 * ,[venue]
+			 * ,[StartDate]
+			 * ,[EndDate]
+			 * ,[PdfFileUrl]
+			 * ,[ImageFileUrl]
+			 * ,[Section]
+			 * ,[FileNo]
+			 * ,[Type]
+			 * ,[CreateOn]
+			 * ,[IsArchived]
+			 * ,[FileSize]
+			 * ,[FileName]
+			 * ,[AddImageOrNot]
+			 * ,[Language]
+			 * FROM [RS_DB].[dbo].[NoticeBoard]
 			 * 
 			 */
 		}
 	}
-	private void writeToBallotingDSP1( PublishHistoryEntity publishHistoryEntity,String houseAbbr,String ballotTitle) {
-		
+
+	private void writeToBallotingDSP1(PublishHistoryEntity publishHistoryEntity, String houseAbbr, String ballotTitle) {
+
 		try {
 			Long sessionId = Long.parseLong(publishHistoryEntity.getLokSabhaSessionNo());
 			Long lokSabhaId = Long.parseLong(publishHistoryEntity.getLokSabhaNo());
@@ -707,37 +728,38 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String ordinal = ordinalFmt.format(sessionNo);
 			String ordinalLs = ordinalFmt.format(lokSabhaNo);
 
-		    // 5. Convert to word form (optional)
-		    String ordNo = ordinalToWord(ordinal);       
-		    String ordNoLs = ordinalToWord(ordinalLs);  
+			// 5. Convert to word form (optional)
+			String ordNo = ordinalToWord(ordinal);
+			String ordNoLs = ordinalToWord(ordinalLs);
 
 			// 6. Final title
 			String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
 
-		NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
-				.eurl(publishHistoryEntity.getPublishUrl())
-				.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
-				.etitle(eTitle)
-				.isNew(1)
-				.etype("dsp2En")
-				.build();
-		NewEventsLss lss = nelssService.saveNewEvent(nELss);
-		System.out.println( "Function call which table "+lss);
-		 } catch (NoResultException e) {
-		        throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
-		    } catch (Exception e) {
-		        e.printStackTrace();
-		        throw new RuntimeException("Error in writeToBallotingDSP1", e);
-		    }
+			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
+					.eurl(publishHistoryEntity.getPublishUrl())
+					.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
+					.etitle(eTitle)
+					.isNew(1)
+					.etype("dsp2En")
+					.build();
+			NewEventsLss lss = nelssService.saveNewEvent(nELss);
+			System.out.println("Function call which table " + lss);
+		} catch (NoResultException e) {
+			throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error in writeToBallotingDSP1", e);
 		}
-	 
+	}
+
 	/**
 	 * 
 	 * @param appDetails
 	 * @param publishHistoryDto
 	 * @return
 	 */
-	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,String houseAbbr) {
+	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,
+			String houseAbbr) {
 
 		String token = utils.getTokenFromRequest();
 
@@ -786,7 +808,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			case BALLOTING_OF_NOTICES:
 				eTitle += "Balloting of Notices  " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
 				break;
-		
+
 		}
 
 		return eTitle;
@@ -1117,9 +1139,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public void createPdfFromHtmlV2(String htmlContent, 
-									java.io.ByteArrayOutputStream outputStream,
-									String locale) {
+	public void createPdfFromHtmlV2(String htmlContent,
+			java.io.ByteArrayOutputStream outputStream,
+			String locale) {
 
 		if (htmlContent == null || htmlContent.isEmpty()) {
 			return;
@@ -1127,7 +1149,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		IConverter converter = factory.getConverter(null, locale);
 		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
-		
+
 	}
 
 	// @Override
@@ -1286,10 +1308,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public UUID uploadHtmlAndReturnUuid(String htmlContent, 
-										int startingPageNo, 
-										Long applicationId, 
-										String locale) {
+	public UUID uploadHtmlAndReturnUuid(String htmlContent,
+			int startingPageNo,
+			Long applicationId,
+			String locale) {
 		try {
 
 			// Step 1: Generate a random file name
@@ -1301,13 +1323,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			if (StringUtils.isEmpty(locale)) {
 				locale = "en"; // Default is english
 			}
-			
-			IConverter converter = factory.getConverter(null, locale);
-			File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startingPageNo);			
 
-//			File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
-			
-			
+			IConverter converter = factory.getConverter(null, locale);
+			File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startingPageNo);
+
+			// File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
+
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content.");
 			}
