@@ -4,8 +4,8 @@ package com.dsp.templateEngine.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
-import com.dsp.templateEngine.entity.enoticeboard.NewEventsRssDTO;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;

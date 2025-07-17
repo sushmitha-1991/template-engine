@@ -11,7 +11,10 @@ package com.dsp.templateEngine.dto;
 public interface ApplicationInstanceProjection {
 
 	String getAppNo();
-
 	String getAbbr();
 	String getAppName();
+	String getLsNo();
+	String getLsSesNo();
+	String getRsSesNo();
+
 }

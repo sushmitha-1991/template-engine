@@ -1,8 +1,8 @@
 package com.dsp.templateEngine.controller;
 
-import com.dsp.templateEngine.entity.nelss.NewEventsLssDTO;
+import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
+import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
-import com.dsp.templateEngine.entity.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.NewEventsLssService;

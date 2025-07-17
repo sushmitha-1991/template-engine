@@ -8,8 +8,8 @@ package com.dsp.templateEngine.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
-import com.dsp.templateEngine.entity.nelss.NewEventsLssDTO;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
