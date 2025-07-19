@@ -534,6 +534,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// String okmPath = "/okm:root/" + appDetails.getAbbr();
 		System.out.println("appDetails "+appDetails);
 		List<String> folders = new ArrayList();
+		//changes 19-07-2025
+			String houseAbbr = getHouseAbbr();
+		folders.add(houseAbbr);
+		if ("LS".equals(houseAbbr)) {
+			folders.add(appDetails.getLsNo());
+			folders.add(appDetails.getLsSesNo());
+		} else {
+			folders.add(appDetails.getRsSesNo());
+		}
+		//new chages 
+		System.out.println("folder "+folders);
 
 		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
@@ -602,7 +613,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 					.rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
 					.applicationId(instance.getApplicationId())
-					.applicationNo(instance.getApplicationNo())
+					.applicationNo(instance.getApplicationNo()+"_HI")
 					.applicationName(applicationName)
 					.publishUuid(documentUuid)
 					.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
@@ -630,7 +641,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private void writeToDSP1(ApplicationInstanceProjection appDetails,
 			PublishHistoryDTO publishHistoryDto, PublishHistoryDTO hindiDTO, String houseAbbr) {
-
+			System.out.println("house "+houseAbbr);
 		if (houseAbbr.equalsIgnoreCase("LS")) {
 			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
 				.eurl(publishHistoryDto.getPublishUrl())
@@ -671,27 +682,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			System.out.println(rssHi);
 		}
 		System.out.println(rss);
-			/*
-			 * 
-			 * SELECT TOP (1000) [Id]
-      ,[Title]
-      ,[venue]
-      ,[StartDate]
-      ,[EndDate]
-      ,[PdfFileUrl]
-      ,[ImageFileUrl]
-      ,[Section]
-      ,[FileNo]
-      ,[Type]
-      ,[CreateOn]
-      ,[IsArchived]
-      ,[FileSize]
-      ,[FileName]
-      ,[AddImageOrNot]
-      ,[Language]
-  FROM [RS_DB].[dbo].[NoticeBoard]
-			 * 
-			 */
 		}
 	}
 	private void writeToBallotingDSP1( PublishHistoryEntity publishHistoryEntity,String houseAbbr,String ballotTitle) {
