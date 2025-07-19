@@ -531,7 +531,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
-		// String okmPath = "/okm:root/" + appDetails.getAbbr();
+		String okmPath = "/okm:root/" + appDetails.getAbbr();
 		System.out.println("appDetails "+appDetails);
 		List<String> folders = new ArrayList();
 		//changes 19-07-2025
@@ -546,7 +546,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		//new chages 
 		System.out.println("folder "+folders);
 
-		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
+		// String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
 		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, appNo, startPageNumber);
