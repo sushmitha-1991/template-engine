@@ -51,6 +51,8 @@ public class Utils {
 	
 	public static final String  BALLOTING_OF_NOTICES = "BON";
 	
+	public static final String OKM_ROOT = "/okm:root/";
+	
 	/**
 	 * Fetches the user ID of the currently authenticated user
 	 * 
