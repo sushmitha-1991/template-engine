@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.springframework.http.ResponseEntity;
 
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.UploadHtmlDTO;
 
 /**
  * 
@@ -60,7 +61,13 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale);
-	// NewEventsLssDTO addDsp1Table(NewEventsLssDTO lss);
+	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale, String fileName);
 
+	/**
+	 * @param htmlContentEn
+	 * @param startingPageNo
+	 * @param applicationId
+	 * @return
+	 */
+	UUID uploadHtmlAndReturnUuid(UploadHtmlDTO upload);	
 }

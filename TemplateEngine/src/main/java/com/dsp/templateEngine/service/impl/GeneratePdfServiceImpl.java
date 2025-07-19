@@ -22,7 +22,6 @@ import java.util.Scanner;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.crypto.RuntimeCryptoException;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -44,6 +43,7 @@ import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.UploadHtmlDTO;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
@@ -1308,34 +1308,96 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public UUID uploadHtmlAndReturnUuid(String htmlContent,
-			int startingPageNo,
-			Long applicationId,
-			String locale) {
+	public UUID uploadHtmlAndReturnUuid(String htmlContent, 
+										int startingPageNo, 
+										Long applicationId, 
+										String locale,
+										String fileName) {
+		
+		UploadHtmlDTO upload = UploadHtmlDTO.builder()
+											.htmlContent(htmlContent)
+											.startingPageNo(startingPageNo)
+											.fileName(fileName)
+											.applicationId(applicationId)
+											.locale(locale)
+											.build();
+		
+		return uploadHtmlAndReturnUuid (upload);
+		
+//		try {
+//
+//			// Step 1: Generate a random file name
+//			String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
+//			// String okmPath = "/okm:root/" + abbr;
+//			String okmPath = "/okm:root/";
+//
+//			// Step 2: Convert HTML content to PDF
+//			if (StringUtils.isEmpty(locale)) {
+//				locale = "en"; // Default is english
+//			}
+//			
+//			IConverter converter = factory.getConverter(null, locale);
+//			File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startingPageNo);			
+//
+////			File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
+//			
+//			
+//			if (pdfFile == null || !pdfFile.exists()) {
+//				throw new IOException("Failed to generate PDF from HTML content.");
+//			}
+//
+//			// Step 3: Upload to OpenKM
+//			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", applicationId.toString(),
+//					"ApplicationInstance", "1");
+//
+//			ObjectMapper objectMapper = new ObjectMapper();
+//			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
+//			});
+//			if (responseMap == null || !responseMap.containsKey("data")) {
+//				throw new IllegalStateException("Invalid response: 'data' key is missing.");
+//			}
+//
+//			Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
+//			if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
+//				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
+//			}
+//
+//			// Step 4: Return the document UUID
+//			return UUID.fromString(data.get("documentUuid").toString());
+//
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//			throw new RuntimeException("Error while processing HTML to PDF upload", e);
+//		}
+	}
+
+	@Override
+	public UUID uploadHtmlAndReturnUuid(UploadHtmlDTO upload) {
+	
+		if (upload == null) return null;
+		
 		try {
 
-			// Step 1: Generate a random file name
-			String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
-			// String okmPath = "/okm:root/" + abbr;
-			String okmPath = "/okm:root/";
-
+			// Step 1: Generate a random file name, if not specified
+			String fileName = getFileName(upload);
+			
 			// Step 2: Convert HTML content to PDF
-			if (StringUtils.isEmpty(locale)) {
-				locale = "en"; // Default is english
-			}
-
+			String locale = StringUtils.isEmpty(upload.getLocale()) ? "en" : upload.getLocale();
+			
 			IConverter converter = factory.getConverter(null, locale);
-			File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startingPageNo);
-
-			// File pdfFile = convertHtmlToPdf(htmlContentEn, fileName, startingPageNo);
-
+			File pdfFile = converter.convertHtmlToPdfFile(upload.getHtmlContent(), 
+														  fileName, 
+														  upload.getStartingPageNo());			
+			
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content.");
 			}
 
 			// Step 3: Upload to OpenKM
-			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", applicationId.toString(),
-					"ApplicationInstance", "1");
+			String okmPath = Utils.OKM_ROOT;
+			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", 
+													upload.getApplicationId().toString(),
+													"ApplicationInstance", "1");
 
 			ObjectMapper objectMapper = new ObjectMapper();
 			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
@@ -1355,7 +1417,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new RuntimeException("Error while processing HTML to PDF upload", e);
-		}
+		}		
 	}
-
+	
+	private String getFileName(UploadHtmlDTO upload) {
+		
+		if (!StringUtils.isEmpty(upload.getFileName())) return upload.getFileName();
+		
+		// Else Generate a random file name
+		String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
+		return fileName;
+	}
 }

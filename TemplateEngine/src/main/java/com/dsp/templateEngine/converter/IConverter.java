@@ -9,4 +9,5 @@ public interface IConverter {
 	File convertHtmlToPdfFile (String htmlContent, String fileName, Integer startPageNumber) throws IOException;
 	
 	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream);
+
 }
