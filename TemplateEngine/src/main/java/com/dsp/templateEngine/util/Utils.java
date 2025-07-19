@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.UserDetailsDTO;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.ibm.icu.text.RuleBasedNumberFormat;
@@ -175,23 +176,32 @@ public class Utils {
 		}
 	}
 
-	public Long getHouseIdFromAuthentication() {
-		Long userId = getUserIdFromAuthentication(); // Get the authenticated user's ID
+//	public Long getHouseIdFromAuthentication() {
+//		Long userId = getUserIdFromAuthentication(); // Get the authenticated user's ID
+//
+//		// Define the native query
+//		String nativeQuery = "SELECT u.house_id FROM authentication.base_user u " + "WHERE u.id = :userId";
+//
+//		// Execute the query
+//		Query query = entityManager.createNativeQuery(nativeQuery);
+//		query.setParameter("userId", userId);
+//
+//		// Retrieve and return the house_id
+//		Object result = query.getSingleResult();
+//		if (result != null) {
+//			return ((Number) result).longValue(); // Cast result to Long
+//		} else {
+//			throw new IllegalStateException("House ID not found for the authenticated user.");
+//		}
+//	}
 
-		// Define the native query
-		String nativeQuery = "SELECT u.house_id FROM authentication.base_user u " + "WHERE u.id = :userId";
-
-		// Execute the query
-		Query query = entityManager.createNativeQuery(nativeQuery);
-		query.setParameter("userId", userId);
-
-		// Retrieve and return the house_id
-		Object result = query.getSingleResult();
-		if (result != null) {
-			return ((Number) result).longValue(); // Cast result to Long
-		} else {
-			throw new IllegalStateException("House ID not found for the authenticated user.");
+	public static Long getHouseId() {
+		Long houseId = null;
+		Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+		if (principal instanceof com.dsp.templateEngine.dto.UserDetailsDTO) {
+			houseId = ((UserDetailsDTO) principal).getHouseId();
 		}
+		return houseId;
 	}
 
 	public static boolean isEmpty(String input) {

@@ -28,14 +28,7 @@ public class ITextConverter implements IConverter{
 	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-//		String fontDirectory = "src/main/resources/font/";
-//		ConverterProperties converterProperties = new ConverterProperties();
-//		FontProvider fontProvider = new DefaultFontProvider();
-//		fontProvider.addDirectory(fontDirectory);
-//		converterProperties.setFontProvider(fontProvider);
-
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
-//		HtmlConverter.convertToPdf(htmlContent, pdfOutputStream, converterProperties);
 		
 		convertHtmlToPdfByteArray(htmlContent, pdfOutputStream);
 
@@ -94,5 +87,11 @@ public class ITextConverter implements IConverter{
 		return pdfOutputStream.toByteArray();
 	}
 	
-	
+	@Override
+	public void convertOdtToPdf(String docUrl, 
+								String fileName, 
+								java.io.ByteArrayOutputStream outputStream) {
+		throw new UnsupportedOperationException("Not supported for ITextConverter");
+	}
+
 }

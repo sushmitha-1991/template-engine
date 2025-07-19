@@ -34,6 +34,8 @@ public class UserDetailsDTO implements UserDetails {
 	private String password;
 	private String role;
 	private boolean isActive;
+	private Long houseId;
+	
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {

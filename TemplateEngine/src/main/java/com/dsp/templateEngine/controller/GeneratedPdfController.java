@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
+import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
@@ -35,6 +37,9 @@ public class GeneratedPdfController {
 	private GeneratePdfService pdfService;
 	@Autowired
 	private NewEventsLssService nelssService;
+
+	@Autowired
+	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -56,10 +61,19 @@ public class GeneratedPdfController {
 
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
-			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName) {
+								@RequestParam(required = false) String htmlContentHi, 
+								@RequestParam String fileName,
+								@RequestParam(required = false) Long applicationInstanceId) {
 		try {
-			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
-			// or empty
+
+			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
+			String docUrl = onlyOfficeData.getDocUrl();
+			String abbr = onlyOfficeData.getAbbr();
+
+			System.out.println("### docUrl - " + docUrl);
+			System.out.println("### abbr - " + abbr);
+
+			// Normalize htmlContentHi: Handle cases where it's received as "null" (string) or empty
 			if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
 					|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
 				htmlContentHi = null;
@@ -69,14 +83,14 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			if (htmlContentEn != null) {
 				enPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en");
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", abbr);
 			}
 
 			// Generate Hindi PDF only if htmlContentHi is present
 			ByteArrayOutputStream hiPdfStream = null;
 			if (htmlContentHi != null) {
 				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi");
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", abbr);
 			}
 
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final output
