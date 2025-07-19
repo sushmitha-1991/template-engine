@@ -17,11 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.dsp.templateEngine.dto.OnlyOfficeData;
+//import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
-import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
+//import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
@@ -38,8 +38,8 @@ public class GeneratedPdfController {
 	@Autowired
 	private NewEventsLssService nelssService;
 
-	@Autowired
-	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
+//	@Autowired
+//	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -66,12 +66,13 @@ public class GeneratedPdfController {
 								@RequestParam(required = false) Long applicationInstanceId) {
 		try {
 
-			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
-			String docUrl = onlyOfficeData.getDocUrl();
-			String abbr = onlyOfficeData.getAbbr();
-
-			System.out.println("### docUrl - " + docUrl);
-			System.out.println("### abbr - " + abbr);
+			String abbr = null;
+//			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
+//			String docUrl = onlyOfficeData.getDocUrl();
+//			String abbr = onlyOfficeData.getAbbr();
+//
+//			System.out.println("### docUrl - " + docUrl);
+//			System.out.println("### abbr - " + abbr);
 
 			// Normalize htmlContentHi: Handle cases where it's received as "null" (string) or empty
 			if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
