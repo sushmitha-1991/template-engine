@@ -10,4 +10,6 @@ public interface IConverter {
 	
 	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream);
 
+	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream);
+
 }

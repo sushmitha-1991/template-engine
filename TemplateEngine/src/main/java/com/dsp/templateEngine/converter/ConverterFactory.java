@@ -7,17 +7,24 @@ import org.springframework.stereotype.Component;
 public class ConverterFactory {
 	
 	@Autowired
-	LibreConverter libreConverter;
+	LibreHtmlConverter libreConverter;
+	
+	@Autowired
+	LibreOdtConverter libreOdtConverter;
 	
 	@Autowired
 	ITextConverter itextConverter;
 	
-	public IConverter getConverter (String applicationName, String lang) {
+	public IConverter getConverter (String applicationName, String lang) { //, String appAbbr) {
 		
 		System.out.println("Application Name: " + applicationName);
 		System.out.println("Lang: " + lang);
 		
 		IConverter con = null;
+		
+//		if ("SW".equals(appAbbr)) {
+//			return libreOdtConverter;
+//		}
 		
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) {
 			return libreConverter;

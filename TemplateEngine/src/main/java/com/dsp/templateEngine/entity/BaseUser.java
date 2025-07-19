@@ -78,6 +78,9 @@ public class BaseUser extends Auditable implements UserDetails {
 	@Column(name = "is_verified")
 	private Boolean isVerified = false;
 
+	@Column(name = "house_id")
+	private Long houseId;
+	
 	// Implement UserDetails interface methods
 
 	@Override
