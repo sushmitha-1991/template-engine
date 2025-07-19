@@ -761,7 +761,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
 				.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
 				.etitle(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.htitle(getTitle(appDetails, hindiDTO,houseAbbr))
+				.htitle(getTitleHi(appDetails, hindiDTO,houseAbbr))
 				.isNew(1)
 				.etype("dsp2En")
 				.htype("dsp2Hi")
@@ -783,7 +783,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.startDate(hindiDTO.getForDate().atStartOfDay())
 				.fileName(fetchUuid(hindiDTO.getPublishUrl()))
 				.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
-				.title(getTitle(appDetails, hindiDTO,houseAbbr))
+				.title(getTitleHi(appDetails, hindiDTO,houseAbbr))
 				.language("Hindi")
      			.pdfFileUrl(hindiDTO.getPublishUrl())
 				.build();
