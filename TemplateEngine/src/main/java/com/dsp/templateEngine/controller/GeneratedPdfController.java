@@ -177,7 +177,8 @@ public class GeneratedPdfController {
 										@RequestParam int startingPageNo,
 										@RequestParam Long applicationId,
 										@RequestParam (defaultValue = "en", required=false) String locale,
-										@RequestParam (required=false) String fileName) {
+										@RequestParam (required=false) String fileName,
+										@RequestParam String applicationAbbr) {
 
 		try {
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId, locale, fileName);

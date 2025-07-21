@@ -3,6 +3,8 @@ package com.dsp.templateEngine.converter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.dsp.templateEngine.util.Utils;
+
 @Component
 public class ConverterFactory {
 	
@@ -15,37 +17,33 @@ public class ConverterFactory {
 	@Autowired
 	ITextConverter itextConverter;
 	
-	public IConverter getConverter (String applicationName, String lang) { //, String appAbbr) {
+	public IConverter getConverter (String applicationName, String lang) {
 		
 		System.out.println("Application Name: " + applicationName);
 		System.out.println("Lang: " + lang);
 		
-		IConverter con = null;
-		
-//		if ("SW".equals(appAbbr)) {
-//			return libreOdtConverter;
-//		}
-		
+		if ("SW".equals(applicationName)) {
+			return libreOdtConverter;
+		}
+
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) {
 			return libreConverter;
 		} 
 		
-		return itextConverter;
+		// get House Id
+		Long houseId = Utils.getHouseId();
+		if (houseId == 2) {
+			switch (applicationName) {
+			
+				case "SN":
+				case "PN":
+					return libreConverter;
+				default:
+					return itextConverter;
+			}		
+		}
 		
-//		switch (applicationName) {
-//			
-//			case "SN":
-//			case "PN":
-//			case "ES": 
-//				con = "_hi".equalsIgnoreCase(lang) ? libreConverter : itextConverter;
-//				break;
-//			default:
-//				con = itextConverter;
-//				break;
-//		}		
-//
-//		System.out.println("Selected converter: " + con);
-//		return con;
+		return itextConverter;
 
 	}
 
