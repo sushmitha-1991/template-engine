@@ -224,97 +224,6 @@ public class Utils {
 	
 	/**
 	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	public String getTitle(ApplicationInstanceProjection appDetails, 
-							PublishHistoryDTO publishHistoryDto,
-							String houseAbbr) {
-
-		String eTitle = "";
-
-		switch (houseAbbr) {
-			case LOK_SABHA:
-				eTitle = getTitleLS(appDetails, publishHistoryDto);
-				break;
-			case RAJYA_SABHA:
-				eTitle = getTitleRS(appDetails, publishHistoryDto);
-				break;
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	private String getTitleLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
-
-		Integer sesNo = romanToInt(publishHistoryDto.getLokSabhaSessionNo());
-
-		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-		String ordinalLs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getLokSabhaNo()));
-
-		String ordinal = ordinalFmt.format(sesNo);
-
-		String ordNo = ordinalToWord(ordinal);
-		String ordNoLs = ordinalToWord(ordinalLs);
-
-		String eTitle = "";
-
-		switch (appDetails.getAbbr()) {
-
-			case SUMMON:
-				eTitle += "Summoning of " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNo + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-			case BALLOTING_OF_NOTICES:
-				eTitle += "Balloting of Notices  " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-				break;
-		
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
-	private String getTitleRS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
-
-		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-
-		String ordinalRs = ordinalFmt.format(Integer.parseInt(publishHistoryDto.getRajyaSabhaSessionNo()));
-
-		String ordNoRs = ordinalToWord(ordinalRs);
-
-		String eTitle = "";
-
-		switch (appDetails.getAbbr()) {
-
-			case SUMMON:
-				eTitle += "Prorogation of " + ordinalRs + " Session of Rajya Sabha.";
-				break;
-
-			case PROROGATION:
-				eTitle += "Prorogation of " + ordNoRs + " Session of Rajya Sabha.";
-				break;
-		}
-
-		return eTitle;
-	}
-
-	/**
-	 * 
 	 * @param value
 	 * @return
 	 */
@@ -373,7 +282,7 @@ public class Utils {
 	 * @param roman
 	 * @return
 	 */
-	public Integer romanToInt(String roman) {
+	public static Integer romanToInt(String roman) {
 		Map<Character, Integer> romanMap = Map.of('I', 1, 'V', 5, 'X', 10, 'L', 50, 'C', 100, 'D', 500, 'M', 1000);
 
 		int result = 0;
