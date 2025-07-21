@@ -27,39 +27,19 @@ public class LibreOdtConverter implements IConverter {
 	
 	private static final String LIBRE_ODT_END_POINT = "/convert-odt"; 
 	
-	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
-
-		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
-
-	}
-
-	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream)  {
-
-		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
-
-	}
-
 	
-	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream) {
-		try {
-			System.out.println(">>> inside convertOdt");
-			
-			File file = convertOdtFromUrlToPdfFile(docUrl, fileName);
-			
-			try (FileInputStream fis = new FileInputStream(file)) {
-				byte[] buffer = new byte[8192];
-				int bytesRead;
-				while ((bytesRead = fis.read(buffer)) != -1) {
-					outputStream.write(buffer, 0, bytesRead);
-				}
-			}
-		} catch (IOException e) {
-			throw new RuntimeException("ODT to PDF conversion failed", e);
-		}
+	public File convertToPdf (PdfConverterDTO input) throws IOException {
+		
+		// Extract relevant fields
+		String fileName = input.getFileName();
+		Integer startPageNumber = input.getStartPageNumber();
+		String contentUrl = input.getDocUrl();
+		
+		return convertOdtToPdf (contentUrl, fileName); 
 	}
-
-
-	private File convertOdtFromUrlToPdfFile(String downloadUrl, String fileName) throws IOException {
+	
+	
+	public File convertOdtToPdf (String downloadUrl, String fileName) throws IOException {
 	
 		// Step 1: Prepare JSON payload to call /convert-odt endpoint
 		String endpointUrl = libreServiceUrl + LIBRE_ODT_END_POINT;
@@ -93,4 +73,36 @@ public class LibreOdtConverter implements IConverter {
 
 		return tempPdfFile;
 	}	
+
+	
+//	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream) {
+//		try {
+//			System.out.println(">>> inside convertOdt");
+//			
+//			File file = convertOdtFromUrlToPdfFile(docUrl, fileName);
+//			
+//			try (FileInputStream fis = new FileInputStream(file)) {
+//				byte[] buffer = new byte[8192];
+//				int bytesRead;
+//				while ((bytesRead = fis.read(buffer)) != -1) {
+//					outputStream.write(buffer, 0, bytesRead);
+//				}
+//			}
+//		} catch (IOException e) {
+//			throw new RuntimeException("ODT to PDF conversion failed", e);
+//		}
+//	}
+
+	
+	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+
+		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
+
+	}
+
+	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream)  {
+
+		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
+
+	}
 }

@@ -39,6 +39,7 @@ import org.springframework.web.client.RestTemplate;
 
 import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
+import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadHtmlDTO;
@@ -245,7 +246,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
-		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
+		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
 		System.out.println("appDetails "+appDetails);
 		
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
@@ -264,14 +265,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		//new chages 
 		System.out.println("folder "+folders);
 
-//		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr()) + "/";
+//		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
 		System.out.println("okm path "+okmPath);
 
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
-		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, appNo, startPageNumber);
 		
-		String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", appInstId.toString(),
+//		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startPageNumber);
+		
+		PdfConverterDTO input = PdfConverterDTO.builder()
+									.htmlContent(htmlContent)
+									.fileName(fileName)
+									.startPageNumber(startPageNumber)
+//									.docUrl(houseAbbr)
+									.build();
+		
+		File pdfFile = converter.convertToPdf(input);
+		
+		String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
 		return extractUuidFromOpenKmResponse(uploadResult);
@@ -577,9 +588,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			return;
 		}
 
-		IConverter converter = factory.getConverter(null, locale); //, abbr);
+		IConverter converter = factory.getConverter(abbr, locale); 
 		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
-
 	}
 
 
@@ -739,10 +749,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Step 2: Convert HTML content to PDF
 			String locale = StringUtils.isEmpty(upload.getLocale()) ? "en" : upload.getLocale();
 			
-			IConverter converter = factory.getConverter(null, locale);
-			File pdfFile = converter.convertHtmlToPdfFile(upload.getHtmlContent(), 
-														  fileName, 
-														  upload.getStartingPageNo());			
+			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
+			
+//			File pdfFile = converter.convertHtmlToPdfFile(upload.getHtmlContent(), 
+//					  fileName, 
+//					  upload.getStartingPageNo());
+			
+			PdfConverterDTO input = PdfConverterDTO.builder()
+					.htmlContent(upload.getHtmlContent())
+					.fileName(fileName)
+					.startPageNumber(upload.getStartingPageNo())
+//					.docUrl(houseAbbr)
+					.build();
+			File pdfFile = converter.convertToPdf(input);
 			
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content.");

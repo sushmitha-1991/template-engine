@@ -24,8 +24,21 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 
 @Component
 public class ITextConverter implements IConverter{
+	
+	
+	public File convertToPdf (PdfConverterDTO input) throws IOException {
+		
+		// Extract relevant fields
+		String htmlContent = input.getHtmlContent();
+		String fileName = input.getFileName();
+		Integer startPageNumber = input.getStartPageNumber();
+		
+		return convertHtmlToPdf(htmlContent, fileName, startPageNumber); 
+	}
+	
 
-	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+		
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
@@ -60,7 +73,7 @@ public class ITextConverter implements IConverter{
 	}
 
 	
-	public byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
+	private byte[] addPageNumbersToPdf(byte[] pdfBytes, Integer startPageNumber) throws IOException {
 		int startingPage = (startPageNumber != null) ? startPageNumber : 1;
 
 		ByteArrayInputStream pdfInputStream = new ByteArrayInputStream(pdfBytes);
@@ -88,9 +101,7 @@ public class ITextConverter implements IConverter{
 	}
 	
 	@Override
-	public void convertOdtToPdf(String docUrl, 
-								String fileName, 
-								java.io.ByteArrayOutputStream outputStream) {
+	public File convertOdtToPdf(String docUrl, String fileName) {
 		throw new UnsupportedOperationException("Not supported for ITextConverter");
 	}
 

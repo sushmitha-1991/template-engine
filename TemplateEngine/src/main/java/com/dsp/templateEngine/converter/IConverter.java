@@ -6,10 +6,12 @@ import java.io.IOException;
 
 public interface IConverter {
 
-	File convertHtmlToPdfFile (String htmlContent, String fileName, Integer startPageNumber) throws IOException;
+	File convertToPdf (PdfConverterDTO input) throws IOException;
+
+	File convertHtmlToPdf (String htmlContent, String fileName, Integer startPageNumber) throws IOException;
 	
-	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream);
-
-	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream);
-
+	File convertOdtToPdf(String docUrl, String fileName) throws IOException;
+	
+	void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream);
+	
 }

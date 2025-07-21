@@ -27,7 +27,18 @@ public class LibreHtmlConverter implements IConverter {
 	
 	private static final String LIBRE_END_POINT = "/convert"; 
 	
-	public File convertHtmlToPdfFile(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
+	
+	public File convertToPdf (PdfConverterDTO input) throws IOException {
+		
+		// Extract relevant fields
+		String htmlContent = input.getHtmlContent();
+		String fileName = input.getFileName();
+		Integer startPageNumber = input.getStartPageNumber();
+		
+		return convertHtmlToPdf(htmlContent, fileName, startPageNumber); 
+	}
+	
+	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
 
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 		
@@ -61,7 +72,7 @@ public class LibreHtmlConverter implements IConverter {
 	}
 
 	
-	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream) {
+	public File convertOdtToPdf(String docUrl, String fileName) throws IOException {
 		throw new UnsupportedOperationException("Not supported for Libre HTML Converter");
 	}
 

@@ -16,4 +16,5 @@ public class UploadHtmlDTO {
 	int startingPageNo;
 	Long applicationId;
 	String locale;
+	String applicationAbbr;
 }
