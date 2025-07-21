@@ -247,8 +247,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		String appNo = appDetails.getAppNo() + langSuffix + ".pdf";
 		System.out.println("appDetails "+appDetails);
+		
+		String okmPath = "/okm:root/" + appDetails.getAbbr();
+		System.out.println("appDetails "+appDetails);
+
 		List<String> folders = new ArrayList();
-		//changes 19-07-2025
+//		//changes 19-07-2025
 			String houseAbbr = getHouseAbbr();
 		folders.add(houseAbbr);
 		if ("LS".equals(houseAbbr)) {
@@ -260,7 +264,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		//new chages 
 		System.out.println("folder "+folders);
 
-		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
+//		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr()) + "/";
 		// Get Generator Engine
 		System.out.println("okm path "+okmPath);
 
