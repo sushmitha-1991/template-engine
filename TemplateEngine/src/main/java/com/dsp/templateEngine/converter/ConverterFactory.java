@@ -37,10 +37,11 @@ public class ConverterFactory {
 		
 		// get House Id
 		Long houseId = Utils.getHouseId();
-		if (houseId == 2) {
+		if (houseId == 1) {
 			switch (applicationName) {
 			
 				case "SN":
+					return libreConverter;
 				case "PN":
 					return libreConverter;
 				default:
