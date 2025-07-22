@@ -189,7 +189,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-			System.out.println("app details " + appDetails);
+			System.out.println("*** app details " + appDetails);
 			UUID documentUuidEn = null;
 			UUID documentUuidHi = null;
 
@@ -237,24 +237,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-	private String getHouseAbbr() {
-		Long houseId = Utils.getHouseId();
-		Optional<String> abbr = userResponsibility.findHouseAbbrById(houseId);
-		return abbr.get();
-	}
 
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
-		System.out.println("appDetails "+appDetails);
+		System.out.println("**** appDetails " + appDetails);
 		
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
 		System.out.println("appDetails "+appDetails);
 
 		List<String> folders = new ArrayList();
 //		//changes 19-07-2025
-			String houseAbbr = getHouseAbbr();
+			String houseAbbr = utils.getHouseAbbr();
 		folders.add(houseAbbr);
 		if ("LS".equals(houseAbbr)) {
 			folders.add(appDetails.getLsNo());
@@ -269,6 +264,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// Get Generator Engine
 		System.out.println("okm path "+okmPath);
 
+		System.out.println("app ABBR: "+ appDetails.getAbbr());
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
 		
 //		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startPageNumber);
