@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.converter;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -29,6 +30,10 @@ public class ConverterFactory {
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) {
 			return libreConverter;
 		} 
+		
+		if (StringUtils.isEmpty(applicationName)) { 
+			return itextConverter;
+		}	
 		
 		// get House Id
 		Long houseId = Utils.getHouseId();
