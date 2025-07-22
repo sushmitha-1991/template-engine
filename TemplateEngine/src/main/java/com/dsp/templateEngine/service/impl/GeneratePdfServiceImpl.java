@@ -770,7 +770,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			File pdfFile = converter.convertToPdf(input);
 			
 			if (pdfFile == null || !pdfFile.exists()) {
-				throw new IOException("Failed to generate PDF from HTML content.");
+				throw new IOException("Failed to generate PDF from HTML content."); 
 			}
 
 			// Step 3: Upload to OpenKM
