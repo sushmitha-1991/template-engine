@@ -352,6 +352,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.locale("hi")
 					.forDate(instance.getDocumentDate())
 					.fileType("pdf").build();
+			
+			
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
 			dsp1Utils.writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
@@ -748,6 +750,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			
 			// Step 2: Convert HTML content to PDF
 			String locale = StringUtils.isEmpty(upload.getLocale()) ? "en" : upload.getLocale();
+			
+			if (upload.getApplicationId() != null && StringUtils.isEmpty(upload.getApplicationAbbr())) {
+				// get application abbr
+			}
 			
 			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
 			
