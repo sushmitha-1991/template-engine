@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 //import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.UploadHtmlDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
@@ -178,10 +179,19 @@ public class GeneratedPdfController {
 										@RequestParam Long applicationId,
 										@RequestParam (defaultValue = "en", required=false) String locale,
 										@RequestParam (required=false) String fileName,
-										@RequestParam String applicationAbbr) {
+										@RequestParam (required=false) String applicationAbbr) {
 
 		try {
-			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(htmlContentEn, startingPageNo, applicationId, locale, fileName);
+			
+			UploadHtmlDTO upload = UploadHtmlDTO.builder()
+										.htmlContent(htmlContentEn)
+										.startingPageNo(startingPageNo)
+										.applicationId(applicationId)
+										.applicationAbbr(applicationAbbr)
+										.locale(locale)
+										.build();										
+										
+			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
 
 			Map<String, Object> response = new HashMap<>();
 			response.put("documentUuid", documentUuid.toString());
