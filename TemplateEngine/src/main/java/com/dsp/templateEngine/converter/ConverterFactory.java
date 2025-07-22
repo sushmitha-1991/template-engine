@@ -27,7 +27,7 @@ public class ConverterFactory {
 			return libreOdtConverter;
 		}
 
-		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) {
+		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) { 
 			return libreConverter;
 		} 
 		
