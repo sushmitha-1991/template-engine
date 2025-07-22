@@ -6,8 +6,14 @@ import org.springframework.stereotype.Component;
 
 import com.dsp.templateEngine.util.Utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Component
+@Slf4j
 public class ConverterFactory {
+	
+	@Autowired
+	Utils utils;
 	
 	@Autowired
 	LibreHtmlConverter libreConverter;
@@ -20,8 +26,8 @@ public class ConverterFactory {
 	
 	public IConverter getConverter (String applicationName, String lang) {
 		
-		System.out.println("Application Name: " + applicationName);
-		System.out.println("Lang: " + lang);
+		log.debug("Application Name: " + applicationName);
+		log.debug("Lang: " + lang);
 		
 		if ("SW".equals(applicationName)) {
 			return libreOdtConverter;
@@ -36,10 +42,11 @@ public class ConverterFactory {
 		}	
 		
 		// get House Id
-		Long houseId = Utils.getHouseId();
-		if (houseId == 1) {
-			switch (applicationName) {
+		String houseAbbr = utils.getHouseAbbr();
+		
+		if (Utils.RAJYA_SABHA.equals(houseAbbr)) {
 			
+			switch (applicationName) {
 				case "SN":
 					return libreConverter;
 				case "PN":

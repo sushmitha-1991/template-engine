@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -42,9 +43,12 @@ public class Utils {
 	@Autowired
 	private HttpServletRequest httpRequest;	
 
-	private final String LOK_SABHA = "LS";
+	@Autowired
+	private MyUserRepository userResponsibility;
+	
+	public static final String LOK_SABHA = "LS";
 
-	private final String RAJYA_SABHA = "RS";
+	public static final String RAJYA_SABHA = "RS";
 
 	public static final String SUMMON = "SN";
 
@@ -204,6 +208,12 @@ public class Utils {
 		return houseId;
 	}
 
+	public String getHouseAbbr() {
+		Long houseId = Utils.getHouseId();
+		Optional<String> abbr = userResponsibility.findHouseAbbrById(houseId);
+		return abbr.get();
+	}
+	
 	public static boolean isEmpty(String input) {
 
 		if (input == null || input.equals("")) {
