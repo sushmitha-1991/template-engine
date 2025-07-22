@@ -184,11 +184,12 @@ public class GeneratedPdfController {
 		try {
 			
 			UploadHtmlDTO upload = UploadHtmlDTO.builder()
-										.htmlContent(htmlContentEn)
+										.htmlContent(htmlContentEn) 
 										.startingPageNo(startingPageNo)
 										.applicationId(applicationId)
-										.applicationAbbr(applicationAbbr)
+										.applicationAbbr(applicationAbbr) 
 										.locale(locale)
+										.fileName(fileName)
 										.build();										
 										
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
