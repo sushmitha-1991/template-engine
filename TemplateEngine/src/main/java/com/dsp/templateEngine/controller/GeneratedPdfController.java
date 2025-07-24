@@ -69,22 +69,23 @@ public class GeneratedPdfController {
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
-			@RequestParam(required = false) Long appInstanceId) {
+			@RequestParam(required = false) Long applicationInstanceId) {
 		try {
 
 			Integer startingPageNumber = 1;
+			System.out.println("### appInstanceId - " + applicationInstanceId);
 
-			if (appInstanceId != null) {
-				ApplicationInstance instance = applicationInstanceRepository.findById(appInstanceId)
+			if (applicationInstanceId != null) {
+				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
 						.orElseThrow(() -> new ResourceNotFoundException(
-								"ApplicationInstance not found with id: " + appInstanceId));
+								"ApplicationInstance not found with id: " + applicationInstanceId));
 
 				if (instance.getStartingPageNo() != null) {
 					startingPageNumber = instance.getStartingPageNo().intValue();
 				}
 			}
 
-			String abbr = null;
+//			String abbr = null;
 //			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
 //			String docUrl = onlyOfficeData.getDocUrl();
 //			String abbr = onlyOfficeData.getAbbr();
@@ -103,14 +104,14 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			if (htmlContentEn != null) {
 				enPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", appInstanceId);
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", applicationInstanceId);
 			}
 
 			// Generate Hindi PDF only if htmlContentHi is present
 			ByteArrayOutputStream hiPdfStream = null;
 			if (htmlContentHi != null) {
 				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", appInstanceId);
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", applicationInstanceId);
 			}
 
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
