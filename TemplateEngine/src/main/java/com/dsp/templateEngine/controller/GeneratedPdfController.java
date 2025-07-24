@@ -69,15 +69,15 @@ public class GeneratedPdfController {
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
-			@RequestParam(required = false) Long applicationInstanceId) {
+			@RequestParam(required = false) Long appInstanceId) {
 		try {
 
 			Integer startingPageNumber = 1;
 
-			if (applicationInstanceId != null) {
-				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
+			if (appInstanceId != null) {
+				ApplicationInstance instance = applicationInstanceRepository.findById(appInstanceId)
 						.orElseThrow(() -> new ResourceNotFoundException(
-								"ApplicationInstance not found with id: " + applicationInstanceId));
+								"ApplicationInstance not found with id: " + appInstanceId));
 
 				if (instance.getStartingPageNo() != null) {
 					startingPageNumber = instance.getStartingPageNo().intValue();
@@ -103,14 +103,14 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			if (htmlContentEn != null) {
 				enPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", abbr);
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", appInstanceId);
 			}
 
 			// Generate Hindi PDF only if htmlContentHi is present
 			ByteArrayOutputStream hiPdfStream = null;
 			if (htmlContentHi != null) {
 				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", abbr);
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", appInstanceId);
 			}
 
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
