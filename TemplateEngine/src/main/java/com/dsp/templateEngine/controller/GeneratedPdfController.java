@@ -21,7 +21,10 @@ import org.springframework.web.bind.annotation.RestController;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadHtmlDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
+import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
+import com.dsp.templateEngine.exception.ResourceNotFoundException;
+import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -38,6 +41,9 @@ public class GeneratedPdfController {
 	private GeneratePdfService pdfService;
 	@Autowired
 	private NewEventsLssService nelssService;
+
+	@Autowired
+	private ApplicationInstanceRepository applicationInstanceRepository;
 
 //	@Autowired
 //	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
@@ -62,10 +68,21 @@ public class GeneratedPdfController {
 
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
-								@RequestParam(required = false) String htmlContentHi, 
-								@RequestParam String fileName,
-								@RequestParam(required = false) Long applicationInstanceId) {
+			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
+			@RequestParam(required = false) Long applicationInstanceId) {
 		try {
+
+			Integer startingPageNumber = 1;
+
+			if (applicationInstanceId != null) {
+				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
+						.orElseThrow(() -> new ResourceNotFoundException(
+								"ApplicationInstance not found with id: " + applicationInstanceId));
+
+				if (instance.getStartingPageNo() != null) {
+					startingPageNumber = instance.getStartingPageNo().intValue();
+				}
+			}
 
 			String abbr = null;
 //			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
@@ -75,7 +92,8 @@ public class GeneratedPdfController {
 //			System.out.println("### docUrl - " + docUrl);
 //			System.out.println("### abbr - " + abbr);
 
-			// Normalize htmlContentHi: Handle cases where it's received as "null" (string) or empty
+			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
+			// or empty
 			if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
 					|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
 				htmlContentHi = null;
@@ -95,7 +113,8 @@ public class GeneratedPdfController {
 				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", abbr);
 			}
 
-			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final output
+			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
+			// output
 			byte[] mergedPdfBytes;
 
 			if (enPdfStream != null && hiPdfStream != null) {
@@ -105,7 +124,7 @@ public class GeneratedPdfController {
 			}
 
 			// Add page numbers to the final PDF
-			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, 1);
+			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, startingPageNumber);
 
 			// Set HTTP response headers
 			HttpHeaders headers = new HttpHeaders();
@@ -172,26 +191,17 @@ public class GeneratedPdfController {
 		return new GenericResponse<>(200, true, "Balloting published successfully", null);
 	}
 
-	
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, 
-										@RequestParam int startingPageNo,
-										@RequestParam Long applicationId,
-										@RequestParam (defaultValue = "en", required=false) String locale,
-										@RequestParam (required=false) String fileName,
-										@RequestParam (required=false) String applicationAbbr) {
+	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, @RequestParam int startingPageNo,
+			@RequestParam Long applicationId, @RequestParam(defaultValue = "en", required = false) String locale,
+			@RequestParam(required = false) String fileName, @RequestParam(required = false) String applicationAbbr) {
 
 		try {
-			
-			UploadHtmlDTO upload = UploadHtmlDTO.builder()
-										.htmlContent(htmlContentEn) 
-										.startingPageNo(startingPageNo)
-										.applicationId(applicationId)
-										.applicationAbbr(applicationAbbr) 
-										.locale(locale)
-										.fileName(fileName)
-										.build();										
-										
+
+			UploadHtmlDTO upload = UploadHtmlDTO.builder().htmlContent(htmlContentEn).startingPageNo(startingPageNo)
+					.applicationId(applicationId).applicationAbbr(applicationAbbr).locale(locale).fileName(fileName)
+					.build();
+
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
 
 			Map<String, Object> response = new HashMap<>();
