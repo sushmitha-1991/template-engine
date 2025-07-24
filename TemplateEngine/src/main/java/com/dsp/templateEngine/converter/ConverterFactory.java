@@ -43,6 +43,8 @@ public class ConverterFactory {
 		
 		// get House Id
 		String houseAbbr = utils.getHouseAbbr();
+		log.debug("House Abbr: " + houseAbbr);
+
 		
 		if (Utils.RAJYA_SABHA.equals(houseAbbr)) {
 			
