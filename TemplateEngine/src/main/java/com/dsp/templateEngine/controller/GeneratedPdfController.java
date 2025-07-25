@@ -69,14 +69,12 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/mytask/download")
-	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
+	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam(required = false) String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
 			@RequestParam(required = false) Long applicationInstanceId) {
 		try {
 
 			Integer startingPageNumber = 1;
-			System.out.println("### appInstanceId - " + applicationInstanceId);
-
 			if (applicationInstanceId != null) {
 				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
 						.orElseThrow(() -> new ResourceNotFoundException(
@@ -147,8 +145,19 @@ public class GeneratedPdfController {
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
 
 		try {
+
+			Integer startingPageNumber = 1;
+			if (appInstId != null) {
+				ApplicationInstance instance = applicationInstanceRepository.findById(appInstId).orElseThrow(
+						() -> new ResourceNotFoundException("ApplicationInstance not found with id: " + appInstId));
+
+				if (instance.getStartingPageNo() != null) {
+					startingPageNumber = instance.getStartingPageNo().intValue();
+				}
+			}
+
 			ResponseEntity<Map<String, Object>> response = pdfService.publishDocument(htmlContentEn, htmlContentHi,
-					appInstId, startPageNumber, uploadedDoc);
+					appInstId, startingPageNumber, uploadedDoc);
 
 			if (response.getStatusCode() == HttpStatus.CONFLICT) {
 				return handleConflict(response);
