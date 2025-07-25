@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dsp.templateEngine.dto.OnlyOfficeData;
 //import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadHtmlDTO;
@@ -25,6 +26,7 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
+import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -45,8 +47,8 @@ public class GeneratedPdfController {
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
 
-//	@Autowired
-//	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
+	@Autowired
+	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -67,14 +69,12 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/mytask/download")
-	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam String htmlContentEn,
+	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam(required = false) String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
 			@RequestParam(required = false) Long applicationInstanceId) {
 		try {
 
 			Integer startingPageNumber = 1;
-			System.out.println("### appInstanceId - " + applicationInstanceId);
-
 			if (applicationInstanceId != null) {
 				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
 						.orElseThrow(() -> new ResourceNotFoundException(
@@ -85,13 +85,10 @@ public class GeneratedPdfController {
 				}
 			}
 
-//			String abbr = null;
-//			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
-//			String docUrl = onlyOfficeData.getDocUrl();
-//			String abbr = onlyOfficeData.getAbbr();
-//
-//			System.out.println("### docUrl - " + docUrl);
-//			System.out.println("### abbr - " + abbr);
+			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
+			String docUrl = onlyOfficeData.getDocUrl();
+
+			System.out.println("### docUrl - " + docUrl);
 
 			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
 			// or empty
@@ -148,8 +145,19 @@ public class GeneratedPdfController {
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
 
 		try {
+
+			Integer startingPageNumber = 1;
+			if (appInstId != null) {
+				ApplicationInstance instance = applicationInstanceRepository.findById(appInstId).orElseThrow(
+						() -> new ResourceNotFoundException("ApplicationInstance not found with id: " + appInstId));
+
+				if (instance.getStartingPageNo() != null) {
+					startingPageNumber = instance.getStartingPageNo().intValue();
+				}
+			}
+
 			ResponseEntity<Map<String, Object>> response = pdfService.publishDocument(htmlContentEn, htmlContentHi,
-					appInstId, startPageNumber, uploadedDoc);
+					appInstId, startingPageNumber, uploadedDoc);
 
 			if (response.getStatusCode() == HttpStatus.CONFLICT) {
 				return handleConflict(response);
