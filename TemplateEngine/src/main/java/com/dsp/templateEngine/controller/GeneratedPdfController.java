@@ -75,6 +75,7 @@ public class GeneratedPdfController {
 		try {
 
 			Integer startingPageNumber = 1;
+			System.out.println("### appInstanceId - " + applicationInstanceId);
 
 			if (applicationInstanceId != null) {
 				ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
@@ -88,10 +89,8 @@ public class GeneratedPdfController {
 
 			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
 			String docUrl = onlyOfficeData.getDocUrl();
-			String abbr = onlyOfficeData.getAbbr();
 
 			System.out.println("### docUrl - " + docUrl);
-			System.out.println("### abbr - " + abbr);
 
 			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
 			// or empty
@@ -104,14 +103,14 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			if (htmlContentEn != null) {
 				enPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", abbr);
+				pdfService.createPdfFromHtmlV2(htmlContentEn, enPdfStream, "en", applicationInstanceId);
 			}
 
 			// Generate Hindi PDF only if htmlContentHi is present
 			ByteArrayOutputStream hiPdfStream = null;
 			if (htmlContentHi != null) {
 				hiPdfStream = new ByteArrayOutputStream();
-				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", abbr);
+				pdfService.createPdfFromHtmlV2(htmlContentHi, hiPdfStream, "hi", applicationInstanceId);
 			}
 
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final

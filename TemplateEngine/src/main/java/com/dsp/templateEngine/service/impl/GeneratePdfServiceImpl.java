@@ -580,13 +580,24 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	public void createPdfFromHtmlV2(String htmlContent,
 			java.io.ByteArrayOutputStream outputStream,
 			String locale,
-			String abbr) {
+			Long appInstId) {
 
 		if (StringUtils.isEmpty(htmlContent)) {
 			return;
 		}
+		System.out.println("########### appInstId::" + appInstId);
 
+		String abbr = null;
+		if (appInstId != null) {
+			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+			abbr = appDetails != null ? appDetails.getAbbr() : null;
+			System.out.println("########### abbr::" + abbr);
+			System.out.println("########### abbr::" + appDetails);
+		}
+		
 		IConverter converter = factory.getConverter(abbr, locale); 
+		System.out.println("########### CONVERTER::" + converter);
+
 		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
 	}
 

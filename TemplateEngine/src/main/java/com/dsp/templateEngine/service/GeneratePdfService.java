@@ -42,8 +42,7 @@ public interface GeneratePdfService {
 
 	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;
 	
-	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale,  String appAbbr);
-
+	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale,  Long appInstId);
 
 	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
 
