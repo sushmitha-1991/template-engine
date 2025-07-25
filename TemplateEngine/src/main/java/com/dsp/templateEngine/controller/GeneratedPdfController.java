@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.dsp.templateEngine.dto.OnlyOfficeData;
 //import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadHtmlDTO;
@@ -25,6 +26,7 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
+import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -45,8 +47,8 @@ public class GeneratedPdfController {
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
 
-//	@Autowired
-//	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
+	@Autowired
+	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -84,13 +86,12 @@ public class GeneratedPdfController {
 				}
 			}
 
-			String abbr = null;
-//			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
-//			String docUrl = onlyOfficeData.getDocUrl();
-//			String abbr = onlyOfficeData.getAbbr();
-//
-//			System.out.println("### docUrl - " + docUrl);
-//			System.out.println("### abbr - " + abbr);
+			OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(applicationInstanceId);
+			String docUrl = onlyOfficeData.getDocUrl();
+			String abbr = onlyOfficeData.getAbbr();
+
+			System.out.println("### docUrl - " + docUrl);
+			System.out.println("### abbr - " + abbr);
 
 			// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
 			// or empty
