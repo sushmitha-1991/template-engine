@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.converter;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Component;
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.html2pdf.resolver.font.DefaultFontProvider;
-import com.itextpdf.io.source.ByteArrayOutputStream;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -24,38 +24,27 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 
 @Component
 public class ITextConverter implements IConverter{
-	
-	
+		
+	@Override
 	public File convertToPdf (PdfConverterDTO input) throws IOException {
 		
-		// Extract relevant fields
-		String htmlContent = input.getHtmlContent();
-		String fileName = input.getFileName();
-		Integer startPageNumber = input.getStartPageNumber();
-		
-		return convertHtmlToPdf(htmlContent, fileName, startPageNumber); 
-	}
-	
+		File tempPdfFile = File.createTempFile(input.getFileName(), ".pdf");
 
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
-		
-		File tempPdfFile = File.createTempFile(fileName, ".pdf");
-
-		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
-		
-		convertHtmlToPdfByteArray(htmlContent, pdfOutputStream);
-
-		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), startPageNumber);
-
-		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
-			fileOutputStream.write(numberedPdfBytes);
-		}
+//		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();		
+//		convertToByteArray(input, pdfOutputStream);
+//
+//		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
+//
+//		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+//			fileOutputStream.write(numberedPdfBytes);
+//		}
 
 		return tempPdfFile;
 	}
+	
 
-	public void convertHtmlToPdfByteArray(String htmlContent, 
-			java.io.ByteArrayOutputStream outputStream)  {
+	@Override
+	public void convertToByteArray(PdfConverterDTO input, ByteArrayOutputStream outputStream) throws IOException {
 
 		String fontDirectory = "src/main/resources/font/";
 
@@ -67,7 +56,7 @@ public class ITextConverter implements IConverter{
 		// Generate PDF from HTML and write it to the output stream
 		PdfWriter writer = new PdfWriter(outputStream);
 		PdfDocument pdfDocument = new PdfDocument(writer);
-		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+		HtmlConverter.convertToPdf(input.getHtmlContent(), pdfDocument, converterProperties);
 		pdfDocument.close();
 
 	}
@@ -100,9 +89,4 @@ public class ITextConverter implements IConverter{
 		return pdfOutputStream.toByteArray();
 	}
 	
-	@Override
-	public File convertOdtToPdf(String docUrl, String fileName) {
-		throw new UnsupportedOperationException("Not supported for ITextConverter");
-	}
-
 }

@@ -30,20 +30,10 @@ public class LibreHtmlConverter implements IConverter {
 	
 	public File convertToPdf (PdfConverterDTO input) throws IOException {
 		
-		// Extract relevant fields
-		String htmlContent = input.getHtmlContent();
-		String fileName = input.getFileName();
-		Integer startPageNumber = input.getStartPageNumber();
-		
-		return convertHtmlToPdf(htmlContent, fileName, startPageNumber); 
-	}
-	
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
-
-		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+		File tempPdfFile = File.createTempFile(input.getFileName(), ".pdf");
 		
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
-		convertHtmlToPdfByteArray(htmlContent, pdfOutputStream);
+		convertToByteArray(input, pdfOutputStream);
 		
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
 			fileOutputStream.write(pdfOutputStream.toByteArray());
@@ -51,8 +41,10 @@ public class LibreHtmlConverter implements IConverter {
 
 		return tempPdfFile;
 	}
-
-	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream)  {
+	
+	
+	@Override
+	public void convertToByteArray(PdfConverterDTO input, ByteArrayOutputStream outputStream) throws IOException {
 
 		String endpointUrl = libreServiceUrl + LIBRE_END_POINT;
 		
@@ -61,19 +53,19 @@ public class LibreHtmlConverter implements IConverter {
 		headers.set("Accept-Language", "hi-IN");
 		
 		// Prepare the request entity with headers and body
-		HttpEntity<String> requestEntity = new HttpEntity<>(htmlContent, headers);
+		HttpEntity<String> requestEntity = new HttpEntity<>(input.getHtmlContent(), headers);
 
 		// Use Rest Template to call Libre Converter
 		RestTemplate restTemplate = new RestTemplate();
 		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, 
 																requestEntity, byte[].class);
+
+		if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+			throw new IOException("Failed to convert HTML to PDF via Libre service");
+		}
 		
 		outputStream.write(response.getBody(), 0, response.getBody().length);
 	}
 
-	
-	public File convertOdtToPdf(String docUrl, String fileName) throws IOException {
-		throw new UnsupportedOperationException("Not supported for Libre HTML Converter");
-	}
 
 }
