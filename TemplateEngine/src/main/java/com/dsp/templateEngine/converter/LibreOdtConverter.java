@@ -27,20 +27,41 @@ public class LibreOdtConverter implements IConverter {
 	
 	private static final String LIBRE_ODT_END_POINT = "/convert-odt"; 
 	
-	
+	@Override
 	public File convertToPdf (PdfConverterDTO input) throws IOException {
 		
 		// Extract relevant fields
 		String fileName = input.getFileName();
-		Integer startPageNumber = input.getStartPageNumber();
-		String contentUrl = input.getDocUrl();
-		
-		return convertOdtToPdf (contentUrl, fileName); 
+	
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+		convertToByteArray(input, pdfOutputStream);
+	
+		// Step 3: Write PDF bytes to a temp file and return it
+		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+			fileOutputStream.write(pdfOutputStream.toByteArray());
+		}
+
+		return tempPdfFile;	
 	}
 	
 	
-	public File convertOdtToPdf (String downloadUrl, String fileName) throws IOException {
+//	public File convertOdtToPdf (PdfConverterDTO input) throws IOException {
+//
+//		byte[] pdfBytes = convertToByteArray(input);
+//		// Step 3: Write PDF bytes to a temp file and return it
+//		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+//		try (FileOutputStream fos = new FileOutputStream(tempPdfFile)) {
+//			fos.write(pdfBytes);
+//		}
+//
+//		return tempPdfFile;
+//	}	
+
 	
+	@Override
+	public void convertToByteArray(PdfConverterDTO input, ByteArrayOutputStream outputStream) throws IOException  {
+		
 		// Step 1: Prepare JSON payload to call /convert-odt endpoint
 		String endpointUrl = libreServiceUrl + LIBRE_ODT_END_POINT;
 
@@ -51,58 +72,22 @@ public class LibreOdtConverter implements IConverter {
 		headers.setContentType(MediaType.APPLICATION_JSON);
 
 		Map<String, Object> requestBody = new HashMap<String, Object>();
-		requestBody.put("url", downloadUrl);
+		requestBody.put("url", input.getDocUrl());
 
 		HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 
 		// Step 2: Call /convert-odt endpoint to get PDF bytes
-		ResponseEntity<byte[]> pdfResponse = restTemplate.exchange(endpointUrl, HttpMethod.POST, requestEntity,
+		ResponseEntity<byte[]> response = restTemplate.exchange(endpointUrl, HttpMethod.POST, requestEntity,
 				byte[].class);
 
-		if (!pdfResponse.getStatusCode().is2xxSuccessful() || pdfResponse.getBody() == null) {
+		if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
 			throw new IOException("Failed to convert ODT to PDF via Libre service");
 		}
 
-		byte[] pdfBytes = pdfResponse.getBody();
-
-		// Step 3: Write PDF bytes to a temp file and return it
-		File tempPdfFile = File.createTempFile(fileName, ".pdf");
-		try (FileOutputStream fos = new FileOutputStream(tempPdfFile)) {
-			fos.write(pdfBytes);
-		}
-
-		return tempPdfFile;
+//		byte[] pdfBytes = response.getBody();
+		outputStream.write(response.getBody(), 0, response.getBody().length);
+//		return pdfBytes;
 	}	
-
 	
-//	public void convertOdtToPdf(String docUrl, String fileName, ByteArrayOutputStream outputStream) {
-//		try {
-//			System.out.println(">>> inside convertOdt");
-//			
-//			File file = convertOdtFromUrlToPdfFile(docUrl, fileName);
-//			
-//			try (FileInputStream fis = new FileInputStream(file)) {
-//				byte[] buffer = new byte[8192];
-//				int bytesRead;
-//				while ((bytesRead = fis.read(buffer)) != -1) {
-//					outputStream.write(buffer, 0, bytesRead);
-//				}
-//			}
-//		} catch (IOException e) {
-//			throw new RuntimeException("ODT to PDF conversion failed", e);
-//		}
-//	}
 
-	
-	public File convertHtmlToPdf(String htmlContent, String fileName, Integer startPageNumber) throws IOException {
-
-		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
-
-	}
-
-	public void convertHtmlToPdfByteArray(String htmlContent, ByteArrayOutputStream outputStream)  {
-
-		throw new UnsupportedOperationException("Not supported for Libre ODT Converter");
-
-	}
 }
