@@ -15,11 +15,17 @@ import lombok.NoArgsConstructor;
 public class PdfConverterDTO {
 
     private String htmlContent; // For HTML --> PDF
+	String locale;
+
     private String fileName;
     private Integer startPageNumber;
-    
-    private ByteArrayOutputStream outputStream; // For ODT --> PDF & HTML --> PDF
+
+//    private ByteArrayOutputStream outputStream; // For ODT --> PDF & HTML --> PDF
     
     private String docUrl; // For ODT --> PDF
+
+	String applicationAbbr;
+	Long applicationId;
+	Long appInstanceId;
     
 }

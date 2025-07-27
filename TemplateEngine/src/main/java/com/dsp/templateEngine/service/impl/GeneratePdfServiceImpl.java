@@ -597,51 +597,81 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return mergedOutputStream.toByteArray();
 	}
 
+//	@Override
+//	public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
+//		if (htmlContent == null || htmlContent.isEmpty()) {
+//			return;
+//		}
+//
+//		// Configure font provider for Hindi/Unicode support
+//		String fontDirectory = "src/main/resources/font/";
+//		ConverterProperties converterProperties = new ConverterProperties();
+//		FontProvider fontProvider = new DefaultFontProvider();
+//		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
+//		converterProperties.setFontProvider(fontProvider);
+//		// Generate PDF from HTML and write it to the output stream
+//		PdfWriter writer = new PdfWriter(outputStream);
+//		PdfDocument pdfDocument = new PdfDocument(writer);
+//		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
+//		pdfDocument.close();
+//	}
+
+//	@Override
+//	public void createPdfFromHtmlV2(String htmlContent,
+//			java.io.ByteArrayOutputStream outputStream,
+//			String locale,
+//			Long appInstId) {
+//
+//		if (StringUtils.isEmpty(htmlContent)) {
+//			return;
+//		}
+//		System.out.println("########### appInstId::" + appInstId);
+//
+//		String abbr = null;
+//		if (appInstId != null) {
+//			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+//			abbr = appDetails != null ? appDetails.getAbbr() : null;
+//			System.out.println("########### abbr::" + abbr);
+//			System.out.println("########### abbr::" + appDetails);
+//		}
+//		
+//		IConverter converter = factory.getConverter(abbr, locale); 
+//		System.out.println("########### CONVERTER::" + converter);
+//
+//		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
+//	}
+
 	@Override
-	public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
-		if (htmlContent == null || htmlContent.isEmpty()) {
+	public void createPdfV3(
+			PdfConverterDTO upload,
+			java.io.ByteArrayOutputStream outputStream) {
+
+		if (StringUtils.isEmpty(upload.getHtmlContent())) {
 			return;
 		}
-
-		// Configure font provider for Hindi/Unicode support
-		String fontDirectory = "src/main/resources/font/";
-		ConverterProperties converterProperties = new ConverterProperties();
-		FontProvider fontProvider = new DefaultFontProvider();
-		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-		converterProperties.setFontProvider(fontProvider);
-		// Generate PDF from HTML and write it to the output stream
-		PdfWriter writer = new PdfWriter(outputStream);
-		PdfDocument pdfDocument = new PdfDocument(writer);
-		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
-		pdfDocument.close();
-	}
-
-	@Override
-	public void createPdfFromHtmlV2(String htmlContent,
-			java.io.ByteArrayOutputStream outputStream,
-			String locale,
-			Long appInstId) {
-
-		if (StringUtils.isEmpty(htmlContent)) {
-			return;
-		}
-		System.out.println("########### appInstId::" + appInstId);
-
-		String abbr = null;
-		if (appInstId != null) {
-			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+		
+		System.out.println("########### appInstId::" + upload.getAppInstanceId());
+		
+		String abbr = upload.getApplicationAbbr();
+		if (StringUtils.isEmpty(abbr) && upload.getAppInstanceId() != null) {
+			ApplicationInstanceProjection appDetails = getAppDetails(upload.getAppInstanceId());
 			abbr = appDetails != null ? appDetails.getAbbr() : null;
 			System.out.println("########### abbr::" + abbr);
 			System.out.println("########### abbr::" + appDetails);
 		}
 		
-		IConverter converter = factory.getConverter(abbr, locale); 
-		System.out.println("########### CONVERTER::" + converter);
-
-		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
+		IConverter converter = factory.getConverter(abbr, upload.getLocale()); 
+		log.debug(converter.toString());
+		
+		try {
+			converter.convertToByteArray(upload, outputStream);
+		} catch (IOException e) {
+			log.error(e.getMessage());
+			return;
+		}
 	}
-
-
+	
+	
 	private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
 		String url = draftedServiceUrl + "/publish-history/create";
 		// String url = "http://localhost:8087/workflow/publish-history/create";
@@ -773,9 +803,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 										String locale,
 										String fileName) {
 		
-		UploadHtmlDTO upload = UploadHtmlDTO.builder()
+		PdfConverterDTO upload = PdfConverterDTO.builder()
 											.htmlContent(htmlContent)
-											.startingPageNo(startingPageNo)
+											.startPageNumber(startingPageNo)
 											.fileName(fileName)
 											.applicationId(applicationId)
 											.locale(locale)
@@ -786,7 +816,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public UUID uploadHtmlAndReturnUuid(UploadHtmlDTO upload) { 
+	public UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload) { 
 	
 		if (upload == null) return null;
 		
@@ -795,7 +825,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Step 1: Generate a random file name, if not specified
 			String fileName = getFileName(upload);
 			
-			// Step 2: Convert HTML content to PDF
+			// Step 2: Convert content to PDF
 			String locale = StringUtils.isEmpty(upload.getLocale()) ? "en" : upload.getLocale();
 			
 			if (upload.getApplicationId() != null && StringUtils.isEmpty(upload.getApplicationAbbr())) {
@@ -803,18 +833,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 			
 			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
-			
-//			File pdfFile = converter.convertHtmlToPdfFile(upload.getHtmlContent(), 
-//					  fileName, 
-//					  upload.getStartingPageNo());
-			
-			PdfConverterDTO input = PdfConverterDTO.builder()
-					.htmlContent(upload.getHtmlContent())
-					.fileName(fileName)
-					.startPageNumber(upload.getStartingPageNo())
-//					.docUrl(houseAbbr)
-					.build();
-			File pdfFile = converter.convertToPdf(input);
+			File pdfFile = converter.convertToPdf(upload);
 			
 			if (pdfFile == null || !pdfFile.exists()) {
 				throw new IOException("Failed to generate PDF from HTML content."); 
@@ -847,7 +866,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}		
 	}
 	
-	private String getFileName(UploadHtmlDTO upload) {
+	private String getFileName(PdfConverterDTO upload) {
 		
 		if (!StringUtils.isEmpty(upload.getFileName())) return upload.getFileName();
 		
