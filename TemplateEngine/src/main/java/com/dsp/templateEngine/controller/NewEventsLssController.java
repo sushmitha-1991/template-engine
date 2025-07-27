@@ -52,8 +52,10 @@ public class NewEventsLssController {
         else{
             folders.add(dto.getRsNo());
         }
+        folders.add(dto.getAppAbbr());
+        
         System.out.println("folders "+folders);
-        return folderStructureService.createDmsFolderStructure(dto.getParentPath(), folders, dto.getAppAbbr());
+        return folderStructureService.createDmsFolderStructure(dto.getParentPath(), folders);
     }
 
 }
