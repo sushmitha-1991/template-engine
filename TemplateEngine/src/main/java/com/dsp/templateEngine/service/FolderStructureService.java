@@ -49,27 +49,23 @@ public class FolderStructureService {
     public String createDmsFolderStructure(String root, List<String> folders, String applicationName) {
 
         String path = (StringUtils.isEmpty(root)) ? OKM_ROOT : root;
-
+       String folderName ="";
         String token = getTokenFromRequest();
         if (StringUtils.isBlank(token)) {
             logger.error("Authorization token is missing. Cannot upload file.");
             return "";
         }
         System.out.println("folder " + folders);
-        System.out.println("applicationName " + applicationName);
 
         for (int i = 0; i < folders.size(); i++) {
             int size = folders.size();
-            path = createFolderIfNotExists(path, folders.get(i), token);
-            System.out.println("path " + path);
-            if (size == (i + 1)) {
-                path = createFolderIfNotExists(path, applicationName, token);
-                System.out.println("complete path " + path);
-                return path;
-            }
+            if(i>0)
+            folderName+="/";
+            folderName+=folders.get(i);
+             createFolderIfNotExists(path,folderName , token);
+            
         }
-        // path = createFolderIfNotExists(path, applicationName, token);
-        // System.out.println("complete path "+path);
+      
         return path;
     }
 

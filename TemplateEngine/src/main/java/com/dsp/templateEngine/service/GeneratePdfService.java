@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.springframework.http.ResponseEntity;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadHtmlDTO;
 
@@ -28,12 +29,10 @@ public interface GeneratePdfService {
 	 */
 	String generatePdfFromHtml(String html, String fileName) throws IOException;
 
-	
-
 	/**
 	 * @param html
 	 * @param startPageNumber
-	 * @param uploadedDoc 
+	 * @param uploadedDoc
 	 * @param fileName
 	 * @return
 	 */
@@ -41,8 +40,8 @@ public interface GeneratePdfService {
 			Integer startPageNumber, UUID uploadedDoc);
 
 	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;
-	
-	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale,  Long appInstId);
+
+	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale, Long appInstId);
 
 	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
 
@@ -60,7 +59,8 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale, String fileName);
+	UUID uploadHtmlAndReturnUuid(String htmlContentEn, int startingPageNo, Long applicationId, String locale,
+			String fileName);
 
 	/**
 	 * @param htmlContentEn
@@ -68,5 +68,8 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadHtmlAndReturnUuid(UploadHtmlDTO upload);	
+	UUID uploadHtmlAndReturnUuid(UploadHtmlDTO upload);
+
+	// String savedSuccess(Long appInstId, UUID documentUuid,
+	// 		UUID documentUuidHi);
 }
