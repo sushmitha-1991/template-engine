@@ -50,28 +50,6 @@ public class FolderStructureService {
       
       public String createDmsFolderStructure (String root, List<String> folders) {
 
-<<<<<<< HEAD
-        String path = (StringUtils.isEmpty(root)) ? OKM_ROOT : root;
-       String folderName ="";
-        String token = getTokenFromRequest();
-        if (StringUtils.isBlank(token)) {
-            logger.error("Authorization token is missing. Cannot upload file.");
-            return "";
-        }
-        System.out.println("folder " + folders);
-
-        for (int i = 0; i < folders.size(); i++) {
-            int size = folders.size();
-            if(i>0)
-            folderName+="/";
-            folderName+=folders.get(i);
-             createFolderIfNotExists(path,folderName , token);
-            
-        }
-      
-        return path;
-    }
-=======
           String path = (StringUtils.isEmpty(root)) ? OKM_ROOT : root;
 
           String token = getTokenFromRequest();
@@ -89,27 +67,21 @@ public class FolderStructureService {
               }
               folderName+=folders.get(i);
               try{
-                  createFolderIfNotExists(path, folderName, token);
-                  
+                  createFolderIfNotExists(path, folderName, token);   
               }
               catch(Exception e)
               {
-                  
                   System.out.println(e.getLocalizedMessage());
               }
               System.out.println("path " + path);
-              System.out.println("folderName " + folderName);
-
-             
+              System.out.println("folderName " + folderName);  
           }
-          
-          System.out.println("complete path "+path+ " createdolders "+folderName);
+          System.out.println("complete path "+path+ " createdfolders "+folderName);
           if(path.endsWith("/"))
           return path+""+folderName;
           else
           return path+"/"+folderName;
       }
->>>>>>> 1cb4d4039dd49545802f30a5272eec6b95ff69ed
 
       private String createFolderIfNotExists(String parentPath, String folderName, String token) {
 
