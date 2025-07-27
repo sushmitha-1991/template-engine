@@ -14,6 +14,8 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.ClientHttpRequestInterceptor;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -22,12 +24,15 @@ public class RestTemplateConfig {
 
 	private static final Logger log = LoggerFactory.getLogger(RestTemplateConfig.class);
 
+
 	@Bean
 	public RestTemplate restTemplate(HttpServletRequest request) {
 
 		log.debug("Creating RestTemplate with custom clientHttpRequestFactory");
 
-		RestTemplate restTemplate = new RestTemplate(clientHttpRequestFactory());
+//		RestTemplate restTemplate = new RestTemplate(clientHttpRequestFactory());
+		RestTemplate restTemplate = new RestTemplate();
+
 
 		// Add interceptor to attach JWT token
 		ClientHttpRequestInterceptor interceptor = (req, body, execution) -> {
@@ -38,7 +43,7 @@ public class RestTemplateConfig {
 			String headerInRequest = req.getHeaders().getFirst("Authorization");
 
 			if (jwtToken != null && !jwtToken.isEmpty()) {
-				req.getHeaders().add("Authorization", jwtToken);
+				req.getHeaders().set("Authorization", jwtToken);
 			} else {
 			}
 
@@ -50,23 +55,24 @@ public class RestTemplateConfig {
 
 		return restTemplate;
 	}
+	
+//	// Factory to configure timeouts for RestTemplate requests
+//	private ClientHttpRequestFactory clientHttpRequestFactory() {
+//		log.debug("Configuring timeouts for RestTemplate");
+//
+//		// Configure timeout settings
+//		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(3, TimeUnit.SECONDS) // Connection
+//																									// timeout (3
+//																									// seconds)
+//				.setResponseTimeout(3, TimeUnit.SECONDS) // Response timeout (3 seconds)
+//				.build();
+//
+//		// Create the HttpClient with the request configuration
+//		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
+//		log.debug("HttpClient created with connection and response timeout of 3 seconds");
+//
+//		// Create and return the request factory with the custom HttpClient
+//		return new HttpComponentsClientHttpRequestFactory(httpClient);
+//	}
 
-	// Factory to configure timeouts for RestTemplate requests
-	private ClientHttpRequestFactory clientHttpRequestFactory() {
-		log.debug("Configuring timeouts for RestTemplate");
-
-		// Configure timeout settings
-		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(3, TimeUnit.SECONDS) // Connection
-																									// timeout (3
-																									// seconds)
-				.setResponseTimeout(3, TimeUnit.SECONDS) // Response timeout (3 seconds)
-				.build();
-
-		// Create the HttpClient with the request configuration
-		CloseableHttpClient httpClient = HttpClients.custom().setDefaultRequestConfig(requestConfig).build();
-		log.debug("HttpClient created with connection and response timeout of 3 seconds");
-
-		// Create and return the request factory with the custom HttpClient
-		return new HttpComponentsClientHttpRequestFactory(httpClient);
-	}
 }
