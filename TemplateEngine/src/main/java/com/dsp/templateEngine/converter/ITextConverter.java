@@ -37,7 +37,7 @@ public class ITextConverter implements IConverter{
 
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
 //			fileOutputStream.write(numberedPdfBytes);
-			fileOutputStream.write(pdfOutputStream.toByteArray());
+			fileOutputStream.write(pdfOutputStream.toByteArray());  
 		}
 
 		return tempPdfFile;
