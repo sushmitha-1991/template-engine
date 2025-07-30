@@ -1,13 +1,16 @@
 package com.dsp.templateEngine.controller;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.FolderCreateDTO;
 import com.dsp.templateEngine.dto.FolderCreateReqDTO;
+import com.dsp.templateEngine.dto.PublishRequestDto;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.FolderStructureService;
+import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
 import lombok.RequiredArgsConstructor;
 
@@ -27,6 +30,8 @@ public class NewEventsLssController {
     private ENoticeBoardService eNoticeBoardService;
     @Autowired
     private FolderStructureService folderStructureService;
+    @Autowired 
+    private GeneratePdfService generatePdfService;
     @PostMapping("/create")
     public NewEventsLss createEvent(@RequestBody NewEventsLssDTO dto) {
         return service.saveNewEvent(dto);
@@ -57,5 +62,9 @@ public class NewEventsLssController {
         System.out.println("folders "+folders);
         return folderStructureService.createDmsFolderStructure(dto.getParentPath(), folders);
     }
+    // @PostMapping("/entry-in-publish-history")
+    // public String publishHistoryEntry(@RequestBody PublishRequestDto  dto) {
+    //    return  generatePdfService.savedSuccess(dto.getAppInstanceId(), dto.getDocUuidEn(), dto.getDocUuidHi());
+    // }
 
 }

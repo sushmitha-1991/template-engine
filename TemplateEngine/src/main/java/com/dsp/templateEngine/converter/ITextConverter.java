@@ -30,14 +30,15 @@ public class ITextConverter implements IConverter{
 		
 		File tempPdfFile = File.createTempFile(input.getFileName(), ".pdf");
 
-//		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();		
-//		convertToByteArray(input, pdfOutputStream);
-//
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();		
+		convertToByteArray(input, pdfOutputStream);		
+
 //		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
-//
-//		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+
+		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
 //			fileOutputStream.write(numberedPdfBytes);
-//		}
+			fileOutputStream.write(pdfOutputStream.toByteArray());  
+		}
 
 		return tempPdfFile;
 	}
