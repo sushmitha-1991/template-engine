@@ -67,21 +67,16 @@ public class FolderStructureService {
               }
               folderName+=folders.get(i);
               try{
-                  createFolderIfNotExists(path, folderName, token);
-                  
+                  createFolderIfNotExists(path, folderName, token);   
               }
               catch(Exception e)
               {
-                  
                   System.out.println(e.getLocalizedMessage());
               }
               System.out.println("path " + path);
-              System.out.println("folderName " + folderName);
-
-             
+              System.out.println("folderName " + folderName);  
           }
-          
-          System.out.println("complete path "+path+ " createdolders "+folderName);
+          System.out.println("complete path "+path+ " createdfolders "+folderName);
           if(path.endsWith("/"))
           return path+""+folderName;
           else

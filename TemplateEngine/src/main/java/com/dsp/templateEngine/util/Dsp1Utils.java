@@ -4,6 +4,7 @@ package com.dsp.templateEngine.util;
 import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -12,9 +13,11 @@ import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
+import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
+import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.NewEventsLssService;
@@ -32,13 +35,13 @@ public class Dsp1Utils {
 
 	@Autowired
 	private EntityManager entityManager; // For native query execution
-	
+
 	@Autowired
 	private NewEventsLssService nelssService;
-	
+
 	@Autowired
-	private ENoticeBoardService eNoticeBoardService;	
-	
+	private ENoticeBoardService eNoticeBoardService;
+
 	private final String LOK_SABHA = "LS";
 
 	private final String RAJYA_SABHA = "RS";
@@ -46,36 +49,42 @@ public class Dsp1Utils {
 	private static final String SUMMON = "SN";
 
 	private static final String PROROGATION = "PN";
-	
-	private static final String  BALLOTING_OF_NOTICES = "BON";
-	
-	public void writeToBallotingDSP1( PublishHistoryEntity publishHistoryEntity,String houseAbbr,String ballotTitle) {
-		
+
+	private static final String LOB = "LIST_OF_BUSINESS";
+
+	private static final String RLOB = "REVISED_LIST_OF_BUSINESS";
+
+	private static final String S1LOB = "SUPPLEMENTARY_LIST_OF_BUSINESS_1";
+
+	private static final String BALLOTING_OF_NOTICES = "BON";
+
+	public void writeToBallotingDSP1(PublishHistoryEntity publishHistoryEntity, String houseAbbr, String ballotTitle) {
+
 		try {
 			Long sessionId = Long.parseLong(publishHistoryEntity.getLokSabhaSessionNo());
 			Long lokSabhaId = Long.parseLong(publishHistoryEntity.getLokSabhaNo());
-	
+
 			Integer sessionNo = (Integer) entityManager.createNativeQuery(
 					"SELECT session_number_int FROM master.lok_sabha_session_masters WHERE id = :id")
 					.setParameter("id", sessionId)
-					.getSingleResult(); 
-	
+					.getSingleResult();
+
 			String lokSabhaNumberStr = (String) entityManager.createNativeQuery(
 					"SELECT lok_sabha_number FROM master.lok_sabha_masters WHERE id = :id")
 					.setParameter("id", lokSabhaId)
-					.getSingleResult(); 
-	
+					.getSingleResult();
+
 			int lokSabhaNo = Integer.parseInt(lokSabhaNumberStr);
 			RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
 			String ordinal = ordinalFmt.format(sessionNo);
 			String ordinalLs = ordinalFmt.format(lokSabhaNo);
-	
-		    // 5. Convert to word form (optional)
-		    String ordNoLs = Utils.ordinalToWord(ordinalLs);  
-	
+
+			// 5. Convert to word form (optional)
+			String ordNoLs = Utils.ordinalToWord(ordinalLs);
+
 			// 6. Final title
 			String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
-	
+
 			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
 					.eurl(publishHistoryEntity.getPublishUrl())
 					.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
@@ -84,70 +93,66 @@ public class Dsp1Utils {
 					.etype("dsp2En")
 					.build();
 			NewEventsLss lss = nelssService.saveNewEvent(nELss);
-			System.out.println( "Function call which table "+lss);
-		 } catch (NoResultException e) {
-		        throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
-		    } catch (Exception e) {
-		        e.printStackTrace();
-		        throw new RuntimeException("Error in writeToBallotingDSP1", e);
-		    }
+			System.out.println("Function call which table " + lss);
+		} catch (NoResultException e) {
+			throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new RuntimeException("Error in writeToBallotingDSP1", e);
+		}
 	}
-	 
-	
+
 	public void writeToDSP1(ApplicationInstanceProjection appDetails,
 			PublishHistoryDTO publishHistoryDto, PublishHistoryDTO hindiDTO, String houseAbbr) {
-			System.out.println("house "+houseAbbr);
+		System.out.println("house " + houseAbbr);
 		if (houseAbbr.equalsIgnoreCase("LS")) {
 			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryDto.getForDate())
-				.eurl(publishHistoryDto.getPublishUrl())
-				.hurl(hindiDTO.getPublishUrl())
-				.hfile(fetchUuid(hindiDTO.getPublishUrl()))
-				.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.etitle(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.htitle(getTitleHi(appDetails, hindiDTO,houseAbbr))
-				.isNew(1)
-				.etype("dsp2En")
-				.htype("dsp2Hi")
-				.build();
-		NewEventsLss lss = nelssService.saveNewEvent(nELss);
-		System.out.println(lss);
-		}
-		else if(houseAbbr.equalsIgnoreCase("RS")){
-			
-				NewEventsRssDTO nERss = NewEventsRssDTO.builder()
-				.startDate(publishHistoryDto.getForDate().atStartOfDay())
-				.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
-				.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
-				.title(getTitle(appDetails, publishHistoryDto,houseAbbr))
-				.language("English")
-     			.pdfFileUrl(publishHistoryDto.getPublishUrl())
-				.build();
-				NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
-				.startDate(hindiDTO.getForDate().atStartOfDay())
-				.fileName(fetchUuid(hindiDTO.getPublishUrl()))
-				.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
-				.title(getTitleHi(appDetails, hindiDTO,houseAbbr))
-				.language("Hindi")
-     			.pdfFileUrl(hindiDTO.getPublishUrl())
-				.build();
-				
-		NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
-		if(hindiDTO!=null)
-		{
-			NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
-			System.out.println(rssHi);
-		}
-		System.out.println(rss);
+					.eurl(publishHistoryDto.getPublishUrl())
+					.hurl(hindiDTO.getPublishUrl())
+					.hfile(fetchUuid(hindiDTO.getPublishUrl()))
+					.efile(fetchUuid(publishHistoryDto.getPublishUrl()))
+					.etitle(getTitle(appDetails, publishHistoryDto, houseAbbr))
+					.htitle(getTitleHi(appDetails, hindiDTO, houseAbbr))
+					.isNew(1)
+					.etype("dsp2En")
+					.htype("dsp2Hi")
+					.build();
+			NewEventsLss lss = nelssService.saveNewEvent(nELss);
+			System.out.println(lss);
+		} else if (houseAbbr.equalsIgnoreCase("RS")) {
+
+			NewEventsRssDTO nERss = NewEventsRssDTO.builder()
+					.startDate(publishHistoryDto.getForDate().atStartOfDay())
+					.endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
+					.fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
+					.title(getTitle(appDetails, publishHistoryDto, houseAbbr))
+					.language("English")
+					.pdfFileUrl(publishHistoryDto.getPublishUrl())
+					.build();
+			NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
+					.startDate(hindiDTO.getForDate().atStartOfDay())
+					.fileName(fetchUuid(hindiDTO.getPublishUrl()))
+					.endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
+					.title(getTitleHi(appDetails, hindiDTO, houseAbbr))
+					.language("Hindi")
+					.pdfFileUrl(hindiDTO.getPublishUrl())
+					.build();
+
+			NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
+			if (hindiDTO != null) {
+				NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
+				System.out.println(rssHi);
+			}
+			System.out.println(rss);
 		}
 	}
-	
-		
+
 	private String fetchUuid(String url) {
 		String[] parts = url.split("/");
 		String fileName = parts[parts.length - 1];
 		return fileName;
 	}
-	
+
 	private String getTitleHi(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,
 			String houseAbbr) {
 		String eTitle = "";
@@ -162,7 +167,6 @@ public class Dsp1Utils {
 		return eTitle;
 	}
 
-	
 	private String getTitleHiLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 		Integer sesNo = Utils.romanToInt(publishHistoryDto.getLokSabhaSessionNo());
 		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
@@ -204,49 +208,45 @@ public class Dsp1Utils {
 		return eTitle;
 	}
 
-	
-   public static String getHindiOrdinal(String input) {
-        Map<Integer, String> hindiMap = Map.ofEntries(
-            Map.entry(1, "पहले"),
-            Map.entry(2, "दूसरे"),
-            Map.entry(3, "तीसरे"),
-            Map.entry(4, "चौथे"),
-            Map.entry(5, "पांचवे"),
-            Map.entry(6, "छठे"),
-            Map.entry(7, "सातवें"),
-            Map.entry(8, "आठवें"),
-            Map.entry(9, "नौवें"),
-            Map.entry(10, "दसवें"),
-            Map.entry(11, "ग्यारहवें"),
-            Map.entry(12, "बारहवें"),
-            Map.entry(13, "तेरहवें"),
-            Map.entry(14, "चौदहवें"),
-            Map.entry(15, "पंद्रहवें"),
-            Map.entry(16, "सोलहवें"),
-            Map.entry(17, "सत्रहवें"),
-            Map.entry(18, "अठारहवें"),
-            Map.entry(19, "उन्नीसवें"),
-            Map.entry(20, "बीसवें")
-        );
+	public static String getHindiOrdinal(String input) {
+		Map<Integer, String> hindiMap = Map.ofEntries(
+				Map.entry(1, "पहले"),
+				Map.entry(2, "दूसरे"),
+				Map.entry(3, "तीसरे"),
+				Map.entry(4, "चौथे"),
+				Map.entry(5, "पांचवे"),
+				Map.entry(6, "छठे"),
+				Map.entry(7, "सातवें"),
+				Map.entry(8, "आठवें"),
+				Map.entry(9, "नौवें"),
+				Map.entry(10, "दसवें"),
+				Map.entry(11, "ग्यारहवें"),
+				Map.entry(12, "बारहवें"),
+				Map.entry(13, "तेरहवें"),
+				Map.entry(14, "चौदहवें"),
+				Map.entry(15, "पंद्रहवें"),
+				Map.entry(16, "सोलहवें"),
+				Map.entry(17, "सत्रहवें"),
+				Map.entry(18, "अठारहवें"),
+				Map.entry(19, "उन्नीसवें"),
+				Map.entry(20, "बीसवें"));
 
-        Map<String, Integer> romanMap = Map.ofEntries(
-            Map.entry("I", 1), Map.entry("II", 2), Map.entry("III", 3), Map.entry("IV", 4),
-            Map.entry("V", 5), Map.entry("VI", 6), Map.entry("VII", 7), Map.entry("VIII", 8),
-            Map.entry("IX", 9), Map.entry("X", 10), Map.entry("XI", 11), Map.entry("XII", 12),
-            Map.entry("XIII", 13), Map.entry("XIV", 14), Map.entry("XV", 15), Map.entry("XVI", 16),
-            Map.entry("XVII", 17), Map.entry("XVIII", 18), Map.entry("XIX", 19), Map.entry("XX", 20)
-        );
+		Map<String, Integer> romanMap = Map.ofEntries(
+				Map.entry("I", 1), Map.entry("II", 2), Map.entry("III", 3), Map.entry("IV", 4),
+				Map.entry("V", 5), Map.entry("VI", 6), Map.entry("VII", 7), Map.entry("VIII", 8),
+				Map.entry("IX", 9), Map.entry("X", 10), Map.entry("XI", 11), Map.entry("XII", 12),
+				Map.entry("XIII", 13), Map.entry("XIV", 14), Map.entry("XV", 15), Map.entry("XVI", 16),
+				Map.entry("XVII", 17), Map.entry("XVIII", 18), Map.entry("XIX", 19), Map.entry("XX", 20));
 
-        int number;
-        try {
-            number = Integer.parseInt(input);
-        } catch (NumberFormatException e) {
-            number = romanMap.getOrDefault(input.toUpperCase(), -1);
-        }
+		int number;
+		try {
+			number = Integer.parseInt(input);
+		} catch (NumberFormatException e) {
+			number = romanMap.getOrDefault(input.toUpperCase(), -1);
+		}
 
-        return hindiMap.getOrDefault(number, "अमान्य संख्या");
-    }
-
+		return hindiMap.getOrDefault(number, "अमान्य संख्या");
+	}
 
 	private String getTitle(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto,
 			String houseAbbr) {
@@ -265,12 +265,6 @@ public class Dsp1Utils {
 		return eTitle;
 	}
 
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
 	private String getTitleLS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		Integer sesNo = Utils.romanToInt(publishHistoryDto.getLokSabhaSessionNo());
@@ -302,12 +296,6 @@ public class Dsp1Utils {
 		return eTitle;
 	}
 
-	/**
-	 * 
-	 * @param appDetails
-	 * @param publishHistoryDto
-	 * @return
-	 */
 	private String getTitleRS(ApplicationInstanceProjection appDetails, PublishHistoryDTO publishHistoryDto) {
 
 		RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
@@ -330,6 +318,33 @@ public class Dsp1Utils {
 		}
 
 		return eTitle;
+	}
+
+	// get ListOf Business abbr to Insert into publish history
+	public String getLobApplicationName(PublishHistoryDTO publishHistoryDTO,
+			ApplicationInstance instance, ApplicationInstanceRepository applicationInstanceRepository) {
+				Optional<String> lobType=applicationInstanceRepository.fetchLobDetailsByRefId(instance.getRefId());
+				if(lobType.isPresent())
+		return responseAgainstLobType(lobType.get());
+		return null;
+	}
+
+	private String responseAgainstLobType(String lobType) {
+
+		if (compare(lobType, "LOB_BUSINESS_TYPE_RS_LOB") ||
+				compare(lobType, "LOB_BUSINESS_TYPE_LS_LOB")) {
+			return LOB;
+		} else if (compare(lobType, "LOB_BUSINESS_TYPE_RS_Revised_LOB") ||
+				compare(lobType, "LOB_BUSINESS_TYPE_LS_Revised LOB")) {
+			return RLOB;
+		} else if (compare(lobType, "OB_BUSINESS_TYPE_RS_Supplementary_LOB") ||
+				compare(lobType, "LOB_BUSINESS_TYPE_LS_Supplementary LOB")) {
+			return S1LOB;
+		}
+		return null;
+	}
+	private Boolean compare(String v1, String v2) {
+		return v1.equalsIgnoreCase(v2);
 	}
 
 }

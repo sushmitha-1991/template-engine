@@ -79,11 +79,8 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 	@Query(value = " select a.abbr from master.applications a where a.id =:applicationId ", nativeQuery = true)
 	String findAbbrByApplicationId(Long applicationId);
 
-	/**
-	 * @param applicationId
-	 * @return
-	 */
 	@Query(value = " select a.dsp1_document_name from master.applications a where a.id =:applicationId ", nativeQuery = true)
 	String findDSPAppNameByApplicationId(Long applicationId);
+
 
 }

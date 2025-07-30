@@ -137,6 +137,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private final String PROROGATION = "PN";
 
+	private static final String LISTOFBUSINESS="LOB";
+
+
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
 		Path finalPath = null;
 		try {
@@ -311,9 +314,28 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
 		cloneAndPublishWorkflowHistory(workflowHistoryId);
 	}
+	private PublishHistoryDTO buildPublishHistoryDto(String locale, String houseAbbr, ApplicationInstance instance,
+                                                 String applicationName, UUID uuid) {
+    return PublishHistoryDTO.builder()
+        .lokSabhaNo(instance.getLokSabhaSession())
+        .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+        .rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
+        .applicationId(instance.getApplicationId())
+        .applicationNo("hi".equals(locale) ? instance.getApplicationNo() + "_HI" : instance.getApplicationNo())
+        .applicationName(applicationName)
+        .publishUuid(uuid)
+        .publishUrl(openKmDsp1DownloadEndPoint + "/" + uuid)
+        .publishStatus(true)
+        .publishDate(LocalDate.now())
+        .house(houseAbbr)
+        .locale(locale)
+        .forDate(instance.getDocumentDate())
+        .fileType("pdf")
+        .build();
+}
 
-	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid,
-			UUID documentUuidHi) {
+	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails,
+	 UUID documentUuid,UUID documentUuidHi) {
 
 		String token = utils.getTokenFromRequest();
 
@@ -353,14 +375,32 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
 			dsp1Utils.writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
 		}
-
+		if(LISTOFBUSINESS.equalsIgnoreCase(appDetails.getAbbr()))
+		{
+			String dsp1AppName=dsp1Utils.getLobApplicationName(publishHistoryDto, instance,applicationInstanceRepository);
+			publishHistoryDto.setApplicationName(dsp1AppName);
+			
+			dtoHi.setApplicationName(dsp1AppName);
+		}
 		addPublishHistoryEntry(publishHistoryDto);
 		if (documentUuidHi != null) {
 			addPublishHistoryEntry(dtoHi);
 		}
 	}
-
-
+// 	@Override
+// 	public String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi)
+// 	 {
+// 		ApplicationInstanceProjection appDetails=getAppDetails(appInstId);
+// 		try{
+// 		savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
+// 		}
+// 		catch(Exception e)
+// 		{
+// 			e.printStackTrace();
+// 			throw e;
+// 		}
+// return "saved";
+// 	 }
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");
