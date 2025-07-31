@@ -7,6 +7,6 @@ import com.dsp.templateEngine.entity.Application;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long>{
 
-	String findAbbrById(@Param("id") Long id);
+	String findAbbrById(@Param("id") Long id); 
 
 }
