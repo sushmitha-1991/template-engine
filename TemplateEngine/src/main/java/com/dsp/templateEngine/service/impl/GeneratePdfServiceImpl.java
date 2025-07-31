@@ -51,6 +51,7 @@ import com.dsp.templateEngine.exception.OpenKMException;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.model.GeneratedPdfModel;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
+import com.dsp.templateEngine.repository.ApplicationRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
@@ -132,6 +133,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
+	
+	@Autowired
+	private ApplicationRepository appRepository;
 
 	private final String SUMMON = "SN";
 
@@ -830,6 +834,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			
 			if (upload.getApplicationId() != null && StringUtils.isEmpty(upload.getApplicationAbbr())) {
 				// get application abbr
+				String abbr = appRepository.findAbbrById(upload.getApplicationId());
+				if (!StringUtils.isEmpty(abbr)) upload.setApplicationAbbr(abbr);
 			}
 			
 			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
@@ -871,7 +877,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (!StringUtils.isEmpty(upload.getFileName())) return upload.getFileName();
 		
 		// Else Generate a random file name
-		String fileName = "Sample_" + UUID.randomUUID() + ".pdf";
+		String fileName =  UUID.randomUUID() + "_" +  upload.getLocale() +  ".pdf";
 		return fileName;
 	}
 }
