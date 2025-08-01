@@ -834,7 +834,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			
 			if (upload.getApplicationId() != null && StringUtils.isEmpty(upload.getApplicationAbbr())) {
 				// get application abbr
+				System.out.println("APPLICATION ID: " + upload.getApplicationId());
 				String abbr = appRepository.findAbbrById(upload.getApplicationId());
+				System.out.println("APPLICATION ABBR: " + abbr);
+
 				if (!StringUtils.isEmpty(abbr)) upload.setApplicationAbbr(abbr);
 			}
 			
@@ -878,6 +881,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		
 		// Else Generate a random file name
 		String fileName =  UUID.randomUUID() + "_" +  upload.getLocale() +  ".pdf";
+		upload.setFileName(fileName);
 		return fileName;
 	}
 }
