@@ -8,6 +8,6 @@ import com.dsp.templateEngine.entity.Application;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long>{
 
-	 @Query("SELECT a.abbr FROM Application a WHERE a.id = :id")
+	 @Query("SELECT a.abbr FROM Application a WHERE a.id = :id") 
 	 String findAbbrById(@Param("id") Long id);
 }
