@@ -391,20 +391,20 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			addPublishHistoryEntry(dtoHi);
 		}
 	}
-// 	@Override
-// 	public String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi)
-// 	 {
-// 		ApplicationInstanceProjection appDetails=getAppDetails(appInstId);
-// 		try{
-// 		savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
-// 		}
-// 		catch(Exception e)
-// 		{
-// 			e.printStackTrace();
-// 			throw e;
-// 		}
-// return "saved";
-// 	 }
+	@Override
+	public String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi)
+	 {
+		ApplicationInstanceProjection appDetails=getAppDetails(appInstId);
+		try{
+		savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			throw e;
+		}
+return "saved";
+	 }
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");
