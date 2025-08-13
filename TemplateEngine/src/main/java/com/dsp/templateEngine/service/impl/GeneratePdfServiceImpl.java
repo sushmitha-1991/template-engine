@@ -42,7 +42,6 @@ import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
-import com.dsp.templateEngine.dto.UploadHtmlDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
@@ -88,7 +87,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	Environment environment;
-	
+
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
 
@@ -106,7 +105,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Value("${openKm.service.download.endpoint}")
 	private String openKmDownloadEndPoint;
-	
+
 	@Value("${openKm.dsp1.download.endpoint}")
 	private String openKmDsp1DownloadEndPoint;
 
@@ -121,7 +120,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private Utils utils;
-	
+
 	@Autowired
 	private Dsp1Utils dsp1Utils;
 
@@ -133,7 +132,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private WorkflowHistoryRepository workflowHistoryRepository;
-	
+
 	@Autowired
 	private ApplicationRepository appRepository;
 
@@ -141,8 +140,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private final String PROROGATION = "PN";
 
-	private static final String LISTOFBUSINESS="LOB";
-
+	private static final String LISTOFBUSINESS = "LOB";
 
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
 		Path finalPath = null;
@@ -186,7 +184,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return finalPath.toString();
 	}
 
-
 	@Transactional
 	public ResponseEntity<Map<String, Object>> publishDocument(String htmlContentEn, String htmlContentHi,
 			Long appInstId, Integer startPageNumber, UUID uploadedDoc) {
@@ -204,12 +201,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				documentUuidEn = uploadedDoc;
 			} else {
 				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId,
-							"_en");
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en");
 				}
 				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId,
-							"_hi");
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi");
 				}
 			}
 
@@ -244,19 +239,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return details;
 	}
 
-
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
 			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
 
 		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
 		System.out.println("**** appDetails " + appDetails);
-		
+
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
-		System.out.println("appDetails "+appDetails);
+		System.out.println("appDetails " + appDetails);
 
 		List<String> folders = new ArrayList();
 //		//changes 19-07-2025
-			String houseAbbr = utils.getHouseAbbr();
+		String houseAbbr = utils.getHouseAbbr();
 		folders.add(houseAbbr);
 		if ("LS".equals(houseAbbr)) {
 			folders.add(appDetails.getLsNo());
@@ -264,27 +258,25 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} else {
 			folders.add(appDetails.getRsSesNo());
 		}
-		//new chages 
-		System.out.println("folder "+folders);
+		// new chages
+		System.out.println("folder " + folders);
 
 //		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
-		System.out.println("okm path "+okmPath);
+		System.out.println("okm path " + okmPath);
 
-		System.out.println("app ABBR: "+ appDetails.getAbbr());
+		System.out.println("app ABBR: " + appDetails.getAbbr());
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
-		
+
 //		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startPageNumber);
-		
-		PdfConverterDTO input = PdfConverterDTO.builder()
-									.htmlContent(htmlContent)
-									.fileName(fileName)
-									.startPageNumber(startPageNumber)
+
+		PdfConverterDTO input = PdfConverterDTO.builder().htmlContent(htmlContent).fileName(fileName)
+				.startPageNumber(startPageNumber)
 //									.docUrl(houseAbbr)
-									.build();
-		
+				.build();
+
 		File pdfFile = converter.convertToPdf(input);
-		
+
 		String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", appInstId.toString(),
 				"ApplicationInstance", "1");
 
@@ -318,28 +310,20 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		Long workflowHistoryId = generatedPdfModelRepository.getWorkflowIdByAppInstanceId(appInstId);
 		cloneAndPublishWorkflowHistory(workflowHistoryId);
 	}
-	private PublishHistoryDTO buildPublishHistoryDto(String locale, String houseAbbr, ApplicationInstance instance,
-                                                 String applicationName, UUID uuid) {
-    return PublishHistoryDTO.builder()
-        .lokSabhaNo(instance.getLokSabhaSession())
-        .lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-        .rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
-        .applicationId(instance.getApplicationId())
-        .applicationNo("hi".equals(locale) ? instance.getApplicationNo() + "_HI" : instance.getApplicationNo())
-        .applicationName(applicationName)
-        .publishUuid(uuid)
-        .publishUrl(openKmDsp1DownloadEndPoint + "/" + uuid)
-        .publishStatus(true)
-        .publishDate(LocalDate.now())
-        .house(houseAbbr)
-        .locale(locale)
-        .forDate(instance.getDocumentDate())
-        .fileType("pdf")
-        .build();
-}
 
-	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails,
-	 UUID documentUuid,UUID documentUuidHi) {
+	private PublishHistoryDTO buildPublishHistoryDto(String locale, String houseAbbr, ApplicationInstance instance,
+			String applicationName, UUID uuid) {
+		return PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
+				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
+				.applicationNo("hi".equals(locale) ? instance.getApplicationNo() + "_HI" : instance.getApplicationNo())
+				.applicationName(applicationName).publishUuid(uuid).publishUrl(openKmDsp1DownloadEndPoint + "/" + uuid)
+				.publishStatus(true).publishDate(LocalDate.now()).house(houseAbbr).locale(locale)
+				.forDate(instance.getDocumentDate()).fileType("pdf").build();
+	}
+
+	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid,
+			UUID documentUuidHi) {
 
 		String token = utils.getTokenFromRequest();
 
@@ -358,32 +342,23 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
 				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
 				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
-		
-			PublishHistoryDTO dtoHi = PublishHistoryDTO.builder()
-					.lokSabhaNo(instance.getLokSabhaSession())
-					.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-					.rajyaSabhaSessionNo(instance.getRajyaSabhaSession())
-					.applicationId(instance.getApplicationId())
-					.applicationNo(instance.getApplicationNo()+"_HI")
-					.applicationName(applicationName)
-					.publishUuid(documentUuid)
-					.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
-					.publishStatus(true)
-					.publishDate(LocalDate.now())
-					.house(houseAbbr)
-					.locale("hi")
-					.forDate(instance.getDocumentDate())
-					.fileType("pdf").build();
-			
-			
+
+		PublishHistoryDTO dtoHi = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
+				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
+				.applicationNo(instance.getApplicationNo() + "_HI").applicationName(applicationName)
+				.publishUuid(documentUuid).publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
+				.publishStatus(true).publishDate(LocalDate.now()).house(houseAbbr).locale("hi")
+				.forDate(instance.getDocumentDate()).fileType("pdf").build();
+
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
-			dsp1Utils.writeToDSP1(appDetails, publishHistoryDto,dtoHi,houseAbbr);
+			dsp1Utils.writeToDSP1(appDetails, publishHistoryDto, dtoHi, houseAbbr);
 		}
-		if(LISTOFBUSINESS.equalsIgnoreCase(appDetails.getAbbr()))
-		{
-			String dsp1AppName=dsp1Utils.getLobApplicationName(publishHistoryDto, instance,applicationInstanceRepository);
+		if (LISTOFBUSINESS.equalsIgnoreCase(appDetails.getAbbr())) {
+			String dsp1AppName = dsp1Utils.getLobApplicationName(publishHistoryDto, instance,
+					applicationInstanceRepository);
 			publishHistoryDto.setApplicationName(dsp1AppName);
-			
+
 			dtoHi.setApplicationName(dsp1AppName);
 		}
 		addPublishHistoryEntry(publishHistoryDto);
@@ -646,16 +621,14 @@ return "saved";
 //	}
 
 	@Override
-	public void createPdfV3(
-			PdfConverterDTO upload,
-			java.io.ByteArrayOutputStream outputStream) {
+	public void createPdfV3(PdfConverterDTO upload, java.io.ByteArrayOutputStream outputStream) {
 
 		if (StringUtils.isEmpty(upload.getHtmlContent())) {
 			return;
 		}
-		
+
 		System.out.println("########### appInstId::" + upload.getAppInstanceId());
-		
+
 		String abbr = upload.getApplicationAbbr();
 		if (StringUtils.isEmpty(abbr) && upload.getAppInstanceId() != null) {
 			ApplicationInstanceProjection appDetails = getAppDetails(upload.getAppInstanceId());
@@ -663,10 +636,10 @@ return "saved";
 			System.out.println("########### abbr::" + abbr);
 			System.out.println("########### abbr::" + appDetails);
 		}
-		
-		IConverter converter = factory.getConverter(abbr, upload.getLocale()); 
+
+		IConverter converter = factory.getConverter(abbr, upload.getLocale());
 		log.debug(converter.toString());
-		
+
 		try {
 			converter.convertToByteArray(upload, outputStream);
 		} catch (IOException e) {
@@ -674,8 +647,7 @@ return "saved";
 			return;
 		}
 	}
-	
-	
+
 	private PublishHistoryDTO addPublishHistoryEntry(PublishHistoryDTO publishHistoryDto) {
 		String url = draftedServiceUrl + "/publish-history/create";
 		// String url = "http://localhost:8087/workflow/publish-history/create";
@@ -696,7 +668,7 @@ return "saved";
 		publishHistoryDto.setPublishByUser(
 				userDetails.getFirstName() + " " + userDetails.getMiddleName() + " " + userDetails.getLastName());
 		publishHistoryDto.setOfficeId(officeId);
-		publishHistoryDto.setLocale("en");
+//		publishHistoryDto.setLocale("en");
 		// HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto,
 		// headers);
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
@@ -781,8 +753,7 @@ return "saved";
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
 					.fileType("pdf").locale(dto.getLocale()).forDate(dto.getForDate())
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
-					.unpublishDate(dto.getUnpublishDate())
-					.house(houseAbbr).build();
+					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();
 			entry = publishRepository.save(entry);
 
 			// Writing to DSP1
@@ -801,58 +772,51 @@ return "saved";
 	}
 
 	@Override
-	public UUID uploadHtmlAndReturnUuid(String htmlContent, 
-										int startingPageNo, 
-										Long applicationId, 
-										String locale,
-										String fileName) {
-		
-		PdfConverterDTO upload = PdfConverterDTO.builder()
-											.htmlContent(htmlContent)
-											.startPageNumber(startingPageNo)
-											.fileName(fileName)
-											.applicationId(applicationId)
-											.locale(locale)
-											.build();
-		
-		return uploadHtmlAndReturnUuid (upload);
+	public UUID uploadHtmlAndReturnUuid(String htmlContent, int startingPageNo, Long applicationId, String locale,
+			String fileName) {
+
+		PdfConverterDTO upload = PdfConverterDTO.builder().htmlContent(htmlContent).startPageNumber(startingPageNo)
+				.fileName(fileName).applicationId(applicationId).locale(locale).build();
+
+		return uploadHtmlAndReturnUuid(upload);
 
 	}
 
 	@Override
-	public UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload) { 
-	
-		if (upload == null) return null;
-		
+	public UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload) {
+
+		if (upload == null)
+			return null;
+
 		try {
 
 			// Step 1: Generate a random file name, if not specified
 			String fileName = getFileName(upload);
-			
+
 			// Step 2: Convert content to PDF
 			String locale = StringUtils.isEmpty(upload.getLocale()) ? "en" : upload.getLocale();
-			
+
 			if (upload.getApplicationId() != null && StringUtils.isEmpty(upload.getApplicationAbbr())) {
 				// get application abbr
 				System.out.println("APPLICATION ID: " + upload.getApplicationId());
 				String abbr = appRepository.findAbbrById(upload.getApplicationId());
 				System.out.println("APPLICATION ABBR: " + abbr);
 
-				if (!StringUtils.isEmpty(abbr)) upload.setApplicationAbbr(abbr);
+				if (!StringUtils.isEmpty(abbr))
+					upload.setApplicationAbbr(abbr);
 			}
-			
+
 			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
 			File pdfFile = converter.convertToPdf(upload);
-			
+
 			if (pdfFile == null || !pdfFile.exists()) {
-				throw new IOException("Failed to generate PDF from HTML content."); 
+				throw new IOException("Failed to generate PDF from HTML content.");
 			}
 
 			// Step 3: Upload to OpenKM
 			String okmPath = Utils.OKM_ROOT;
-			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", 
-													upload.getApplicationId().toString(),
-													"ApplicationInstance", "1");
+			String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231",
+					upload.getApplicationId().toString(), "ApplicationInstance", "1");
 
 			ObjectMapper objectMapper = new ObjectMapper();
 			Map<String, Object> responseMap = objectMapper.readValue(uploadResult, new TypeReference<>() {
@@ -872,15 +836,16 @@ return "saved";
 		} catch (IOException e) {
 			e.printStackTrace();
 			throw new RuntimeException("Error while processing HTML to PDF upload", e);
-		}		
+		}
 	}
-	
+
 	private String getFileName(PdfConverterDTO upload) {
-		
-		if (!StringUtils.isEmpty(upload.getFileName())) return upload.getFileName();
-		
+
+		if (!StringUtils.isEmpty(upload.getFileName()))
+			return upload.getFileName();
+
 		// Else Generate a random file name
-		String fileName =  UUID.randomUUID() + "_" +  upload.getLocale() +  ".pdf";
+		String fileName = UUID.randomUUID() + "_" + upload.getLocale() + ".pdf";
 		upload.setFileName(fileName);
 		return fileName;
 	}
