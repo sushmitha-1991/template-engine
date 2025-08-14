@@ -54,7 +54,7 @@ public class Dsp1Utils {
 
 	private static final String RLOB = "REVISED_LIST_OF_BUSINESS";
 
-	private static final String S1LOB = "SUPPLEMENTARY_LIST_OF_BUSINESS_1";
+	private static final String SLOB = "SUPPLEMENTARY_LIST_OF_BUSINESS";
 
 	private static final String BALLOTING_OF_NOTICES = "BON";
 
@@ -337,9 +337,9 @@ public class Dsp1Utils {
 		} else if (compare(lobType, "LOB_BUSINESS_TYPE_RS_Revised_LOB") ||
 				compare(lobType, "LOB_BUSINESS_TYPE_LS_Revised LOB")) {
 			return RLOB;
-		} else if (compare(lobType, "OB_BUSINESS_TYPE_RS_Supplementary_LOB") ||
+		} else if (compare(lobType, "LOB_BUSINESS_TYPE_RS_Supplementary_LOB") ||
 				compare(lobType, "LOB_BUSINESS_TYPE_LS_Supplementary LOB")) {
-			return S1LOB;
+			return SLOB;
 		}
 		return null;
 	}

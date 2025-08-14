@@ -62,9 +62,9 @@ public class NewEventsLssController {
         System.out.println("folders "+folders);
         return folderStructureService.createDmsFolderStructure(dto.getParentPath(), folders);
     }
-    // @PostMapping("/entry-in-publish-history")
-    // public String publishHistoryEntry(@RequestBody PublishRequestDto  dto) {
-    //    return  generatePdfService.savedSuccess(dto.getAppInstanceId(), dto.getDocUuidEn(), dto.getDocUuidHi());
-    // }
+    @PostMapping("/entry-in-publish-history")
+    public String publishHistoryEntry(@RequestBody PublishRequestDto  dto) {
+       return  generatePdfService.savedSuccess(dto.getAppInstanceId(), dto.getDocUuidEn(), dto.getDocUuidHi());
+    }
 
 }
