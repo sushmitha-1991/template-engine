@@ -72,4 +72,5 @@ public interface GeneratePdfService {
 	 * @return
 	 */
 	UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload);	
+	String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi);
 }
