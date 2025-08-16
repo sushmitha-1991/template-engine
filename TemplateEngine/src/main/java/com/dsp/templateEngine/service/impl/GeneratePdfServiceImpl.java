@@ -336,17 +336,30 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String applicationName = appDetails.getAppName();
 		if (StringUtils.isBlank(applicationName))
 			applicationName = appDetails.getAbbr();
+
+		// Fetch translation document type ID (if available)
+		Long translAppId = applicationInstanceRepository.getTranslationFlag(appInstId);
+
+		// Decide which applicationId to use
+		Long applicationId = translAppId != null ? translAppId : instance.getApplicationId();
+
+		// Decide which application name to use
+		String applicationNameToUse = translAppId != null
+				? applicationInstanceRepository.getApplicationName(translAppId)
+				: applicationName; // fallback to default
+
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber()).locale("en").house(houseAbbr)
-				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
-				.applicationNo(instance.getApplicationNo()).applicationName(applicationName).publishUuid(documentUuid)
-				.publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid).publishStatus(true)
-				.publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf").build();
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(applicationId)
+				.applicationNo(instance.getApplicationNo()).applicationName(applicationNameToUse)
+				.publishUuid(documentUuid).publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuid)
+				.publishStatus(true).publishDate(LocalDate.now()).forDate(instance.getDocumentDate()).fileType("pdf")
+				.build();
 
 		PublishHistoryDTO dtoHi = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
-				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(instance.getApplicationId())
-				.applicationNo(instance.getApplicationNo() + "_HI").applicationName(applicationName)
+				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(applicationId)
+				.applicationNo(instance.getApplicationNo() + "_HI").applicationName(applicationNameToUse)
 				.publishUuid(documentUuid).publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
 				.publishStatus(true).publishDate(LocalDate.now()).house(houseAbbr).locale("hi")
 				.forDate(instance.getDocumentDate()).fileType("pdf").build();
@@ -366,20 +379,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			addPublishHistoryEntry(dtoHi);
 		}
 	}
+
 	@Override
-	public String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi)
-	 {
-		ApplicationInstanceProjection appDetails=getAppDetails(appInstId);
-		try{
-		savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
-		}
-		catch(Exception e)
-		{
+	public String savedSuccess(Long appInstId, UUID documentUuid, UUID documentUuidHi) {
+		ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+		try {
+			savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		}
-return "saved";
-	 }
+		return "saved";
+	}
+
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");

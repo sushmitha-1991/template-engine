@@ -88,4 +88,7 @@ public class ApplicationInstance extends Auditable {
 
 	@Column(name = "parent_instance_id")
 	private Long parentInstanceId;
+
+	@Column(name = "translation_document_type_id")
+	private Long translationDocumentTypeId;
 }
