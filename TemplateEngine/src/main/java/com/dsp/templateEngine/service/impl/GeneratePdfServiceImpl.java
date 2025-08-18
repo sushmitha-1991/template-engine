@@ -142,6 +142,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private static final String LISTOFBUSINESS = "LOB";
 
+	private static final String TRANSLATION_ABBR = "TRP";
+
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
 		Path finalPath = null;
 		try {
@@ -193,9 +195,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-			System.out.println("*** app details " + appDetails);
 			UUID documentUuidEn = null;
 			UUID documentUuidHi = null;
+
+			// Check for Translation Papers Publishing
+			String appAbbr = applicationInstanceRepository.getApplicationNameByInstId(appInstId);
+			if (appAbbr.equals(TRANSLATION_ABBR)) {
+				htmlContentHi = htmlContentEn;
+				htmlContentEn = null;
+			}
 
 			if (uploadedDoc != null) {
 				documentUuidEn = uploadedDoc;
@@ -210,7 +218,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 			updateWorkflowHistory(appInstId);
-			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi);
+			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
@@ -323,7 +331,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private void savePublishHistory(Long appInstId, ApplicationInstanceProjection appDetails, UUID documentUuid,
-			UUID documentUuidHi) {
+			UUID documentUuidHi, String appAbbr) {
 
 		String token = utils.getTokenFromRequest();
 
@@ -360,7 +368,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber())
 				.rajyaSabhaSessionNo(instance.getRajyaSabhaSession()).applicationId(applicationId)
 				.applicationNo(instance.getApplicationNo() + "_HI").applicationName(applicationNameToUse)
-				.publishUuid(documentUuid).publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
+				.publishUuid(documentUuidHi).publishUrl(openKmDsp1DownloadEndPoint + "/" + documentUuidHi)
 				.publishStatus(true).publishDate(LocalDate.now()).house(houseAbbr).locale("hi")
 				.forDate(instance.getDocumentDate()).fileType("pdf").build();
 
@@ -374,7 +382,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			dtoHi.setApplicationName(dsp1AppName);
 		}
-		addPublishHistoryEntry(publishHistoryDto);
+
+		if (!TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
+			addPublishHistoryEntry(publishHistoryDto);
+		}
+
 		if (documentUuidHi != null) {
 			addPublishHistoryEntry(dtoHi);
 		}
@@ -384,7 +396,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	public String savedSuccess(Long appInstId, UUID documentUuid, UUID documentUuidHi) {
 		ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
 		try {
-			savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi);
+			savePublishHistory(appInstId, appDetails, documentUuid, documentUuidHi, null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -664,7 +676,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String url = draftedServiceUrl + "/publish-history/create";
 		// String url = "http://localhost:8087/workflow/publish-history/create";
 
-		System.out.println("########### url::" + url);
 		String token = utils.getTokenFromRequest();
 		if (token == null) {
 			throw new IllegalStateException("Authorization token is missing");
@@ -684,7 +695,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto,
 		// headers);
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
-		System.out.println("### entity- " + entity);
+
 		try {
 			return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
 		} catch (Exception e) {
@@ -700,26 +711,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Step 2: Fetch application details
 			String abbr = generatedPdfModelRepository.findAbbrByApplicationId(dto.getApplicationId());
 			String applicationName = generatedPdfModelRepository.findDSPAppNameByApplicationId(dto.getApplicationId());
-			System.out.println("### abbr - " + abbr);
 			if (abbr == null) {
-				System.out.println("app Details::::::" + dto.getApplicationId());
 				throw new IllegalArgumentException("Application instance not found for ID: " + dto.getApplicationId());
 			}
 
 			Random random = new Random();
 			int randomInt = random.nextInt();
-			System.out.println("### suffix - " + randomInt);
 			// Generate filename with the language suffix
 			String appNo = "Balloting" + randomInt + ".pdf";
 			String ballotTitle = "Balloting" + randomInt;
 			String okmPath = "/okm:root/" + abbr;
-			System.out.println("### appNo - " + appNo);
-			System.out.println("### okmPath - " + okmPath);
 
 			// Step 2: Convert HTML content to a PDF
 			File pdfFile = convertHtmlToPdf(dto.getHtmlContent(), appNo, 1);
-
-			System.out.println("### pdfFile - " + pdfFile);
 
 			// Step 3: Upload PDF to OpenKM
 			String uploadResult = uploadPdfToOpenKM(pdfFile, appNo, okmPath, "231", dto.getApplicationId().toString(),
@@ -743,10 +747,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
 			}
 			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
-			System.out.println("### documentUuid - " + documentUuid);
 			// Assuming the method should return some DTO after processing
 			String publishedUrl = openKmDsp1DownloadEndPoint + "/" + documentUuid;
-			System.out.println("### publishedUrl - " + publishedUrl);
 			// ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
 			// ApplicationInstanceProjection appDetails =
 			// getAppDetails(dto.getApplicationId());
@@ -757,7 +759,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new IllegalStateException("Authorization token is missing");
 			}
 			String houseAbbr = jwtUtil.extractHouseAbbr(token);
-			System.out.println("### publishedUrl - " + publishedUrl);
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
 					.lokSabhaSessionNo(dto.getLokSabhaSessionNo()).applicationId(dto.getApplicationId())

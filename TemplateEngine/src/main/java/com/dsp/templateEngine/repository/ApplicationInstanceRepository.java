@@ -32,4 +32,9 @@ public interface ApplicationInstanceRepository extends JpaRepository<Application
 			""", nativeQuery = true)
 	String getApplicationName(Long translAppId);
 
+	@Query(value = """
+			select a.abbr from master.application_instance ai left join master.applications a on a.id = ai.application_id where ai.id = :translAppId
+			""", nativeQuery = true)
+	String getApplicationNameByInstId(Long translAppId);
+
 }
