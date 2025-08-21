@@ -41,7 +41,10 @@ import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.UploadedDocumentDTO;
+import com.dsp.templateEngine.dto.UploadedDocumentProjection;
 import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
@@ -54,6 +57,7 @@ import com.dsp.templateEngine.repository.ApplicationRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
+import com.dsp.templateEngine.repository.UploadedDocumentRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -91,8 +95,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
 
+	@Value("${upload.document.url}")
+	private String uploadDocUrl;
+
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
+
+	@Autowired
+	private UploadedDocumentRepository uploadedDocumentRepository;
 
 	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
@@ -143,6 +153,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private static final String LISTOFBUSINESS = "LOB";
 
 	private static final String TRANSLATION_ABBR = "TRP";
+
+	private static final String CREATION_OF_NOTICES_UNDER_RULE_377 = "N377";
 
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
 		Path finalPath = null;
@@ -216,6 +228,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				}
 			}
 
+			// Integration touch point for Section Login -> MP Portal Letters/Documents
+			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
+				try {
+					saveUploadedDocuments(appInstId);
+				} catch (Exception e) {
+					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
+				}
+			}
+
 			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
@@ -224,6 +245,46 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
+		}
+	}
+
+	private UploadedDocumentDTO saveUploadedDocuments(Long appInstId) {
+		// Fetch house ID and application data
+		UploadedDocumentProjection data = applicationInstanceRepository.getAppId(appInstId);
+
+		// Prepare member data
+		MemberDTO member = new MemberDTO();
+		member.setMemberId(null);
+		member.setName(null);
+		member.setParty(null);
+		member.setConstituency(null);
+		member.setState(null);
+		member.setIcNo(null);
+		member.setMpCode(data.getMpCode());
+
+		List<MemberDTO> membersData = List.of(member);
+
+		// Build the DTO for API
+		UploadedDocumentDTO payload = new UploadedDocumentDTO();
+		payload.setId(null);
+		payload.setDraftId(null);
+		payload.setMembersData(membersData);
+		payload.setTitle(String.format("Text of matter under rule 377 to be raised on %s", data.getNoticeDate()));
+		payload.setApplicationId(data.getAppId().toString());
+		payload.setLokSabhaNumber(1);
+		payload.setSessionNumber(99);
+		payload.setDocumentUuid(data.getDocumentUuid());
+
+		HttpEntity<UploadedDocumentDTO> entity = new HttpEntity<>(payload);
+
+		try {
+			UploadedDocumentDTO response = restTemplate.postForObject(uploadDocUrl, entity, UploadedDocumentDTO.class);
+			System.out.println(">>> API response: " + response);
+			return response;
+		} catch (Exception e) {
+			System.out.println("Error during API call Uploaded docu: " + e.getMessage());
+			log.error("Error in API call", e);
+			throw e;
 		}
 	}
 
