@@ -269,7 +269,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		payload.setId(null);
 		payload.setDraftId(null);
 		payload.setMembersData(membersData);
-		payload.setTitle(String.format("Text of matter under rule 377 to be raised on %s", data.getNoticeDate()));
+		payload.setTitle("Matter Under Rule 377");
 		payload.setApplicationId(data.getAppId().toString());
 		payload.setLokSabhaNumber(1);
 		payload.setSessionNumber(99);
