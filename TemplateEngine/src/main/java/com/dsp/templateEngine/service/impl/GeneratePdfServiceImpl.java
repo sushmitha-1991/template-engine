@@ -213,7 +213,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Check for Translation Papers Publishing
 			String appAbbr = applicationInstanceRepository.getApplicationNameByInstId(appInstId);
 			if (appAbbr.equals(TRANSLATION_ABBR)) {
-				htmlContentHi = htmlContentEn;
+//				htmlContentHi = htmlContentEn;
 				htmlContentEn = null;
 			}
 
