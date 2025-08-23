@@ -228,6 +228,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				}
 			}
 
+			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 			// Integration touch point for Section Login -> MP Portal Letters/Documents
 			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
 				try {
@@ -236,8 +237,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
 				}
 			}
-
-			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 
