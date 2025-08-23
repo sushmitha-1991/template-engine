@@ -29,9 +29,9 @@ public class ConverterFactory {
 		log.debug("Application Name: " + applicationName);
 		log.debug("Lang: " + lang);
 		
-		if ("SW".equals(applicationName)) {
-			return libreOdtConverter;
-		}
+//		if ("SW".equals(applicationName)) {
+//			return libreOdtConverter;
+//		}
 
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) { 
 			return libreConverter;
