@@ -5,6 +5,8 @@ import java.time.Month;
 import java.time.Year;
 import java.util.UUID;
 
+import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -40,6 +42,7 @@ public class PublishHistoryDTO {
 	private LocalDate unpublishDate;
 
 	private Long officeId;
+	@AllowHtml
 	private String htmlContent;
 	private String house;
 	private int year;
