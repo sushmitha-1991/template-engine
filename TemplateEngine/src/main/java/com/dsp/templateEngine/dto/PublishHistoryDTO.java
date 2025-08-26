@@ -6,6 +6,7 @@ import java.time.Year;
 import java.util.UUID;
 
 import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
+import com.dsp.templateEngine.config.XSSConfig.NoEscape;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,7 +29,7 @@ public class PublishHistoryDTO {
 	private String applicationNo;
 
 	private UUID publishUuid;
-	@AllowHtml
+	@NoEscape
 	private String publishUrl;
 	private String fileType;
 	private String locale;
