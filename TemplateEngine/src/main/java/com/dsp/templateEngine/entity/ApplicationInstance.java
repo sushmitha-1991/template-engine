@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
+import com.dsp.templateEngine.config.XSSConfig.NoEscape;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -40,7 +41,7 @@ public class ApplicationInstance extends Auditable {
 	@Column(name = "current_status", nullable = false, length = 100)
 	private String currentStatus;
 
-	@AllowHtml
+	@NoEscape
 	@Column(name = "published_document_url", length = 255)
 	private String publishedDocumentUrl;
 
