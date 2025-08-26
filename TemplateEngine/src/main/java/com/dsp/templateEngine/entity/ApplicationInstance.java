@@ -3,6 +3,8 @@ package com.dsp.templateEngine.entity;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -38,6 +40,7 @@ public class ApplicationInstance extends Auditable {
 	@Column(name = "current_status", nullable = false, length = 100)
 	private String currentStatus;
 
+	@AllowHtml
 	@Column(name = "published_document_url", length = 255)
 	private String publishedDocumentUrl;
 
@@ -74,9 +77,11 @@ public class ApplicationInstance extends Auditable {
 	@Column(name = "published_document_uuid_hi")
 	private UUID publishedDocumentUuidHi;
 
+	@AllowHtml
 	@Column(name = "html_content_en", columnDefinition = "text")
 	private String htmlContentEnglish;
 
+	@AllowHtml
 	@Column(name = "html_content_hi", columnDefinition = "text")
 	private String htmlContentHindi;
 
