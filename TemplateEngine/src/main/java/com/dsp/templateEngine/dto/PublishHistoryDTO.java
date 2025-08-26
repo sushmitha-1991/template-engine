@@ -28,6 +28,7 @@ public class PublishHistoryDTO {
 	private String applicationNo;
 
 	private UUID publishUuid;
+	@AllowHtml
 	private String publishUrl;
 	private String fileType;
 	private String locale;

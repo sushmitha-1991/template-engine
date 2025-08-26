@@ -7,6 +7,8 @@ package com.dsp.templateEngine.entity;
 
 import java.time.LocalDateTime;
 
+import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -72,6 +74,7 @@ public class WorkflowHistory extends Auditable {
 	@Column(name = "pending_with_name", nullable = true)
 	private String pendingWithName;
 
+	@AllowHtml
 	@Column(name = "note", nullable = true,columnDefinition="text")
 	private String note;
 
@@ -87,6 +90,7 @@ public class WorkflowHistory extends Auditable {
 	@Column(name = "next_task_id", nullable = true)
 	private String nextTaskId;
 
+	@AllowHtml
 	@Column(name = "action_url")
 	private String actionUrl;
 
