@@ -16,6 +16,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.safety.Safelist;
@@ -64,6 +66,7 @@ import java.util.stream.Stream;
  *    <version>1.17.2</version>
  *  </dependency>
  */
+@Slf4j
 public class XSSConfig {
 
     /** Marks a field/getter that may contain rich HTML from a WYSIWYG editor. */
@@ -120,6 +123,7 @@ public class XSSConfig {
 
         /** Strict text-only sanitization (no tags). */
         public static String strictText(String raw) {
+        	log.info("In strictText");
             if (raw == null) return null;
             String cleaned = Jsoup.clean(raw, Safelist.none());
             Document.OutputSettings os = new Document.OutputSettings();
@@ -129,20 +133,33 @@ public class XSSConfig {
 
         /** Rich HTML sanitization that preserves formatting according to FULL_HTML_SAFELIST. */
         public static String richHtml(String raw) {
+        	log.info("In richHtml");
+
             if (raw == null) return null;
             Document.OutputSettings os = new Document.OutputSettings();
             os.prettyPrint(false);
+            
+            log.info("In richHtml** RAW: {}", raw);
             String cleaned = Jsoup.clean(raw, "", FULL_HTML_SAFELIST, os);
 //            return stripHtmlBody(cleaned);
+            log.info("In richHtml** CLEANED: {}", cleaned);
+
             return cleaned;
         }
 
         private static String stripHtmlBody(String html) {
+        	log.info("In stripHtmlBody");
+
             if (html == null) return null;
+            
+            log.info("In stripHtmlBody** RAW: {}", html);
+
             String trimmed = html.trim();
             if (trimmed.startsWith("<html") || trimmed.startsWith("<body")) {
-                return Jsoup.parse(trimmed).body().html();
+                trimmed =  Jsoup.parse(trimmed).body().html();
             }
+            log.info("In stripHtmlBody** TRIMMED: {}", html);
+
             return trimmed;
         }
     }
@@ -177,28 +194,37 @@ public class XSSConfig {
 
         @Override
         public void serialize(String value, JsonGenerator gen, SerializerProvider provider) throws IOException {
-            if (value == null) { gen.writeNull(); return; }
+            
+        	log.info("******************************Value: {}", value);
+        	
+        	if (value == null) { gen.writeNull(); return; }
             
             if (value.startsWith("/")) { gen.writeString(value); return; }
 
-            // field name from output context; falls back to contextual property name if available
-            String fieldName = null;
-            try {
-                if (gen.getOutputContext() != null) {
-                    fieldName = gen.getOutputContext().getCurrentName();
-                }
-            } catch (Exception ignored) {}
-
-            if (fieldName == null) fieldName = this.propertyNameFromContext;
-
-            if (shouldWriteRaw(fieldName)) {
-                gen.writeString(value);
-            } else {
-                gen.writeString(HtmlUtils.htmlEscape(value));
-            }
+            // temp
+            gen.writeString(value); return;
+            
+//            // field name from output context; falls back to contextual property name if available
+//            String fieldName = null;
+//            try {
+//                if (gen.getOutputContext() != null) {
+//                    fieldName = gen.getOutputContext().getCurrentName();
+//                }
+//            } catch (Exception ignored) {}
+//
+//            if (fieldName == null) fieldName = this.propertyNameFromContext;
+//
+//            if (shouldWriteRaw(fieldName)) {
+//                gen.writeString(value);
+//            } else {
+//                gen.writeString(HtmlUtils.htmlEscape(value));
+//            }
         }
 
         private boolean shouldWriteRaw(String fieldName) {
+        	
+            log.info("In shouldWriteRaw** field: {}", fieldName);
+
             if (writeRaw) return true;
             if (fieldName == null) return false;
 
@@ -234,6 +260,7 @@ public class XSSConfig {
                     raw = true;
                 }
 
+                
                 if (raw) {
                     return new XssStringSerializer(true, name);
                 } else {
@@ -403,21 +430,31 @@ public class XSSConfig {
             public SanitizingRequestWrapper(HttpServletRequest request) { super(request); }
 
             @Override public String getParameter(String name) {
-                return XSSConfig.XssHtmlSanitizer.strictText(super.getParameter(name));
+            	log.info("getParameter Name: {} ", name);
+
+//                return XSSConfig.XssHtmlSanitizer.strictText(super.getParameter(name));
+                return (super.getParameter(name));
             }
+
             @Override public String[] getParameterValues(String name) {
-                String[] arr = super.getParameterValues(name);
+                
+            	log.info("getParameterValues Name: {} ", name);
+            	String[] arr = super.getParameterValues(name);
                 if (arr == null) return null;
                 String[] out = new String[arr.length];
-                for (int i = 0; i < arr.length; i++) out[i] = XSSConfig.XssHtmlSanitizer.strictText(arr[i]);
+//                for (int i = 0; i < arr.length; i++) out[i] = XSSConfig.XssHtmlSanitizer.strictText(arr[i]);
+                for (int i = 0; i < arr.length; i++) out[i] = arr[i];
+
                 return out;
             }
+            
             @Override public Map<String, String[]> getParameterMap() {
                 Map<String, String[]> src = super.getParameterMap();
                 Map<String, String[]> dst = new HashMap<>(src.size());
                 src.forEach((k,v) -> {
                     String[] out = new String[v.length];
-                    for (int i = 0; i < v.length; i++) out[i] = XSSConfig.XssHtmlSanitizer.strictText(v[i]);
+//                    for (int i = 0; i < v.length; i++) out[i] = XSSConfig.XssHtmlSanitizer.strictText(v[i]);
+                    for (int i = 0; i < v.length; i++) out[i] = v[i];
                     dst.put(k, out);
                 });
                 return dst;
