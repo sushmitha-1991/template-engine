@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import com.dsp.templateEngine.dto.DownloadRequestDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -73,6 +74,75 @@ public class GeneratedPdfController {
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam(required = false) String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
 			@RequestParam(required = false) Long applicationInstanceId) {
+
+		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId)
+				.build();
+
+		initPdfConversion(input);
+
+		try {
+			ByteArrayOutputStream enPdfStream = null;
+			ByteArrayOutputStream hiPdfStream = null;
+
+			if (input.getDocUrl() != null) {
+				enPdfStream = processODT(input);
+			} else {
+
+				// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
+				// or empty
+				if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
+						|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
+					htmlContentHi = null;
+				}
+
+				input.setLocale("en");
+				input.setHtmlContent(htmlContentEn);
+				enPdfStream = processHtml(input);
+				System.out.println("Generated En: " + enPdfStream);
+
+				if (htmlContentHi != null) {
+					input.setHtmlContent(htmlContentHi);
+					input.setLocale("hi");
+					hiPdfStream = processHtml(input);
+				}
+			}
+			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
+			// output
+			byte[] mergedPdfBytes = null;
+
+			if (enPdfStream != null && hiPdfStream != null) {
+				mergedPdfBytes = pdfService.mergePdfs(enPdfStream.toByteArray(), hiPdfStream.toByteArray());
+			} else {
+				if (enPdfStream != null)
+					mergedPdfBytes = enPdfStream.toByteArray();
+				if (hiPdfStream != null)
+					mergedPdfBytes = hiPdfStream.toByteArray();
+			}
+
+			System.out.println("mergedPdfBytes: " + mergedPdfBytes);
+
+			// Add page numbers to the final PDF
+			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, input.getStartPageNumber());
+
+			// Set HTTP response headers
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_PDF);
+			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
+
+			return new ResponseEntity<>(pdfWithPageNumbers, headers, HttpStatus.OK);
+
+		} catch (Exception e) {
+			log.error("Error generating PDF: {}", e.getMessage(), e);
+			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+		}
+	}
+
+	@PostMapping("/mytask/download/v2")
+	public ResponseEntity<byte[]> downloadHtmlFromMyTaskV2(@RequestBody DownloadRequestDTO dto ) {
+		String htmlContentEn= dto.getHtmlContentEn();
+		String htmlContentHi= dto.getHtmlContentHi();
+		String fileName= dto.getFileName();
+		Long applicationInstanceId= dto.getApplicationInstanceId();
 
 		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId)
 				.build();
