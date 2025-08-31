@@ -42,6 +42,7 @@ import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.MemberDTO;
+import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadedDocumentDTO;
 import com.dsp.templateEngine.dto.UploadedDocumentProjection;
@@ -57,9 +58,7 @@ import com.dsp.templateEngine.repository.ApplicationRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
-import com.dsp.templateEngine.repository.UploadedDocumentRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
-import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.util.Dsp1Utils;
 import com.dsp.templateEngine.util.JwtUtil;
@@ -102,13 +101,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private ApplicationInstanceRepository applicationInstanceRepository;
 
 	@Autowired
-	private UploadedDocumentRepository uploadedDocumentRepository;
-
-	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
 
 	@Autowired
-	private FolderStructureService folderStructureService;
+	private Utils util;
 
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
@@ -207,6 +203,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+			
+			String ooDocUrl = null; // Only Office Document URL, if exists
+			
+			OnlyOfficeData ooData = util.getODTDataIfExists(appInstId);
+			if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) ooDocUrl = ooData.getDocUrl();
+			
 			UUID documentUuidEn = null;
 			UUID documentUuidHi = null;
 
@@ -221,10 +223,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				documentUuidEn = uploadedDoc;
 			} else {
 				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en");
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en", ooData.getDocUrl());
 				}
 				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi");
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi", ooData.getDocUrl());
 				}
 			}
 
@@ -278,10 +280,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		try {
 			UploadedDocumentDTO response = restTemplate.postForObject(uploadDocUrl, entity, UploadedDocumentDTO.class);
-			System.out.println(">>> API response: " + response);
+			log.info(">>> API response: " + response);
 			return response;
 		} catch (Exception e) {
-			System.out.println("Error during API call Uploaded docu: " + e.getMessage());
+			log.error("Error during API call Uploaded docu: " + e.getMessage());
 			log.error("Error in API call", e);
 			throw e;
 		}
@@ -299,7 +301,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private ApplicationInstanceProjection getAppDetails(Long appInstId) {
-		System.out.println("app id " + appInstId);
+		log.error("app id " + appInstId);
 		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
 		if (details == null) {
 			throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
@@ -308,13 +310,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
-			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix) throws Exception {
+										ApplicationInstanceProjection appDetails, Long appInstId, 
+										String langSuffix, String ooDocUrl) throws Exception {
 
 		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
-		System.out.println("**** appDetails " + appDetails);
+		log.info ("**** appDetails " + appDetails);
 
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
-		System.out.println("appDetails " + appDetails);
+		log.info ("appDetails " + appDetails);
 
 		List<String> folders = new ArrayList();
 //		//changes 19-07-2025
@@ -327,22 +330,20 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			folders.add(appDetails.getRsSesNo());
 		}
 		// new chages
-		System.out.println("folder " + folders);
+		log.info("folder " + folders);
 
-//		String okmPath = folderStructureService.createDmsFolderStructure("/okm:root", folders, appDetails.getAbbr());
 		// Get Generator Engine
-		System.out.println("okm path " + okmPath);
+		log.info("okm path " + okmPath);
 
-		System.out.println("app ABBR: " + appDetails.getAbbr());
-		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix);
-
-//		File pdfFile = converter.convertHtmlToPdfFile(htmlContent, fileName, startPageNumber);
+		log.info ("app ABBR: " + appDetails.getAbbr());
+		Boolean ooFlag = !StringUtils.isEmpty(ooDocUrl);
+		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix, ooFlag);
 
 		PdfConverterDTO input = PdfConverterDTO.builder().htmlContent(htmlContent).fileName(fileName)
-				.startPageNumber(startPageNumber)
-//									.docUrl(houseAbbr)
-				.build();
+												.startPageNumber(startPageNumber).docUrl(ooDocUrl)
+												.build();
 
+		
 		File pdfFile = converter.convertToPdf(input);
 
 		String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", appInstId.toString(),
@@ -660,54 +661,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return mergedOutputStream.toByteArray();
 	}
 
-//	@Override
-//	public void createPdfFromHtml(String htmlContent, java.io.ByteArrayOutputStream outputStream) throws IOException {
-//		if (htmlContent == null || htmlContent.isEmpty()) {
-//			return;
-//		}
-//
-//		// Configure font provider for Hindi/Unicode support
-//		String fontDirectory = "src/main/resources/font/";
-//		ConverterProperties converterProperties = new ConverterProperties();
-//		FontProvider fontProvider = new DefaultFontProvider();
-//		fontProvider.addDirectory(fontDirectory); // Load all fonts from directory
-//		converterProperties.setFontProvider(fontProvider);
-//		// Generate PDF from HTML and write it to the output stream
-//		PdfWriter writer = new PdfWriter(outputStream);
-//		PdfDocument pdfDocument = new PdfDocument(writer);
-//		HtmlConverter.convertToPdf(htmlContent, pdfDocument, converterProperties);
-//		pdfDocument.close();
-//	}
-
-//	@Override
-//	public void createPdfFromHtmlV2(String htmlContent,
-//			java.io.ByteArrayOutputStream outputStream,
-//			String locale,
-//			Long appInstId) {
-//
-//		if (StringUtils.isEmpty(htmlContent)) {
-//			return;
-//		}
-//		System.out.println("########### appInstId::" + appInstId);
-//
-//		String abbr = null;
-//		if (appInstId != null) {
-//			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-//			abbr = appDetails != null ? appDetails.getAbbr() : null;
-//			System.out.println("########### abbr::" + abbr);
-//			System.out.println("########### abbr::" + appDetails);
-//		}
-//		
-//		IConverter converter = factory.getConverter(abbr, locale); 
-//		System.out.println("########### CONVERTER::" + converter);
-//
-//		converter.convertHtmlToPdfByteArray(htmlContent, outputStream);
-//	}
 
 	@Override
 	public void createPdfV3(PdfConverterDTO upload, java.io.ByteArrayOutputStream outputStream) {
 
-		if (StringUtils.isEmpty(upload.getHtmlContent())) {
+		if (StringUtils.isEmpty(upload.getHtmlContent()) &&
+			StringUtils.isEmpty(upload.getDocUrl())) {
 			return;
 		}
 
@@ -721,7 +680,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			System.out.println("########### abbr::" + appDetails);
 		}
 
-		IConverter converter = factory.getConverter(abbr, upload.getLocale());
+		boolean odtFlag = !StringUtils.isEmpty(upload.getDocUrl());
+		IConverter converter = factory.getConverter(abbr, upload.getLocale(), odtFlag);
 		log.debug(converter.toString());
 
 		try {
@@ -751,9 +711,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		publishHistoryDto.setPublishByUser(
 				userDetails.getFirstName() + " " + userDetails.getMiddleName() + " " + userDetails.getLastName());
 		publishHistoryDto.setOfficeId(officeId);
-//		publishHistoryDto.setLocale("en");
-		// HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto,
-		// headers);
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
 
 		try {
@@ -798,21 +755,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			Map<String, Object> data = (Map<String, Object>) responseMap.get("data");
 
-			// if (data == null || !data.containsKey("documentUuid")) {
-			// throw new IllegalStateException("Invalid response: 'documentUuid' is missing
-			// in 'data'.");
-			// }
-
 			if (data == null || !data.containsKey("documentUuid") || data.get("documentUuid") == null) {
 				throw new OpenKMException("Invalid OpenKM response: Missing 'documentUuid'");
 			}
 			UUID documentUuid = UUID.fromString(data.get("documentUuid").toString());
 			// Assuming the method should return some DTO after processing
 			String publishedUrl = openKmDsp1DownloadEndPoint + "/" + documentUuid;
-			// ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-			// ApplicationInstanceProjection appDetails =
-			// getAppDetails(dto.getApplicationId());
-			// System.out.println(" appDetails iiiiii "+appDetails);
 
 			String token = utils.getTokenFromRequest();
 			if (token == null) {
@@ -879,7 +827,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					upload.setApplicationAbbr(abbr);
 			}
 
-			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale);
+			IConverter converter = factory.getConverter(upload.getApplicationAbbr(), locale, false);
 			File pdfFile = converter.convertToPdf(upload);
 
 			if (pdfFile == null || !pdfFile.exists()) {

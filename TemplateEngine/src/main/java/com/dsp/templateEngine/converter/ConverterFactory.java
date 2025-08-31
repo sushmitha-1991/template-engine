@@ -24,14 +24,14 @@ public class ConverterFactory {
 	@Autowired
 	ITextConverter itextConverter;
 	
-	public IConverter getConverter (String applicationName, String lang) {
+	public IConverter getConverter (String applicationName, String lang, boolean odtFlag) {
 		
 		log.debug("Application Name: " + applicationName);
 		log.debug("Lang: " + lang);
 		
-//		if ("SW".equals(applicationName)) {
-//			return libreOdtConverter;
-//		}
+		if (odtFlag) {
+			return libreOdtConverter;
+		}
 
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) { 
 			return libreConverter;

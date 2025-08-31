@@ -18,10 +18,12 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UserDetailsDTO;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.repository.MyUserRepository;
+import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.ibm.icu.text.RuleBasedNumberFormat;
 
 import jakarta.persistence.EntityManager;
@@ -45,6 +47,9 @@ public class Utils {
 
 	@Autowired
 	private MyUserRepository userResponsibility;
+	
+	@Autowired
+	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
 	
 	public static final String LOK_SABHA = "LS";
 
@@ -311,5 +316,10 @@ public class Utils {
 		return result;
 	}
 	
+	public OnlyOfficeData getODTDataIfExists(Long appInstId) {
 
+		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(appInstId);
+		return onlyOfficeData;
+
+	}
 }

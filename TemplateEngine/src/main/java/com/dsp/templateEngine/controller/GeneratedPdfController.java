@@ -208,7 +208,8 @@ public class GeneratedPdfController {
 
 	@PostMapping("/publish-document")
 	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String htmlContentEn,
-			@RequestParam(required = false) String htmlContentHi, @RequestParam Long appInstId,
+			@RequestParam(required = false) String htmlContentHi, 
+			@RequestParam Long appInstId,
 			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
 			@RequestParam(required = false) String uploadedDoc) {
 
