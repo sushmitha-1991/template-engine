@@ -73,9 +73,9 @@ public class GeneratedPdfController {
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam(required = false) String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
-			@RequestParam(required = false) Long applicationInstanceId) {
+			@RequestParam(required = false) Long applicationInstanceId,@RequestParam(required = false) String dsp2Key) {
 
-		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId)
+		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId).dsp2Key(dsp2Key)
 				.build();
 
 		initPdfConversion(input);
@@ -281,7 +281,18 @@ public class GeneratedPdfController {
 		// Check if Document is in ODT Format
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
 		System.out.println("ooData: " + ooData);
+		
+		if (input.getDsp2Key() != null) {
+			// Check if Document is in ODT Format
+			OnlyOfficeData oofData = getOnlyOffcDataByKeyIfExists(input.getDsp2Key());
+			System.out.println("oofData: " + oofData);
+//		fetch by dsp2Key for translation module
 
+		if (oofData != null && !StringUtils.isEmpty(oofData.getDocUrl())) {
+			input.setDocUrl(oofData.getDocUrl());
+			return;
+		}}
+		
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());
 			return;
@@ -289,6 +300,13 @@ public class GeneratedPdfController {
 
 	}
 
+	private OnlyOfficeData getOnlyOffcDataByKeyIfExists(String dsp2Key) {
+
+		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeDataByDsp2Key(dsp2Key);
+		return onlyOfficeData;
+
+	}
+	
 	private OnlyOfficeData getODTDataIfExists(Long appInstId) {
 
 		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(appInstId);

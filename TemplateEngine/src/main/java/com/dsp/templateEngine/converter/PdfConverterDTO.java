@@ -27,5 +27,6 @@ public class PdfConverterDTO {
 	String applicationAbbr;
 	Long applicationId;
 	Long appInstanceId;
+	private String dsp2Key;
     
 }
