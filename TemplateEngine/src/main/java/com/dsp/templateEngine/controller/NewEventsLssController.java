@@ -60,7 +60,7 @@ public class NewEventsLssController {
         folders.add(dto.getAppAbbr());
         
         System.out.println("folders "+folders);
-        return folderStructureService.createDmsFolderStructure(dto.getParentPath(), folders);
+        return folderStructureService.createDmsFolderStructure( folders);
     }
     @PostMapping("/entry-in-publish-history")
     public String publishHistoryEntry(@RequestBody PublishRequestDto  dto) {
