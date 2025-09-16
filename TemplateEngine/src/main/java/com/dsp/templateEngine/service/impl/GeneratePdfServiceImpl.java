@@ -59,6 +59,7 @@ import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
+import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.util.Dsp1Utils;
 import com.dsp.templateEngine.util.JwtUtil;
@@ -90,6 +91,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	Environment environment;
+
+@Autowired
+private FolderStructureService folderService;
 
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
@@ -329,13 +333,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} else {
 			folders.add(appDetails.getRsSesNo());
 		}
+		folders.add(appDetails.getAbbr());
 		// new chages
 		log.info("folder " + folders);
-
+		okmPath=folderService.createDmsFolderStructure( folders);
 		// Get Generator Engine
 		log.info("okm path " + okmPath);
 
 		log.info ("app ABBR: " + appDetails.getAbbr());
+
 		Boolean ooFlag = !StringUtils.isEmpty(ooDocUrl);
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix, ooFlag);
 
