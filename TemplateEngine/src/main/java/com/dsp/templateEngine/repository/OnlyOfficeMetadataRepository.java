@@ -53,5 +53,14 @@ public interface OnlyOfficeMetadataRepository extends JpaRepository<OnlyOfficeMe
 			+ "WHERE oom.dsp2_key = :dsp2Key", nativeQuery = true)
 	OnlyOfficeData getOnlyOfficeDataByDsp2Key(@Param("dsp2Key") String dsp2Key);
 
+	@Query(value = """
+		    SELECT oom.download_url AS docUrl,
+		           a.abbr AS abbr
+		    FROM onlyoffice.only_office_metadata oom
+		    JOIN master.application_instance ai ON ai.id = :appInstanceId
+		    JOIN master.applications a ON a.id = ai.application_id
+		    WHERE oom.dsp2_key = :dsp2Key
+		    """, nativeQuery = true)
+		OnlyOfficeData getOnlyOfficeMetaDataByDsp2Key(@Param("dsp2Key") String dsp2Key, @Param("appInstanceId") Long appInstanceId);
 
 }
