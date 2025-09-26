@@ -293,6 +293,17 @@ public class GeneratedPdfController {
 			return;
 		}}
 		
+		if (StringUtils.equalsAnyIgnoreCase("SYNOPSIS", input.getFileName()) && input.getDsp2Key() != null) {
+			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
+			System.out.println("oomData: " + oometaData);
+			System.out.println("docURL: " + oometaData.getDocUrl());
+//		fetch by dsp2Key for synopsis module
+
+		if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
+			input.setDocUrl(oometaData.getDocUrl());
+			return;
+		}}
+		
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());
 			return;
@@ -303,6 +314,13 @@ public class GeneratedPdfController {
 	private OnlyOfficeData getOnlyOffcDataByKeyIfExists(String dsp2Key) {
 
 		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeDataByDsp2Key(dsp2Key);
+		return onlyOfficeData;
+
+	}
+	
+	private OnlyOfficeData getOnlyOffcMetaDataByKeyIfExists(String dsp2Key, Long appInstanceId) {
+
+		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeMetaDataByDsp2Key(dsp2Key, appInstanceId);
 		return onlyOfficeData;
 
 	}
