@@ -85,14 +85,9 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			ByteArrayOutputStream hiPdfStream = null;
 
-			if (input.getDocUrl() != null) {
-				enPdfStream = processODT(input);
-			} else if (input.getHtmlContent() != null) {
-				enPdfStream = processHtml(input);
-			} else {
-
-				// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
-				// or empty
+			
+			if (htmlContentEn != null || htmlContentHi != null) {
+				// Normalize htmlContentHi: Handle cases where it's received as "null" (string) or empty
 				if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
 						|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
 					htmlContentHi = null;
@@ -108,7 +103,12 @@ public class GeneratedPdfController {
 					input.setLocale("hi");
 					hiPdfStream = processHtml(input);
 				}
-			}
+			} else if (input.getDocUrl() != null) {
+				enPdfStream = processODT(input);
+			} else if (input.getHtmlContent() != null) {
+				enPdfStream = processHtml(input);
+			} 
+			
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
 			// output
 			byte[] mergedPdfBytes = null;
