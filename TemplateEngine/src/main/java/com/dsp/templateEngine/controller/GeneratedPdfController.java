@@ -79,6 +79,7 @@ public class GeneratedPdfController {
 				.build();
 
 		initPdfConversion(input);
+		log.debug("**initPdfConversion: {} ", input);
 
 		try {
 			ByteArrayOutputStream enPdfStream = null;
@@ -86,6 +87,8 @@ public class GeneratedPdfController {
 
 			if (input.getDocUrl() != null) {
 				enPdfStream = processODT(input);
+			} else if (input.getHtmlContent() != null) {
+				enPdfStream = processHtml(input);
 			} else {
 
 				// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
@@ -98,7 +101,7 @@ public class GeneratedPdfController {
 				input.setLocale("en");
 				input.setHtmlContent(htmlContentEn);
 				enPdfStream = processHtml(input);
-				System.out.println("Generated En: " + enPdfStream);
+				log.debug("Generated En:  {}", enPdfStream);
 
 				if (htmlContentHi != null) {
 					input.setHtmlContent(htmlContentHi);
@@ -119,7 +122,7 @@ public class GeneratedPdfController {
 					mergedPdfBytes = hiPdfStream.toByteArray();
 			}
 
-			System.out.println("mergedPdfBytes: " + mergedPdfBytes);
+			log.debug("mergedPdfBytes: {} ", mergedPdfBytes);
 
 			// Add page numbers to the final PDF
 			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, input.getStartPageNumber());
@@ -266,9 +269,10 @@ public class GeneratedPdfController {
 
 		Integer startingPageNumber = 1;
 		Long applicationInstanceId = input.getAppInstanceId();
-
+		ApplicationInstance instance = null;
+		
 		if (input.getAppInstanceId() != null) {
-			ApplicationInstance instance = applicationInstanceRepository.findById(applicationInstanceId)
+			instance = applicationInstanceRepository.findById(applicationInstanceId)
 					.orElseThrow(() -> new ResourceNotFoundException(
 							"ApplicationInstance not found with id: " + applicationInstanceId));
 
@@ -282,22 +286,26 @@ public class GeneratedPdfController {
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
 		System.out.println("ooData: " + ooData);
 		
-		if (input.getDsp2Key() != null) {
+		if (!StringUtils.isEmpty(input.getDsp2Key())) {
 			// Check if Document is in ODT Format
 			OnlyOfficeData oofData = getOnlyOffcDataByKeyIfExists(input.getDsp2Key());
 			System.out.println("oofData: " + oofData);
-//		fetch by dsp2Key for translation module
+			// fetch by dsp2Key for translation module
 
-		if (oofData != null && !StringUtils.isEmpty(oofData.getDocUrl())) {
-			input.setDocUrl(oofData.getDocUrl());
-			return;
-		}}
+			if (oofData != null && !StringUtils.isEmpty(oofData.getDocUrl())) {
+				input.setDocUrl(oofData.getDocUrl());
+				return;
+			}	
+		} else {
+			System.out.println("Setting HTML COntent:  " + instance.getHtmlContentEnglish());
+			input.setHtmlContent(instance.getHtmlContentEnglish());
+		}
 		
 		if (StringUtils.equalsAnyIgnoreCase("SYNOPSIS", input.getFileName()) && input.getDsp2Key() != null) {
 			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
 			System.out.println("oomData: " + oometaData);
 			System.out.println("docURL: " + oometaData.getDocUrl());
-//		fetch by dsp2Key for synopsis module
+			//	fetch by dsp2Key for synopsis module
 
 		if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
 			input.setDocUrl(oometaData.getDocUrl());
