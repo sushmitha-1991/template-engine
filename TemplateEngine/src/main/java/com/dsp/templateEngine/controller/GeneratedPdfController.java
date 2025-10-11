@@ -286,7 +286,7 @@ public class GeneratedPdfController {
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
 		System.out.println("ooData: " + ooData);
 		
-		if (StringUtils.startsWithIgnoreCase("SYM-", input.getFileName()) && input.getDsp2Key() != null) {
+		if (StringUtils.startsWithIgnoreCase(input.getFileName(), "SYM-") && !StringUtils.isEmpty(input.getDsp2Key())) {
 			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
 			System.out.println("oomData: " + oometaData);
 			System.out.println("docURL: " + oometaData.getDocUrl());
