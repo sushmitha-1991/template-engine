@@ -286,6 +286,17 @@ public class GeneratedPdfController {
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
 		System.out.println("ooData: " + ooData);
 		
+		if (StringUtils.startsWithIgnoreCase("SYM-", input.getFileName()) && input.getDsp2Key() != null) {
+			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
+			System.out.println("oomData: " + oometaData);
+			System.out.println("docURL: " + oometaData.getDocUrl());
+			//	fetch by dsp2Key for synopsis module
+
+		if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
+			input.setDocUrl(oometaData.getDocUrl());
+			return;
+		}}
+		
 		if (!StringUtils.isEmpty(input.getDsp2Key())) {
 			// Check if Document is in ODT Format
 			OnlyOfficeData oofData = getOnlyOffcDataByKeyIfExists(input.getDsp2Key());
@@ -300,17 +311,6 @@ public class GeneratedPdfController {
 			System.out.println("Setting HTML COntent:  " + instance.getHtmlContentEnglish());
 			input.setHtmlContent(instance.getHtmlContentEnglish());
 		}
-		
-		if (StringUtils.startsWithIgnoreCase("SYM-", input.getFileName()) && input.getDsp2Key() != null) {
-			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
-			System.out.println("oomData: " + oometaData);
-			System.out.println("docURL: " + oometaData.getDocUrl());
-			//	fetch by dsp2Key for synopsis module
-
-		if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
-			input.setDocUrl(oometaData.getDocUrl());
-			return;
-		}}
 		
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());
