@@ -301,7 +301,7 @@ public class GeneratedPdfController {
 			input.setHtmlContent(instance.getHtmlContentEnglish());
 		}
 		
-		if (StringUtils.equalsAnyIgnoreCase("SYNOPSIS", input.getFileName()) && input.getDsp2Key() != null) {
+		if (StringUtils.startsWithIgnoreCase("SYM-", input.getFileName()) && input.getDsp2Key() != null) {
 			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
 			System.out.println("oomData: " + oometaData);
 			System.out.println("docURL: " + oometaData.getDocUrl());
