@@ -41,9 +41,11 @@ import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.Dsp1CacheRegistryProjection;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
+import com.dsp.templateEngine.dto.PublishHistoryProjection;
 import com.dsp.templateEngine.dto.UploadedDocumentDTO;
 import com.dsp.templateEngine.dto.UploadedDocumentProjection;
 import com.dsp.templateEngine.entity.ApplicationInstance;
@@ -92,11 +94,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	Environment environment;
 
-@Autowired
-private FolderStructureService folderService;
+	@Autowired
+	private FolderStructureService folderService;
 
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
+
+	@Value("${dsp1.cache.clear.url}")
+	private String dsp1CacheClearUrl;
 
 	@Value("${upload.document.url}")
 	private String uploadDocUrl;
@@ -207,12 +212,13 @@ private FolderStructureService folderService;
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-			
+
 			String ooDocUrl = null; // Only Office Document URL, if exists
-			
+
 			OnlyOfficeData ooData = util.getODTDataIfExists(appInstId);
-			if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) ooDocUrl = ooData.getDocUrl();
-			
+			if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl()))
+				ooDocUrl = ooData.getDocUrl();
+
 			UUID documentUuidEn = null;
 			UUID documentUuidHi = null;
 
@@ -227,10 +233,12 @@ private FolderStructureService folderService;
 				documentUuidEn = uploadedDoc;
 			} else {
 				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en", ooData.getDocUrl());
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
+							ooData.getDocUrl());
 				}
 				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi", ooData.getDocUrl());
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
+							ooData.getDocUrl());
 				}
 			}
 
@@ -245,11 +253,75 @@ private FolderStructureService folderService;
 			}
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
-
+			// Caching clearing for DSP 1
+			try {
+				clearCacheDsp1(appDetails.getAppNo(), appAbbr);
+			} catch (Exception e) {
+				log.warn("Cache clear failed for appNo: {}, appAbbr: {} — continuing publish flow",
+						appDetails.getAppNo(), appAbbr, e);
+			}
 			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
+		}
+	}
+
+	/**
+	 * @param appAbbr
+	 */
+	private void clearCacheDsp1(String appNo, String appAbbr) {
+		// Fetch publish history details
+		PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
+
+		// Fetch DSP1 cache configuration
+		Dsp1CacheRegistryProjection dsp1CacheRegistryProjection = generatedPdfModelRepository
+				.getDsp1CacheData(docDetails.getApplicationId());
+
+		if (appAbbr.equalsIgnoreCase("PC")) {
+
+			// Replace placeholders ($) in endpoint with actual values
+			String endpoint = dsp1CacheRegistryProjection.getDsp1Endpoint()
+					.replaceFirst("\\$", docDetails.getLokSabhaNo() != null ? docDetails.getLokSabhaNo() : "")
+					.replaceFirst("\\$",
+							docDetails.getLokSabhaSessionNo() != null ? docDetails.getLokSabhaSessionNo() : "")
+					.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+
+			// Build full redis key
+			String redisKey = dsp1CacheRegistryProjection.getDsp1CacheName() + "::" + endpoint;
+
+			// Call API to clear cache
+			clearCacheFromDSP1(redisKey);
+		}
+	}
+
+	/**
+	 * Calls the DSP1 API to clear the cache for a given Redis key.
+	 */
+	private void clearCacheFromDSP1(String redisKey) {
+		// Prepare request body
+		Map<String, String> requestBody = new HashMap<>();
+		requestBody.put("redisKey", redisKey);
+
+		// Setup headers
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.APPLICATION_JSON);
+
+		HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
+
+		try {
+			ResponseEntity<String> response = restTemplate.exchange(dsp1CacheClearUrl, HttpMethod.POST, entity,
+					String.class);
+
+			if (response.getStatusCode().is2xxSuccessful()) {
+				System.out.println("✅ Cache cleared successfully for key: " + redisKey);
+			} else {
+				System.err.println(
+						"⚠️ Failed to clear cache for key: " + redisKey + ", status: " + response.getStatusCode());
+			}
+
+		} catch (Exception e) {
+			System.err.println("❌ Error while clearing DSP1 cache for key " + redisKey + ": " + e.getMessage());
 		}
 	}
 
@@ -314,14 +386,14 @@ private FolderStructureService folderService;
 	}
 
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
-										ApplicationInstanceProjection appDetails, Long appInstId, 
-										String langSuffix, String ooDocUrl) throws Exception {
+			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix, String ooDocUrl)
+			throws Exception {
 
 		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
-		log.info ("**** appDetails " + appDetails);
+		log.info("**** appDetails " + appDetails);
 
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
-		log.info ("appDetails " + appDetails);
+		log.info("appDetails " + appDetails);
 
 		List<String> folders = new ArrayList();
 //		//changes 19-07-2025
@@ -336,20 +408,18 @@ private FolderStructureService folderService;
 		folders.add(appDetails.getAbbr());
 		// new chages
 		log.info("folder " + folders);
-		okmPath=folderService.createDmsFolderStructure( folders);
+		okmPath = folderService.createDmsFolderStructure(folders);
 		// Get Generator Engine
 		log.info("okm path " + okmPath);
 
-		log.info ("app ABBR: " + appDetails.getAbbr());
+		log.info("app ABBR: " + appDetails.getAbbr());
 
 		Boolean ooFlag = !StringUtils.isEmpty(ooDocUrl);
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix, ooFlag);
 
 		PdfConverterDTO input = PdfConverterDTO.builder().htmlContent(htmlContent).fileName(fileName)
-												.startPageNumber(startPageNumber).docUrl(ooDocUrl)
-												.build();
+				.startPageNumber(startPageNumber).docUrl(ooDocUrl).build();
 
-		
 		File pdfFile = converter.convertToPdf(input);
 
 		String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", appInstId.toString(),
@@ -667,12 +737,10 @@ private FolderStructureService folderService;
 		return mergedOutputStream.toByteArray();
 	}
 
-
 	@Override
 	public void createPdfV3(PdfConverterDTO upload, java.io.ByteArrayOutputStream outputStream) {
 
-		if (StringUtils.isEmpty(upload.getHtmlContent()) &&
-			StringUtils.isEmpty(upload.getDocUrl())) {
+		if (StringUtils.isEmpty(upload.getHtmlContent()) && StringUtils.isEmpty(upload.getDocUrl())) {
 			return;
 		}
 
