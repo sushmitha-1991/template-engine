@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -96,7 +97,8 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 			    ph.application_id AS applicationId,
 				ph.locale as locale,
 				ph.year as year,
-				ph.month as month
+				ph.month as month,
+				1 AS day
 			    FROM workflow.publish_history ph
 			    WHERE ph.application_no = :appNo
 			""", nativeQuery = true)
@@ -115,5 +117,17 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 			    WHERE dcr.application_id = :applicationId
 			""", nativeQuery = true)
 	Dsp1CacheRegistryProjection getDsp1CacheData(@Param("applicationId") Long applicationId);
+
+	@Query(value = """
+			    SELECT dcr.application_abbr AS applicationAbbr,
+			           dcr.application_id AS applicationId,
+			           dcr.dsp1_cache_name AS dsp1CacheName,
+			           dcr.dsp1_endpoint AS dsp1Endpoint
+			      FROM template.dsp1_cache_registry dcr
+			     WHERE dcr.application_id = :applicationId
+			       AND dcr.is_active = true
+			       AND dcr.is_deleted = false
+			""", nativeQuery = true)
+	List<Dsp1CacheRegistryProjection> getDsp1CacheDataList(@Param("applicationId") Long applicationId);
 
 }

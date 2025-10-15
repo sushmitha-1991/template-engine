@@ -25,4 +25,6 @@ public interface PublishHistoryProjection {
 
 	String getMonth();
 
+	String getDay();
+
 }

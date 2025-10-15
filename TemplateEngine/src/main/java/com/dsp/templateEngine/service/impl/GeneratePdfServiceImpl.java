@@ -61,6 +61,7 @@ import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
+import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.util.Dsp1Utils;
@@ -105,6 +106,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Value("${upload.document.url}")
 	private String uploadDocUrl;
+
+	@Autowired
+	private Dsp1CacheService dsp1CacheService;
 
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
@@ -229,37 +233,40 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				htmlContentEn = null;
 			}
 
-			if (uploadedDoc != null) {
-				documentUuidEn = uploadedDoc;
-			} else {
-				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
-							ooData.getDocUrl());
-				}
-				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
-							ooData.getDocUrl());
-				}
-			}
-
-			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
-			// Integration touch point for Section Login -> MP Portal Letters/Documents
-			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
-				try {
-					saveUploadedDocuments(appInstId);
-				} catch (Exception e) {
-					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
-				}
-			}
-			updateWorkflowHistory(appInstId);
-			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
+//			if (uploadedDoc != null) {
+//				documentUuidEn = uploadedDoc;
+//			} else {
+//				if (!StringUtils.isBlank(htmlContentEn)) {
+//					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
+//							ooData.getDocUrl());
+//				}
+//				if (!StringUtils.isBlank(htmlContentHi)) {
+//					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
+//							ooData.getDocUrl());
+//				}
+//			}
+//
+//			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
+//			// Integration touch point for Section Login -> MP Portal Letters/Documents
+//			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
+//				try {
+//					saveUploadedDocuments(appInstId);
+//				} catch (Exception e) {
+//					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
+//				}
+//			}
+//			updateWorkflowHistory(appInstId);
+//			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 			// Caching clearing for DSP 1
-			try {
-				clearCacheDsp1(appDetails.getAppNo(), appAbbr);
-			} catch (Exception e) {
-				log.warn("Cache clear failed for appNo: {}, appAbbr: {} — continuing publish flow",
-						appDetails.getAppNo(), appAbbr, e);
-			}
+//			try {
+//				clearCacheDsp1(appDetails.getAppNo(), appAbbr);
+//			} catch (Exception e) {
+//				log.warn("Cache clear failed for appNo: {}, appAbbr: {} — continuing publish flow",
+//						appDetails.getAppNo(), appAbbr, e);
+//			}
+			// Trigger async cache clearing — won't block publishing flow
+			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
+
 			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
@@ -274,24 +281,48 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// Fetch publish history details
 		PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
 
-		// Fetch DSP1 cache configuration
-		Dsp1CacheRegistryProjection dsp1CacheRegistryProjection = generatedPdfModelRepository
-				.getDsp1CacheData(docDetails.getApplicationId());
+		// Fetch DSP1 cache configurations (can be multiple for B2)
+		List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
+				.getDsp1CacheDataList(docDetails.getApplicationId());
 
 		if (appAbbr.equalsIgnoreCase("PC")) {
+			// Handle Provisional Calendar cache
+			Dsp1CacheRegistryProjection dsp1Cache = dsp1CacheList.stream()
+					.filter(cache -> "PC".equalsIgnoreCase(cache.getApplicationAbbr())).findFirst().orElse(null);
 
-			// Replace placeholders ($) in endpoint with actual values
-			String endpoint = dsp1CacheRegistryProjection.getDsp1Endpoint()
-					.replaceFirst("\\$", docDetails.getLokSabhaNo() != null ? docDetails.getLokSabhaNo() : "")
-					.replaceFirst("\\$",
-							docDetails.getLokSabhaSessionNo() != null ? docDetails.getLokSabhaSessionNo() : "")
-					.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+			if (dsp1Cache != null) {
+				String endpoint = dsp1Cache.getDsp1Endpoint()
+						.replaceFirst("\\$", docDetails.getLokSabhaNo() != null ? docDetails.getLokSabhaNo() : "")
+						.replaceFirst("\\$",
+								docDetails.getLokSabhaSessionNo() != null ? docDetails.getLokSabhaSessionNo() : "")
+						.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
 
-			// Build full redis key
-			String redisKey = dsp1CacheRegistryProjection.getDsp1CacheName() + "::" + endpoint;
+				String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
+				clearCacheFromDSP1(redisKey);
+			}
 
-			// Call API to clear cache
-			clearCacheFromDSP1(redisKey);
+		} else if (appAbbr.equalsIgnoreCase("B2")) {
+			// Handle Bulletin Part-II cache (multiple entries)
+			for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
+
+				String endpoint = dsp1Cache.getDsp1Endpoint();
+
+				// Replace placeholders dynamically based on endpoint pattern
+				if (endpoint.contains("bull2Day")) {
+					endpoint = endpoint
+//							.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
+							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
+							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
+							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+				} else {
+					endpoint = endpoint
+							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
+							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "");
+				}
+
+				String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
+				clearCacheFromDSP1(redisKey);
+			}
 		}
 	}
 
