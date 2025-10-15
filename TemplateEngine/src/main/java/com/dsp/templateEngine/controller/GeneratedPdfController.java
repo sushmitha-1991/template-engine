@@ -167,15 +167,19 @@ public class GeneratedPdfController {
 					htmlContentHi = null;
 				}
 
-				input.setLocale("en");
-				input.setHtmlContent(htmlContentEn);
-				enPdfStream = processHtml(input);
-				System.out.println("Generated En: " + enPdfStream);
-
-				if (htmlContentHi != null) {
+				if (!StringUtils.isEmpty(htmlContentEn)) {
+					System.out.println("In the English block");
+					input.setLocale("en");
+					input.setHtmlContent(htmlContentEn);
+					enPdfStream = processHtml(input);
+					System.out.println("Generated En: " + enPdfStream);
+				}
+				if (!StringUtils.isEmpty(htmlContentHi)) {
+					System.out.println("In the Hindi block");
 					input.setHtmlContent(htmlContentHi);
 					input.setLocale("hi");
 					hiPdfStream = processHtml(input);
+					System.out.println("Generated Hi: " + hiPdfStream);
 				}
 			}
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
@@ -307,10 +311,7 @@ public class GeneratedPdfController {
 				input.setDocUrl(oofData.getDocUrl());
 				return;
 			}	
-		} else {
-			System.out.println("Setting HTML COntent:  " + instance.getHtmlContentEnglish());
-			input.setHtmlContent(instance.getHtmlContentEnglish());
-		}
+		} 
 		
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());

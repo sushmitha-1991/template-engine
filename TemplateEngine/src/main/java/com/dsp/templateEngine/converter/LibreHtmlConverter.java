@@ -46,6 +46,7 @@ public class LibreHtmlConverter implements IConverter {
 	@Override
 	public void convertToByteArray(PdfConverterDTO input, ByteArrayOutputStream outputStream) throws IOException {
 
+		System.out.println("Into the html libre converter");
 		String endpointUrl = libreServiceUrl + LIBRE_END_POINT;
 		
 		HttpHeaders headers = new HttpHeaders();
