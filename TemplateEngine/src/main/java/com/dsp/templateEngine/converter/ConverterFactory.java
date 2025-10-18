@@ -34,8 +34,8 @@ public class ConverterFactory {
 		}
 
 //		temporary hindi temp check
-		if("ES".equals(applicationName))
-		return libreConverter;
+//		if("ES".equals(applicationName))
+//		return libreConverter;
 		
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) { 
 			return libreConverter;
