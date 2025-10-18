@@ -384,16 +384,27 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, @RequestParam int startingPageNo,
+	
+	public ResponseEntity<?> uploadHtml(@RequestParam(required = false) String htmlContentEn,@RequestParam(required = false) String htmlContentHi, @RequestParam int startingPageNo,
 			@RequestParam Long applicationId, @RequestParam(defaultValue = "en", required = false) String locale,
 			@RequestParam(required = false) String fileName, @RequestParam(required = false) String applicationAbbr) {
 
 		try {
 
-			PdfConverterDTO upload = PdfConverterDTO.builder().htmlContent(htmlContentEn)
+			PdfConverterDTO upload=new PdfConverterDTO();
+			if(htmlContentEn != null)
+			{
+			 upload = PdfConverterDTO.builder().htmlContent(htmlContentEn)
 					.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
 					.locale(locale).fileName(fileName).build();
-
+			}
+			if(htmlContentHi != null)
+			{
+				 upload = PdfConverterDTO.builder().htmlContent(htmlContentHi)
+						.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
+						.locale(locale).fileName(fileName).build();
+			}
+			
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
 
 			Map<String, Object> response = new HashMap<>();
