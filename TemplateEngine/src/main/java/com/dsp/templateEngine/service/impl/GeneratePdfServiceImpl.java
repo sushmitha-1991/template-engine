@@ -59,6 +59,7 @@ import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
+import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.util.Dsp1Utils;
@@ -92,14 +93,20 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	Environment environment;
 
-@Autowired
-private FolderStructureService folderService;
+	@Autowired
+	private FolderStructureService folderService;
 
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
 
+	@Value("${dsp1.cache.clear.url}")
+	private String dsp1CacheClearUrl;
+
 	@Value("${upload.document.url}")
 	private String uploadDocUrl;
+
+	@Autowired
+	private Dsp1CacheService dsp1CacheService;
 
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
@@ -207,12 +214,13 @@ private FolderStructureService folderService;
 			}
 
 			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
-			
+
 			String ooDocUrl = null; // Only Office Document URL, if exists
-			
+
 			OnlyOfficeData ooData = util.getODTDataIfExists(appInstId);
-			if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) ooDocUrl = ooData.getDocUrl();
-			
+			if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl()))
+				ooDocUrl = ooData.getDocUrl();
+
 			UUID documentUuidEn = null;
 			UUID documentUuidHi = null;
 
@@ -227,10 +235,12 @@ private FolderStructureService folderService;
 				documentUuidEn = uploadedDoc;
 			} else {
 				if (!StringUtils.isBlank(htmlContentEn)) {
-					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en", ooData.getDocUrl());
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
+							ooData.getDocUrl());
 				}
 				if (!StringUtils.isBlank(htmlContentHi)) {
-					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi", ooData.getDocUrl());
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
+							ooData.getDocUrl());
 				}
 			}
 
@@ -245,6 +255,8 @@ private FolderStructureService folderService;
 			}
 			updateWorkflowHistory(appInstId);
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
+			// Trigger async cache clearing — won't block publishing flow
+			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi);
 		} catch (Exception e) {
@@ -314,14 +326,14 @@ private FolderStructureService folderService;
 	}
 
 	private UUID generateAndUploadPdf(String htmlContent, Integer startPageNumber,
-										ApplicationInstanceProjection appDetails, Long appInstId, 
-										String langSuffix, String ooDocUrl) throws Exception {
+			ApplicationInstanceProjection appDetails, Long appInstId, String langSuffix, String ooDocUrl)
+			throws Exception {
 
 		String fileName = appDetails.getAppNo() + langSuffix + ".pdf";
-		log.info ("**** appDetails " + appDetails);
+		log.info("**** appDetails " + appDetails);
 
 		String okmPath = "/okm:root/" + appDetails.getAbbr();
-		log.info ("appDetails " + appDetails);
+		log.info("appDetails " + appDetails);
 
 		List<String> folders = new ArrayList();
 //		//changes 19-07-2025
@@ -336,20 +348,18 @@ private FolderStructureService folderService;
 		folders.add(appDetails.getAbbr());
 		// new chages
 		log.info("folder " + folders);
-		okmPath=folderService.createDmsFolderStructure( folders);
+		okmPath = folderService.createDmsFolderStructure(folders);
 		// Get Generator Engine
 		log.info("okm path " + okmPath);
 
-		log.info ("app ABBR: " + appDetails.getAbbr());
+		log.info("app ABBR: " + appDetails.getAbbr());
 
 		Boolean ooFlag = !StringUtils.isEmpty(ooDocUrl);
 		IConverter converter = factory.getConverter(appDetails.getAbbr(), langSuffix, ooFlag);
 
 		PdfConverterDTO input = PdfConverterDTO.builder().htmlContent(htmlContent).fileName(fileName)
-												.startPageNumber(startPageNumber).docUrl(ooDocUrl)
-												.build();
+				.startPageNumber(startPageNumber).docUrl(ooDocUrl).build();
 
-		
 		File pdfFile = converter.convertToPdf(input);
 
 		String uploadResult = uploadPdfToOpenKM(pdfFile, fileName, okmPath, "231", appInstId.toString(),
@@ -667,12 +677,10 @@ private FolderStructureService folderService;
 		return mergedOutputStream.toByteArray();
 	}
 
-
 	@Override
 	public void createPdfV3(PdfConverterDTO upload, java.io.ByteArrayOutputStream outputStream) {
 
-		if (StringUtils.isEmpty(upload.getHtmlContent()) &&
-			StringUtils.isEmpty(upload.getDocUrl())) {
+		if (StringUtils.isEmpty(upload.getHtmlContent()) && StringUtils.isEmpty(upload.getDocUrl())) {
 			return;
 		}
 
