@@ -160,6 +160,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private static final String LISTOFBUSINESS = "LOB";
 
 	private static final String TRANSLATION_ABBR = "TRP";
+	
+	private static final String SYNOPSIS_ABBR = "SYM";
 
 	private static final String CREATION_OF_NOTICES_UNDER_RULE_377 = "N377";
 
@@ -230,7 +232,16 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 //				htmlContentHi = htmlContentEn;
 				htmlContentEn = null;
 			}
-
+			
+			//SYNOPSIS
+			String hindiDocUrl="";
+			if(appAbbr.equals(SYNOPSIS_ABBR) && !StringUtils.isBlank(htmlContentHi)) {
+				OnlyOfficeData ooDataSyn = util.getODTDataForSynopsis(appInstId);
+				if (ooDataSyn != null && !StringUtils.isEmpty(ooDataSyn.getDocUrl()))
+					hindiDocUrl = ooDataSyn.getDocUrl();
+				System.out.println(hindiDocUrl);
+			}
+			
 			if (uploadedDoc != null) {
 				documentUuidEn = uploadedDoc;
 			} else {
@@ -238,7 +249,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
 							ooData.getDocUrl());
 				}
-				if (!StringUtils.isBlank(htmlContentHi)) {
+				if (!StringUtils.isBlank(htmlContentHi) && appAbbr.equals(SYNOPSIS_ABBR)) {
+					System.out.println("Here in the synopsis block for hindi");
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
+							hindiDocUrl);
+				} else if (!StringUtils.isBlank(htmlContentHi)){
 					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
 							ooData.getDocUrl());
 				}
