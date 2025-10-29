@@ -167,15 +167,19 @@ public class GeneratedPdfController {
 					htmlContentHi = null;
 				}
 
-				input.setLocale("en");
-				input.setHtmlContent(htmlContentEn);
-				enPdfStream = processHtml(input);
-				System.out.println("Generated En: " + enPdfStream);
-
-				if (htmlContentHi != null) {
+				if (!StringUtils.isEmpty(htmlContentEn)) {
+					System.out.println("In the English block");
+					input.setLocale("en");
+					input.setHtmlContent(htmlContentEn);
+					enPdfStream = processHtml(input);
+					System.out.println("Generated En: " + enPdfStream);
+				}
+				if (!StringUtils.isEmpty(htmlContentHi)) {
+					System.out.println("In the Hindi block");
 					input.setHtmlContent(htmlContentHi);
 					input.setLocale("hi");
 					hiPdfStream = processHtml(input);
+					System.out.println("Generated Hi: " + hiPdfStream);
 				}
 			}
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
@@ -307,10 +311,7 @@ public class GeneratedPdfController {
 				input.setDocUrl(oofData.getDocUrl());
 				return;
 			}	
-		} else {
-			System.out.println("Setting HTML COntent:  " + instance.getHtmlContentEnglish());
-			input.setHtmlContent(instance.getHtmlContentEnglish());
-		}
+		} 
 		
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());
@@ -383,16 +384,27 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	public ResponseEntity<?> uploadHtml(@RequestParam String htmlContentEn, @RequestParam int startingPageNo,
+	
+	public ResponseEntity<?> uploadHtml(@RequestParam(required = false) String htmlContentEn,@RequestParam(required = false) String htmlContentHi, @RequestParam int startingPageNo,
 			@RequestParam Long applicationId, @RequestParam(defaultValue = "en", required = false) String locale,
 			@RequestParam(required = false) String fileName, @RequestParam(required = false) String applicationAbbr) {
 
 		try {
 
-			PdfConverterDTO upload = PdfConverterDTO.builder().htmlContent(htmlContentEn)
+			PdfConverterDTO upload=new PdfConverterDTO();
+			if(htmlContentEn != null)
+			{
+			 upload = PdfConverterDTO.builder().htmlContent(htmlContentEn)
 					.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
 					.locale(locale).fileName(fileName).build();
-
+			}
+			if(htmlContentHi != null)
+			{
+				 upload = PdfConverterDTO.builder().htmlContent(htmlContentHi)
+						.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
+						.locale(locale).fileName(fileName).build();
+			}
+			
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
 
 			Map<String, Object> response = new HashMap<>();

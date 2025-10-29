@@ -33,6 +33,10 @@ public class ConverterFactory {
 			return libreOdtConverter;
 		}
 
+//		temporary hindi temp check
+//		if("ES".equals(applicationName))
+//		return libreConverter;
+		
 		if ("hi".equalsIgnoreCase(lang) || ("_hi").equals(lang)) { 
 			return libreConverter;
 		} 
