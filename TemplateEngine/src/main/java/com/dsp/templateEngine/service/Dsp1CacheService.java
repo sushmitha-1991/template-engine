@@ -110,7 +110,7 @@ public class Dsp1CacheService {
 		HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
 
 		try {
-			ResponseEntity<String> response = asyncRestTemplate.exchange(dsp1CacheClearUrl, HttpMethod.POST, entity,
+			ResponseEntity<String> response = asyncRestTemplate.exchange(dsp1CacheClearUrl, HttpMethod.DELETE, entity,
 					String.class);
 
 			if (response.getStatusCode().is2xxSuccessful()) {
