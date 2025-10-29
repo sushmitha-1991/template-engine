@@ -44,10 +44,13 @@ public class Dsp1CacheService {
 	@Async
 	public void clearCacheDsp1(String appNo, String appAbbr) {
 		try {
+			System.out.println(">>> inside clearCacheDsp1");
 			PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
+			System.out.println(">>> docDetails" + docDetails);
 
 			List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
 					.getDsp1CacheDataList(docDetails.getApplicationId());
+			System.out.println(">>> dsp1CacheList" + dsp1CacheList);
 
 			if (appAbbr.equalsIgnoreCase("PC")) {
 				Dsp1CacheRegistryProjection dsp1Cache = dsp1CacheList.stream()
@@ -65,9 +68,11 @@ public class Dsp1CacheService {
 				}
 
 			} else if (appAbbr.equalsIgnoreCase("B2")) {
+				System.out.println(">>> B2");
 				for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
 					String endpoint = dsp1Cache.getDsp1Endpoint();
 					if (endpoint.contains("bull2Day")) {
+						System.out.println(">>> bull2Day");
 						endpoint = endpoint
 								.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
 								.replaceFirst("\\$",
@@ -76,6 +81,8 @@ public class Dsp1CacheService {
 										docDetails.getYear() != null ? docDetails.getYear().toString() : "")
 								.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
 					} else {
+						System.out.println(">>> else");
+
 						endpoint = endpoint
 								.replaceFirst("\\$",
 										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")

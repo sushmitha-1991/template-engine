@@ -41,11 +41,9 @@ import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
-import com.dsp.templateEngine.dto.Dsp1CacheRegistryProjection;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
-import com.dsp.templateEngine.dto.PublishHistoryProjection;
 import com.dsp.templateEngine.dto.UploadedDocumentDTO;
 import com.dsp.templateEngine.dto.UploadedDocumentProjection;
 import com.dsp.templateEngine.entity.ApplicationInstance;
@@ -233,37 +231,30 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				htmlContentEn = null;
 			}
 
-//			if (uploadedDoc != null) {
-//				documentUuidEn = uploadedDoc;
-//			} else {
-//				if (!StringUtils.isBlank(htmlContentEn)) {
-//					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
-//							ooData.getDocUrl());
-//				}
-//				if (!StringUtils.isBlank(htmlContentHi)) {
-//					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
-//							ooData.getDocUrl());
-//				}
-//			}
-//
-//			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
-//			// Integration touch point for Section Login -> MP Portal Letters/Documents
-//			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
-//				try {
-//					saveUploadedDocuments(appInstId);
-//				} catch (Exception e) {
-//					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
-//				}
-//			}
-//			updateWorkflowHistory(appInstId);
-//			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
-			// Caching clearing for DSP 1
-//			try {
-//				clearCacheDsp1(appDetails.getAppNo(), appAbbr);
-//			} catch (Exception e) {
-//				log.warn("Cache clear failed for appNo: {}, appAbbr: {} — continuing publish flow",
-//						appDetails.getAppNo(), appAbbr, e);
-//			}
+			if (uploadedDoc != null) {
+				documentUuidEn = uploadedDoc;
+			} else {
+				if (!StringUtils.isBlank(htmlContentEn)) {
+					documentUuidEn = generateAndUploadPdf(htmlContentEn, startPageNumber, appDetails, appInstId, "_en",
+							ooData.getDocUrl());
+				}
+				if (!StringUtils.isBlank(htmlContentHi)) {
+					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
+							ooData.getDocUrl());
+				}
+			}
+
+			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
+			// Integration touch point for Section Login -> MP Portal Letters/Documents
+			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
+				try {
+					saveUploadedDocuments(appInstId);
+				} catch (Exception e) {
+					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
+				}
+			}
+			updateWorkflowHistory(appInstId);
+			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 			// Trigger async cache clearing — won't block publishing flow
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
@@ -271,88 +262,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
-		}
-	}
-
-	/**
-	 * @param appAbbr
-	 */
-	private void clearCacheDsp1(String appNo, String appAbbr) {
-		// Fetch publish history details
-		PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
-
-		// Fetch DSP1 cache configurations (can be multiple for B2)
-		List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
-				.getDsp1CacheDataList(docDetails.getApplicationId());
-
-		if (appAbbr.equalsIgnoreCase("PC")) {
-			// Handle Provisional Calendar cache
-			Dsp1CacheRegistryProjection dsp1Cache = dsp1CacheList.stream()
-					.filter(cache -> "PC".equalsIgnoreCase(cache.getApplicationAbbr())).findFirst().orElse(null);
-
-			if (dsp1Cache != null) {
-				String endpoint = dsp1Cache.getDsp1Endpoint()
-						.replaceFirst("\\$", docDetails.getLokSabhaNo() != null ? docDetails.getLokSabhaNo() : "")
-						.replaceFirst("\\$",
-								docDetails.getLokSabhaSessionNo() != null ? docDetails.getLokSabhaSessionNo() : "")
-						.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
-
-				String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
-				clearCacheFromDSP1(redisKey);
-			}
-
-		} else if (appAbbr.equalsIgnoreCase("B2")) {
-			// Handle Bulletin Part-II cache (multiple entries)
-			for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
-
-				String endpoint = dsp1Cache.getDsp1Endpoint();
-
-				// Replace placeholders dynamically based on endpoint pattern
-				if (endpoint.contains("bull2Day")) {
-					endpoint = endpoint
-//							.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
-							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
-				} else {
-					endpoint = endpoint
-							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "");
-				}
-
-				String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
-				clearCacheFromDSP1(redisKey);
-			}
-		}
-	}
-
-	/**
-	 * Calls the DSP1 API to clear the cache for a given Redis key.
-	 */
-	private void clearCacheFromDSP1(String redisKey) {
-		// Prepare request body
-		Map<String, String> requestBody = new HashMap<>();
-		requestBody.put("redisKey", redisKey);
-
-		// Setup headers
-		HttpHeaders headers = new HttpHeaders();
-		headers.setContentType(MediaType.APPLICATION_JSON);
-
-		HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
-
-		try {
-			ResponseEntity<String> response = restTemplate.exchange(dsp1CacheClearUrl, HttpMethod.POST, entity,
-					String.class);
-
-			if (response.getStatusCode().is2xxSuccessful()) {
-				System.out.println("✅ Cache cleared successfully for key: " + redisKey);
-			} else {
-				System.err.println(
-						"⚠️ Failed to clear cache for key: " + redisKey + ", status: " + response.getStatusCode());
-			}
-
-		} catch (Exception e) {
-			System.err.println("❌ Error while clearing DSP1 cache for key " + redisKey + ": " + e.getMessage());
 		}
 	}
 
