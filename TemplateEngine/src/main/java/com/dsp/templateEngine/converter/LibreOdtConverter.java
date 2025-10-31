@@ -36,13 +36,20 @@ public class LibreOdtConverter implements IConverter {
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
 		convertToByteArray(input, pdfOutputStream);
 	
+		byte[] numberedPdfBytes = ConverterUtils.addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
+
 		// Step 3: Write PDF bytes to a temp file and return it
 		File tempPdfFile = File.createTempFile(fileName, ".pdf");
+//		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+//			fileOutputStream.write(pdfOutputStream.toByteArray());
+//		}
+
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
-			fileOutputStream.write(pdfOutputStream.toByteArray());
+			fileOutputStream.write(numberedPdfBytes);
+//			fileOutputStream.write(pdfOutputStream.toByteArray());  
 		}
 
-		return tempPdfFile;	
+		return tempPdfFile;
 	}
 	
 	

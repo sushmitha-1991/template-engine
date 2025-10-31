@@ -33,13 +33,13 @@ public class ITextConverter implements IConverter{
 		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();		
 		convertToByteArray(input, pdfOutputStream);		
 
-//		byte[] numberedPdfBytes = addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
+		byte[] numberedPdfBytes = ConverterUtils.addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
 
 		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
-//			fileOutputStream.write(numberedPdfBytes);
-			fileOutputStream.write(pdfOutputStream.toByteArray());  
+			fileOutputStream.write(numberedPdfBytes);
+//			fileOutputStream.write(pdfOutputStream.toByteArray());  
 		}
-
+	
 		return tempPdfFile;
 	}
 	
