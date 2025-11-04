@@ -45,7 +45,7 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 					   ai.rajya_sabha_session AS rsSesNo,
 					   ai.only_office_dsp2_key AS onlyOfficeDsp2Key,
 					   ai.dsp2_key_hi AS dsp2KeyHi,
-					   ai.is as appid
+					   ai.id as appid
 			    FROM master.application_instance ai
 			    LEFT JOIN master.applications a ON a.id = ai.application_id
 			    WHERE ai.id = :appInstId
