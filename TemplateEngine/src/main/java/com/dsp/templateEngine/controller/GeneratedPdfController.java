@@ -240,7 +240,7 @@ public class GeneratedPdfController {
 				uploadedDocUuid = UUID.fromString(uploadedDoc);
 			}
 
-			ResponseEntity<Map<String, Object>> response = pdfService.publishDocument(htmlContentEn, htmlContentHi,
+			ResponseEntity<Map<String, Object>> response = pdfService.publishDocumentV2(htmlContentEn, htmlContentHi,
 					appInstId, startingPageNumber, uploadedDocUuid);
 
 			if (response.getStatusCode() == HttpStatus.CONFLICT) {

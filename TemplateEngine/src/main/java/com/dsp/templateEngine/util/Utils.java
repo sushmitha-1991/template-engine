@@ -329,4 +329,11 @@ public class Utils {
 		return onlyOfficeDataSynopsis;
 		
 	}
+	
+	public OnlyOfficeData getODTDataIfExistsV2(Long appInstId) {
+
+		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeDataV2(appInstId);
+		return onlyOfficeData;
+
+	}
 }

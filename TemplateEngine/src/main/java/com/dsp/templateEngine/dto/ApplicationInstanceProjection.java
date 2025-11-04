@@ -32,5 +32,9 @@ public interface ApplicationInstanceProjection {
 	UUID getDocumentUuid();
 
 	LocalDate getNoticeDate();
+	
+    String getOnlyOfficeDsp2Key();
+	
+	String getDsp2KeyHi();
 
 }

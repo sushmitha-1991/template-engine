@@ -84,6 +84,11 @@ import com.itextpdf.layout.properties.VerticalAlignment;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Service
@@ -898,5 +903,222 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String fileName = UUID.randomUUID() + "_" + upload.getLocale() + ".pdf";
 		upload.setFileName(fileName);
 		return fileName;
+	}
+	
+	@Transactional
+	public ResponseEntity<Map<String, Object>> publishDocumentV2(String htmlContentEn, String htmlContentHi,
+
+			Long appInstId, Integer startPageNumber, UUID uploadedDoc) {
+
+		try {
+
+			if (isAlreadyPublished(appInstId)) {
+
+				return buildAlreadyPublishedResponse(appInstId);
+
+			}
+
+			ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
+
+			String appAbbr = appDetails.getAbbr();
+
+			OnlyOfficeData ooData = util.getODTDataIfExistsV2(appInstId);
+
+			PublishDTO docDto = null;
+
+			if (uploadedDoc != null) {
+
+				docDto = PublishDTO.builder().documentUuidEn(uploadedDoc).documentUuidHi(null).build();
+
+			} else if (ooData != null) {
+
+				docDto = processOODocument(startPageNumber, appDetails, ooData);
+
+			}
+
+			else {
+
+				// It is an HTML document
+
+				docDto = processHTMLDocument(htmlContentEn, htmlContentHi, startPageNumber, appDetails);
+
+			}
+
+			UUID documentUuidEn = docDto.getDocumentUuidEn();
+
+			UUID documentUuidHi = docDto.getDocumentUuidHi();
+
+			updatePublishedStatus(appInstId, documentUuidEn, documentUuidHi);
+
+			// Integration touch point for Section Login -> MP Portal Letters/Documents
+
+			if (appAbbr.equals(CREATION_OF_NOTICES_UNDER_RULE_377)) {
+
+				try {
+
+					saveUploadedDocuments(appInstId);
+
+				} catch (Exception e) {
+
+					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
+
+				}
+
+			}
+
+			updateWorkflowHistory(appInstId);
+
+			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
+
+			// Trigger async cache clearing — won't block publishing flow
+
+			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
+
+			return buildSuccessResponse(documentUuidEn, documentUuidHi);
+
+		} catch (Exception e) {
+
+			log.error("Error publishing document for appInstId: " + appInstId, e);
+
+			return buildErrorResponse(appInstId, e);
+
+		}
+
+	}
+
+	private PublishDTO processOODocument(int startPageNumber,
+
+			ApplicationInstanceProjection appDetails,
+
+			OnlyOfficeData ooData) throws Exception {
+
+		PublishDTO docDto = null;
+
+		String appAbbr = appDetails.getAbbr();
+
+		if (appAbbr.equals(TRANSLATION_ABBR)) { // process Translation
+
+			docDto = processTranslation(startPageNumber, appDetails, ooData);
+
+		} else if (appAbbr.equals(SYNOPSIS_ABBR)) { // process Synopsis
+
+			docDto = processSynopsis(startPageNumber, appDetails, ooData);
+
+		} else { // any other OO module
+
+			docDto = processOOApp(startPageNumber, appDetails, ooData);
+
+		}
+
+		return docDto;
+
+	}
+
+	private PublishDTO processTranslation(int startPageNumber,
+
+			ApplicationInstanceProjection appDetails, OnlyOfficeData ooData) throws Exception {
+
+		UUID documentUuidHi = generateDoc(null, startPageNumber, appDetails, "_hi", ooData.getDocUrl());
+
+		return PublishDTO.builder().documentUuidEn(null).documentUuidHi(documentUuidHi).build();
+
+	}
+
+	private PublishDTO processSynopsis(int startPageNumber,
+
+			ApplicationInstanceProjection appDetails, OnlyOfficeData ooData) throws Exception {
+
+		UUID documentUuidEn = null;
+
+		UUID documentUuidHi = null;
+
+		String htmlContent = null;
+
+		if (!StringUtils.isEmpty(appDetails.getOnlyOfficeDsp2Key())) {
+
+			documentUuidEn = generateDoc(htmlContent, startPageNumber, appDetails, "_en", ooData.getDocUrl());
+
+		}
+
+		if (!StringUtils.isEmpty(appDetails.getDsp2KeyHi())) {
+
+			documentUuidHi = generateDoc(htmlContent, startPageNumber, appDetails, "_hi", ooData.getDocUrlHi());
+
+		}
+
+		return PublishDTO.builder().documentUuidEn(documentUuidEn).documentUuidHi(documentUuidHi).build();
+
+	}
+
+	private PublishDTO processOOApp(int startPageNumber,
+
+			ApplicationInstanceProjection appDetails, OnlyOfficeData ooData) throws Exception {
+
+		UUID documentUuidEn = null;
+
+		UUID documentUuidHi = null;
+
+		String htmlContent = null;
+
+		if (!StringUtils.isEmpty(appDetails.getOnlyOfficeDsp2Key())) {
+
+			documentUuidEn = generateDoc(htmlContent, startPageNumber, appDetails, "_en", ooData.getDocUrl());
+
+		}
+
+		if (!StringUtils.isEmpty(appDetails.getDsp2KeyHi())) {
+
+			documentUuidHi = generateDoc(htmlContent, startPageNumber, appDetails, "_hi", ooData.getDocUrlHi());
+
+		}
+
+		return PublishDTO.builder().documentUuidEn(documentUuidEn).documentUuidHi(documentUuidHi).build();
+
+	}
+
+	private PublishDTO processHTMLDocument(String htmlContentEn, String htmlContentHi, int startPageNumber,
+
+			ApplicationInstanceProjection appDetails) throws Exception {
+
+		UUID documentUuidEn = null;
+
+		UUID documentUuidHi = null;
+
+		if (!StringUtils.isEmpty(htmlContentEn)) {
+
+			documentUuidEn = generateDoc(htmlContentEn, startPageNumber, appDetails, "_en", null);
+
+		}
+
+		if (!StringUtils.isEmpty(htmlContentHi)) {
+
+			documentUuidHi = generateDoc(htmlContentHi, startPageNumber, appDetails, "_hi", null);
+
+		}
+
+		return PublishDTO.builder().documentUuidEn(documentUuidEn).documentUuidHi(documentUuidHi).build();
+
+	}
+
+	private UUID generateDoc(String htmlContent, int startPageNumber,
+
+			ApplicationInstanceProjection appDetails, String docUrl, String locale) throws Exception {
+
+		UUID documentUuid = generateAndUploadPdf(htmlContent, startPageNumber, appDetails, appDetails.getAppId(),
+				locale, docUrl);
+
+		return documentUuid;
+
+	}
+
+	@AllArgsConstructor
+	@NoArgsConstructor
+	@Getter
+	@Setter
+	@Builder
+	public static class PublishDTO {
+		private UUID documentUuidEn;
+		private UUID documentUuidHi;
+
 	}
 }
