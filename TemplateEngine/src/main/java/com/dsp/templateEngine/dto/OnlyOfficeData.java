@@ -10,6 +10,6 @@ package com.dsp.templateEngine.dto;
  */
 public interface OnlyOfficeData {
 	String getDocUrl();
-
+	String getDocUrlHi();
 	String getAbbr();
 }
