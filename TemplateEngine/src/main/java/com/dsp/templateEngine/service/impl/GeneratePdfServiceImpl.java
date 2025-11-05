@@ -1102,7 +1102,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private UUID generateDoc(String htmlContent, int startPageNumber,
 
-			ApplicationInstanceProjection appDetails, String docUrl, String locale) throws Exception {
+			ApplicationInstanceProjection appDetails, String locale,String docUrl) throws Exception {
 
 		UUID documentUuid = generateAndUploadPdf(htmlContent, startPageNumber, appDetails, appDetails.getAppId(),
 				locale, docUrl);
