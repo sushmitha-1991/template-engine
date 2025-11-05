@@ -72,6 +72,7 @@ public class LibreOdtConverter implements IConverter {
 		// Step 1: Prepare JSON payload to call /convert-odt endpoint
 		String endpointUrl = libreServiceUrl + LIBRE_ODT_END_POINT;
 
+		System.out.println(">>> url "+endpointUrl);
 		System.out.println(">>> inside converter");
 
 		RestTemplate restTemplate = new RestTemplate();
@@ -81,6 +82,7 @@ public class LibreOdtConverter implements IConverter {
 		Map<String, Object> requestBody = new HashMap<String, Object>();
 		requestBody.put("url", input.getDocUrl());
 
+		System.out.println("request body "+requestBody);
 		HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
 
 		// Step 2: Call /convert-odt endpoint to get PDF bytes
