@@ -99,10 +99,10 @@ public interface GeneratedPdfModelRepository extends JpaRepository<GeneratedPdfM
 			    ph.application_no AS applicationNo,
 			    ph.application_id AS applicationId,
 				ph.locale as locale,
-				ph.year as year,
-				ph.month as month,
-				1 AS day
-			    FROM workflow.publish_history ph
+			    EXTRACT(YEAR FROM ph.for_date)::text AS year,
+				EXTRACT(MONTH FROM ph.for_date)::text AS month,
+			    EXTRACT(DAY FROM ph.for_date)::text AS day
+				FROM workflow.publish_history ph
 			    WHERE ph.application_no = :appNo
 			""", nativeQuery = true)
 	PublishHistoryProjection getAppDetailsByAbbr(@Param("appNo") String appNo);
