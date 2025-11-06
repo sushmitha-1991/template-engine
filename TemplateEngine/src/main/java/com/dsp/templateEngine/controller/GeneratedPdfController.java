@@ -423,33 +423,6 @@ public class GeneratedPdfController {
 		}
 	}
 
-//	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-//	public ResponseEntity<?> uploadHtml(@RequestBody PdfConverterDTO upload) {
-//
-//		try {
-//
-//			if (upload == null) {
-//				return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-//			}
-//			
-//			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
-//
-//			Map<String, Object> response = new HashMap<>();
-//			response.put("documentUuid", documentUuid.toString());
-//
-//			return ResponseEntity.ok(response);
-//
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//			Map<String, Object> error = new HashMap<>();
-//			error.put("statusCode", 500);
-//			error.put("success", false);
-//			error.put("message", "Failed to upload PDF: " + e.getMessage());
-//			error.put("documentUuid", null);
-//			return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-//		}
-//	}
-
 	@PostMapping("/update-dsp1-table")
 	public ResponseEntity<NewEventsLss> addDsp1Table(@RequestBody NewEventsLssDTO dto) {
 		NewEventsLss response = nelssService.saveNewEvent(dto);
