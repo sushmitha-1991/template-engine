@@ -36,6 +36,10 @@ public class Dsp1CacheService {
 	@Value("${dsp1.cache.clear.url}")
 	private String dsp1CacheClearUrl;
 
+	private static String DSP1_MONTHLY_CALENDAR_CACHE_NAME = "twelveHourCache";
+
+	private static String DSP1_MONTHLY_CALENDAR_ENDPOINT = "/api_ls/ppHome/MonthlyCalendar";
+
 	public Dsp1CacheService(GeneratedPdfModelRepository generatedPdfModelRepository, RestTemplate asyncRestTemplate) {
 		this.generatedPdfModelRepository = generatedPdfModelRepository;
 		this.asyncRestTemplate = asyncRestTemplate;
@@ -45,6 +49,13 @@ public class Dsp1CacheService {
 	public void clearCacheDsp1(String appNo, String appAbbr) {
 		try {
 			PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
+
+			String monthlyCalendarEndpoint = DSP1_MONTHLY_CALENDAR_ENDPOINT + "?month=" + docDetails.getMonth()
+					+ "&year=" + docDetails.getYear() + "&locale=" + docDetails.getLocale();
+
+			String monthlyCalendarRedisKey = DSP1_MONTHLY_CALENDAR_CACHE_NAME + "::" + monthlyCalendarEndpoint;
+			System.out.println(">>> monthlyCalendarRedisKey " + monthlyCalendarRedisKey);
+			clearCacheFromDSP1(monthlyCalendarRedisKey);
 
 			List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
 					.getDsp1CacheDataList(docDetails.getApplicationId());
