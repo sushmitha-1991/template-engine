@@ -5,8 +5,10 @@ import com.dsp.templateEngine.dto.FolderCreateDTO;
 import com.dsp.templateEngine.dto.FolderCreateReqDTO;
 import com.dsp.templateEngine.dto.PublishRequestDto;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
+import com.dsp.templateEngine.dto.lssupdate.LssUpdatesDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
+import com.dsp.templateEngine.entity.lssupdate.LssUpdates;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.FolderStructureService;
@@ -35,6 +37,10 @@ public class NewEventsLssController {
     @PostMapping("/create")
     public NewEventsLss createEvent(@RequestBody NewEventsLssDTO dto) {
         return service.saveNewEvent(dto);
+    }
+     @PostMapping("/create/lss-updates")
+    public LssUpdates createUpdate(@RequestBody LssUpdatesDTO dto) {
+        return service.saveLssUpdates(dto);
     }
     @PostMapping("/create-notice")
     public NewEventsRss createNotice(@RequestBody NewEventsRssDTO dto) {

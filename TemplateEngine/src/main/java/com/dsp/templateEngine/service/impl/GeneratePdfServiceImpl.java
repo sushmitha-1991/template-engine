@@ -470,7 +470,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.forDate(instance.getDocumentDate()).fileType("pdf").build();
 
 		if (SUMMON.equals(appDetails.getAbbr()) || PROROGATION.equals(appDetails.getAbbr())) {
-			dsp1Utils.writeToDSP1(appDetails, publishHistoryDto, dtoHi, houseAbbr);
+			// dsp1Utils.writeToDSP1(appDetails, publishHistoryDto, dtoHi, houseAbbr);
+			dsp1Utils.writeToDSP1Lss(appDetails, publishHistoryDto, dtoHi, houseAbbr);
 		}
 		if (LISTOFBUSINESS.equalsIgnoreCase(appDetails.getAbbr())) {
 			String dsp1AppName = dsp1Utils.getLobApplicationName(publishHistoryDto, instance,

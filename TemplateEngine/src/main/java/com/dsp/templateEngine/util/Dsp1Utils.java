@@ -1,6 +1,7 @@
 
 package com.dsp.templateEngine.util;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Locale;
 import java.util.Map;
@@ -12,10 +13,13 @@ import org.springframework.stereotype.Component;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
+import com.dsp.templateEngine.dto.lssupdate.LssUpdatesDTO;
 import com.dsp.templateEngine.dto.nelss.NewEventsLssDTO;
 import com.dsp.templateEngine.entity.ApplicationInstance;
+import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.entity.enoticeboard.NewEventsRss;
+import com.dsp.templateEngine.entity.lssupdate.LssUpdates;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
@@ -33,6 +37,10 @@ import jakarta.servlet.http.HttpServletRequest;
 @Component
 public class Dsp1Utils {
 
+	@Autowired
+	private Utils util;
+	@Autowired
+	private MyUserRepository userRepository;
 	@Autowired
 	private EntityManager entityManager; // For native query execution
 
@@ -145,6 +153,79 @@ public class Dsp1Utils {
 			}
 			System.out.println(rss);
 		}
+	}
+
+	public void writeToDSP1Lss(ApplicationInstanceProjection appDetails,
+			PublishHistoryDTO publishHistoryDto, PublishHistoryDTO hindiDTO, String houseAbbr) {
+		System.out.println("house " + houseAbbr);
+		BaseUser user = getUser();
+		// if (houseAbbr.equalsIgnoreCase("LS")) {
+		LssUpdatesDTO lssUpdateEn = LssUpdatesDTO.builder()
+				.isActive(1)
+				.date(publishHistoryDto.getForDate())
+				.file(fetchUuid(publishHistoryDto.getPublishUrl()))
+				.title(getTitle(appDetails, publishHistoryDto, houseAbbr))
+				.isNew(1)
+				.type("dsp2En")
+				.uuid(""+publishHistoryDto.getPublishUuid())
+				.locale("en")
+				.createdAt(LocalDateTime.now())
+				.publishedAt(LocalDateTime.now())
+				.createdBy(user.getUsername())
+				.publishedBy(user.getUsername())
+				.build();
+		LssUpdates lssEn = nelssService.saveLssUpdates(lssUpdateEn);
+		LssUpdatesDTO lssUpdateHi = LssUpdatesDTO.builder()
+				.isActive(1)
+				.date(hindiDTO.getForDate())
+				.file(fetchUuid(hindiDTO.getPublishUrl()))
+				.title(getTitleHi(appDetails, hindiDTO, houseAbbr))
+				.isNew(1)
+				.type("dsp2Hi")
+				.uuid(""+hindiDTO.getPublishUuid())
+				.locale("hi")
+				.createdAt(LocalDateTime.now())
+				.publishedAt(LocalDateTime.now())
+				.createdBy(user.getUsername())
+				.publishedBy(user.getUsername())
+				.build();
+		LssUpdates lssHi = nelssService.saveLssUpdates(lssUpdateHi);
+		System.out.println(lssEn);
+
+		System.out.println(lssHi);
+		// } else if (houseAbbr.equalsIgnoreCase("RS")) {
+
+		// NewEventsRssDTO nERss = NewEventsRssDTO.builder()
+		// .startDate(publishHistoryDto.getForDate().atStartOfDay())
+		// .endDate(publishHistoryDto.getForDate().atTime(LocalTime.MAX))
+		// .fileName(fetchUuid(publishHistoryDto.getPublishUrl()))
+		// .title(getTitle(appDetails, publishHistoryDto, houseAbbr))
+		// .language("English")
+		// .pdfFileUrl(publishHistoryDto.getPublishUrl())
+		// .build();
+		// NewEventsRssDTO nHRss = NewEventsRssDTO.builder()
+		// .startDate(hindiDTO.getForDate().atStartOfDay())
+		// .fileName(fetchUuid(hindiDTO.getPublishUrl()))
+		// .endDate(hindiDTO.getForDate().atTime(LocalTime.MAX))
+		// .title(getTitleHi(appDetails, hindiDTO, houseAbbr))
+		// .language("Hindi")
+		// .pdfFileUrl(hindiDTO.getPublishUrl())
+		// .build();
+
+		// NewEventsRss rss = eNoticeBoardService.saveNewEvent(nERss);
+		// if (hindiDTO != null) {
+		// NewEventsRss rssHi = eNoticeBoardService.saveNewEvent(nHRss);
+		// System.out.println(rssHi);
+		// }
+		// System.out.println(rss);
+		// }
+	}
+
+	private BaseUser getUser() {
+		// TODO Auto-generated method stub
+		Long user = util.getUserIdFromAuthentication();
+		Optional<BaseUser> userDetails = userRepository.findById(user);
+		return userDetails.isPresent() ? userDetails.get() : null;
 	}
 
 	private String fetchUuid(String url) {
@@ -323,9 +404,9 @@ public class Dsp1Utils {
 	// get ListOf Business abbr to Insert into publish history
 	public String getLobApplicationName(PublishHistoryDTO publishHistoryDTO,
 			ApplicationInstance instance, ApplicationInstanceRepository applicationInstanceRepository) {
-				Optional<String> lobType=applicationInstanceRepository.fetchLobDetailsByRefId(instance.getRefId());
-				if(lobType.isPresent())
-		return responseAgainstLobType(lobType.get());
+		Optional<String> lobType = applicationInstanceRepository.fetchLobDetailsByRefId(instance.getRefId());
+		if (lobType.isPresent())
+			return responseAgainstLobType(lobType.get());
 		return null;
 	}
 
@@ -343,6 +424,7 @@ public class Dsp1Utils {
 		}
 		return null;
 	}
+
 	private Boolean compare(String v1, String v2) {
 		return v1.equalsIgnoreCase(v2);
 	}
