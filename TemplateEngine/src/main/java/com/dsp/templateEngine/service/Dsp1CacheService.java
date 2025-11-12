@@ -1,6 +1,6 @@
 /**
  * 
- * @author Mrinal Lakhanpal
+ * @author MrinalRP Lakhanpal
  * @version 1.0
  */
 package com.dsp.templateEngine.service;
@@ -40,6 +40,8 @@ public class Dsp1CacheService {
 
 	private static String DSP1_MONTHLY_CALENDAR_ENDPOINT = "/api_ls/ppHome/MonthlyCalendar";
 
+	public static String TRP = "TRP";
+
 	public Dsp1CacheService(GeneratedPdfModelRepository generatedPdfModelRepository, RestTemplate asyncRestTemplate) {
 		this.generatedPdfModelRepository = generatedPdfModelRepository;
 		this.asyncRestTemplate = asyncRestTemplate;
@@ -48,6 +50,11 @@ public class Dsp1CacheService {
 	@Async
 	public void clearCacheDsp1(String appNo, String appAbbr) {
 		try {
+
+			if (appAbbr.equals(TRP)) {
+				appNo = appNo + "_HI";
+			}
+
 			PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
 
 			String monthlyCalendarEndpoint = DSP1_MONTHLY_CALENDAR_ENDPOINT + "?month=" + docDetails.getMonth()

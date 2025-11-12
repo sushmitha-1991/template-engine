@@ -12,7 +12,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -220,10 +219,9 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/publish-document")
-	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam(required = false) String htmlContentEn,
-			@RequestParam(required = false) String htmlContentHi, 
-			@RequestParam Long appInstId,
-			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
+	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(
+			@RequestParam(required = false) String htmlContentEn, @RequestParam(required = false) String htmlContentHi,
+			@RequestParam Long appInstId, @RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
 			@RequestParam(required = false) String uploadedDoc) {
 
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
@@ -436,7 +434,7 @@ public class GeneratedPdfController {
 		return ResponseEntity.ok(response);
 	}
 
-	@GetMapping("/clear-dsp1")
+	@PostMapping("/clear-dsp1")
 	public ResponseEntity<String> clearDsp1Cache(@RequestParam String appNo, @RequestParam String appAbbr) {
 
 		log.info("🔄 Request received to clear DSP1 cache -> appNo: {}, appAbbr: {}", appNo, appAbbr);
