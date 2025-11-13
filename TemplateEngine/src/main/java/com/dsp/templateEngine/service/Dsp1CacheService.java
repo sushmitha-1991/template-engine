@@ -57,13 +57,6 @@ public class Dsp1CacheService {
 
 			PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
 
-			String monthlyCalendarEndpoint = DSP1_MONTHLY_CALENDAR_ENDPOINT + "?month=" + docDetails.getMonth()
-					+ "&year=" + docDetails.getYear() + "&locale=" + docDetails.getLocale();
-
-			String monthlyCalendarRedisKey = DSP1_MONTHLY_CALENDAR_CACHE_NAME + "::" + monthlyCalendarEndpoint;
-			System.out.println(">>> monthlyCalendarRedisKey " + monthlyCalendarRedisKey);
-			clearCacheFromDSP1(monthlyCalendarRedisKey);
-
 			List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
 					.getDsp1CacheDataList(docDetails.getApplicationId());
 
@@ -98,13 +91,22 @@ public class Dsp1CacheService {
 								.replaceFirst("\\$",
 										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
 								.replaceFirst("\\$",
-										docDetails.getYear() != null ? docDetails.getYear().toString() : "");
+										docDetails.getYear() != null ? docDetails.getYear().toString() : "")
+								.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
 					}
 
 					String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
 					clearCacheFromDSP1(redisKey);
 				}
 			}
+
+			String monthlyCalendarEndpoint = DSP1_MONTHLY_CALENDAR_ENDPOINT + "?month=" + docDetails.getMonth()
+					+ "&year=" + docDetails.getYear() + "&locale=" + docDetails.getLocale();
+
+			String monthlyCalendarRedisKey = DSP1_MONTHLY_CALENDAR_CACHE_NAME + "::" + monthlyCalendarEndpoint;
+			System.out.println(">>> monthlyCalendarRedisKey " + monthlyCalendarRedisKey);
+			clearCacheFromDSP1(monthlyCalendarRedisKey);
+
 		} catch (Exception e) {
 			log.error("❌ Error in async DSP1 cache clearing for appNo={}, appAbbr={}: {}", appNo, appAbbr,
 					e.getMessage());
