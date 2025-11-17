@@ -1,7 +1,21 @@
 package com.dsp.templateEngine.controller;
 
-import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
-import com.dsp.templateEngine.dto.FolderCreateDTO;
+import java.io.File;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.dsp.templateEngine.dto.FolderCreateReqDTO;
 import com.dsp.templateEngine.dto.PublishRequestDto;
 import com.dsp.templateEngine.dto.enoticeboard.NewEventsRssDTO;
@@ -14,20 +28,15 @@ import com.dsp.templateEngine.service.ENoticeBoardService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
-import lombok.RequiredArgsConstructor;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
+import com.dsp.templateEngine.service.TranslationService;
 
 @RestController
 @RequestMapping("/template")
 public class NewEventsLssController {
     @Autowired
     private NewEventsLssService service;
+    @Autowired
+    private TranslationService translationService;
     @Autowired
     private ENoticeBoardService eNoticeBoardService;
     @Autowired
@@ -71,6 +80,26 @@ public class NewEventsLssController {
     @PostMapping("/entry-in-publish-history")
     public String publishHistoryEntry(@RequestBody PublishRequestDto  dto) {
        return  generatePdfService.savedSuccess(dto.getAppInstanceId(), dto.getDocUuidEn(), dto.getDocUuidHi());
+    }
+
+    
+@PostMapping("/callTranslation")
+    public String uploadTranslationFile(
+            @RequestParam String applicationName,
+            @RequestParam String type,
+            @RequestParam String subCategory,
+            @RequestParam LocalDate date,
+            @RequestParam boolean edit,
+            @RequestParam("filePath") String filePath
+    ) {
+        File file = new File(filePath);
+        return translationService.callTranslateFileAPI(applicationName, type, subCategory, date, edit, file);
+    }
+    @GetMapping("/download/{uuid}")
+    public File downloadAPI(
+            @PathVariable UUID uuid
+    ) {
+        return translationService.getFileFromUUID(uuid);
     }
 
 }
