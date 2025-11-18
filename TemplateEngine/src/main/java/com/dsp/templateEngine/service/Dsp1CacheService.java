@@ -76,27 +76,27 @@ public class Dsp1CacheService {
 				}
 
 			} else if (appAbbr.equalsIgnoreCase("B2")) {
-				for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
-					String endpoint = dsp1Cache.getDsp1Endpoint();
-					if (endpoint.contains("bull2Day")) {
-						endpoint = endpoint
-								.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-								.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
-					} else {
-						endpoint = endpoint
-								.replaceFirst("\\$",
-										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-								.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
-					}
 
-					String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
-					clearCacheFromDSP1(redisKey);
+				for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
+
+					String baseEndpoint = dsp1Cache.getDsp1Endpoint();
+
+					String bull2DayEndpoint = baseEndpoint
+							.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
+							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
+							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
+							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+
+					String bull2DayRedisKey = dsp1Cache.getDsp1CacheName() + "::" + bull2DayEndpoint;
+					clearCacheFromDSP1(bull2DayRedisKey);
+
+					String genericEndpoint = baseEndpoint
+							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
+							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
+							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+
+					String genericRedisKey = dsp1Cache.getDsp1CacheName() + "::" + genericEndpoint;
+					clearCacheFromDSP1(genericRedisKey);
 				}
 			}
 
@@ -107,7 +107,9 @@ public class Dsp1CacheService {
 			System.out.println(">>> monthlyCalendarRedisKey " + monthlyCalendarRedisKey);
 			clearCacheFromDSP1(monthlyCalendarRedisKey);
 
-		} catch (Exception e) {
+		} catch (
+
+		Exception e) {
 			log.error("❌ Error in async DSP1 cache clearing for appNo={}, appAbbr={}: {}", appNo, appAbbr,
 					e.getMessage());
 		}
