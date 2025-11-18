@@ -62,6 +62,7 @@ import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
 import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
+import com.dsp.templateEngine.service.TranslationService;
 import com.dsp.templateEngine.util.Dsp1Utils;
 import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
@@ -100,6 +101,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private FolderStructureService folderService;
+	@Autowired
+	private TranslationService translationService;
 
 	@Value("${workflow.service.url}")
 	private String draftedServiceUrl;
@@ -277,8 +280,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 			// Trigger async cache clearing — won't block publishing flow
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
+			//translation code
+			
+			Boolean isSendToTranslation=false;
+			try {
+				translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
+				isSendToTranslation = true;
+			} catch (Exception e) {
+				isSendToTranslation = false;
+			}
 
-			return buildSuccessResponse(documentUuidEn, documentUuidHi);
+			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
@@ -502,12 +514,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return "saved";
 	}
 
-	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid) {
+	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid,Boolean isSendToTranslation) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");
 		response.put("message", "Document(s) published successfully.");
 		response.put("englishDocumentUuid", enUuid);
 		response.put("hindiDocumentUuid", hiUuid);
+		response.put("isSendToTranslation",isSendToTranslation);
 		return ResponseEntity.ok(response);
 	}
 
@@ -975,7 +988,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
-			return buildSuccessResponse(documentUuidEn, documentUuidHi);
+			//translation code
+			
+			Boolean isSendToTranslation=false;
+			try {
+				translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
+				isSendToTranslation = true;
+			} catch (Exception e) {
+				isSendToTranslation = false;
+			}
+
+
+			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
 
 		} catch (Exception e) {
 
