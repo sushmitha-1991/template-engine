@@ -79,24 +79,27 @@ public class Dsp1CacheService {
 
 				for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
 
-					String baseEndpoint = dsp1Cache.getDsp1Endpoint();
+					String endpoint = dsp1Cache.getDsp1Endpoint();
 
-					String bull2DayEndpoint = baseEndpoint
-							.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
-							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+					// ---- 1️⃣ bulletin2Url (has 4 placeholders: day, month, year, locale)
+					if (endpoint.contains("bulletin2Url")) {
 
-					String bull2DayRedisKey = dsp1Cache.getDsp1CacheName() + "::" + bull2DayEndpoint;
-					clearCacheFromDSP1(bull2DayRedisKey);
+						String urlEndpoint = endpoint.replaceFirst("\\$", docDetails.getDay().toString())
+								.replaceFirst("\\$", docDetails.getMonth().toString())
+								.replaceFirst("\\$", docDetails.getYear().toString())
+								.replaceFirst("\\$", docDetails.getLocale());
 
-					String genericEndpoint = baseEndpoint
-							.replaceFirst("\\$", docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-							.replaceFirst("\\$", docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-							.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
+						clearCacheFromDSP1(dsp1Cache.getDsp1CacheName() + "::" + urlEndpoint);
+					}
 
-					String genericRedisKey = dsp1Cache.getDsp1CacheName() + "::" + genericEndpoint;
-					clearCacheFromDSP1(genericRedisKey);
+					// ---- 2️⃣ bulletin2Dates (has 2 placeholders: month, year)
+					if (endpoint.contains("bulletin2Dates")) {
+
+						String dateEndpoint = endpoint.replaceFirst("\\$", docDetails.getMonth().toString())
+								.replaceFirst("\\$", docDetails.getYear().toString());
+
+						clearCacheFromDSP1(dsp1Cache.getDsp1CacheName() + "::" + dateEndpoint);
+					}
 				}
 			}
 
