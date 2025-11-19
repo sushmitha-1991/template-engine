@@ -944,7 +944,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 				docDto = PublishDTO.builder().documentUuidEn(uploadedDoc).documentUuidHi(null).build();
 
-			} else if (ooData != null) {
+			} else if (ooData != null && ooData.getDocUrl() != null) {
 
 				docDto = processOODocument(startPageNumber, appDetails, ooData);
 

@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import com.dsp.templateEngine.dto.DownloadRequestDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dsp.templateEngine.converter.PdfConverterDTO;
+import com.dsp.templateEngine.dto.DownloadRequestDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 //import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
@@ -31,6 +31,7 @@ import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
+import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
 
@@ -45,6 +46,9 @@ public class GeneratedPdfController {
 	private GeneratePdfService pdfService;
 	@Autowired
 	private NewEventsLssService nelssService;
+
+	@Autowired
+	private Dsp1CacheService dsp1CacheService;
 
 	@Autowired
 	private ApplicationInstanceRepository applicationInstanceRepository;
@@ -73,10 +77,11 @@ public class GeneratedPdfController {
 	@PostMapping("/mytask/download")
 	public ResponseEntity<byte[]> downloadHtmlFromMyTask(@RequestParam(required = false) String htmlContentEn,
 			@RequestParam(required = false) String htmlContentHi, @RequestParam String fileName,
-			@RequestParam(required = false) Long applicationInstanceId,@RequestParam(required = false) String dsp2Key) {
+			@RequestParam(required = false) Long applicationInstanceId,
+			@RequestParam(required = false) String dsp2Key) {
 
-		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId).dsp2Key(dsp2Key)
-				.build();
+		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId)
+				.dsp2Key(dsp2Key).build();
 
 		initPdfConversion(input);
 		log.debug("**initPdfConversion: {} ", input);
@@ -85,9 +90,9 @@ public class GeneratedPdfController {
 			ByteArrayOutputStream enPdfStream = null;
 			ByteArrayOutputStream hiPdfStream = null;
 
-			
 			if (htmlContentEn != null || htmlContentHi != null) {
-				// Normalize htmlContentHi: Handle cases where it's received as "null" (string) or empty
+				// Normalize htmlContentHi: Handle cases where it's received as "null" (string)
+				// or empty
 				if ("undefined".equalsIgnoreCase(htmlContentHi) || "null".equalsIgnoreCase(htmlContentHi)
 						|| htmlContentHi == null || htmlContentHi.trim().isEmpty()) {
 					htmlContentHi = null;
@@ -107,8 +112,8 @@ public class GeneratedPdfController {
 				enPdfStream = processODT(input);
 			} else if (input.getHtmlContent() != null) {
 				enPdfStream = processHtml(input);
-			} 
-			
+			}
+
 			// Merge PDFs only if Hindi content exists, otherwise use English PDF as final
 			// output
 			byte[] mergedPdfBytes = null;
@@ -141,11 +146,11 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/mytask/download/v2")
-	public ResponseEntity<byte[]> downloadHtmlFromMyTaskV2(@RequestBody DownloadRequestDTO dto ) {
-		String htmlContentEn= dto.getHtmlContentEn();
-		String htmlContentHi= dto.getHtmlContentHi();
-		String fileName= dto.getFileName();
-		Long applicationInstanceId= dto.getApplicationInstanceId();
+	public ResponseEntity<byte[]> downloadHtmlFromMyTaskV2(@RequestBody DownloadRequestDTO dto) {
+		String htmlContentEn = dto.getHtmlContentEn();
+		String htmlContentHi = dto.getHtmlContentHi();
+		String fileName = dto.getFileName();
+		Long applicationInstanceId = dto.getApplicationInstanceId();
 
 		PdfConverterDTO input = PdfConverterDTO.builder().fileName(fileName).appInstanceId(applicationInstanceId)
 				.build();
@@ -214,10 +219,9 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping("/publish-document")
-	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(@RequestParam String htmlContentEn,
-			@RequestParam(required = false) String htmlContentHi, 
-			@RequestParam Long appInstId,
-			@RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
+	public ResponseEntity<GenericResponse<Map<String, Object>>> publishDocument(
+			@RequestParam(required = false) String htmlContentEn, @RequestParam(required = false) String htmlContentHi,
+			@RequestParam Long appInstId, @RequestParam(required = false, defaultValue = "1") Integer startPageNumber,
 			@RequestParam(required = false) String uploadedDoc) {
 
 		log.info("Publishing document for appInstId: {} with startPageNumber: {}", appInstId, startPageNumber);
@@ -274,7 +278,7 @@ public class GeneratedPdfController {
 		Integer startingPageNumber = 1;
 		Long applicationInstanceId = input.getAppInstanceId();
 		ApplicationInstance instance = null;
-		
+
 		if (input.getAppInstanceId() != null) {
 			instance = applicationInstanceRepository.findById(applicationInstanceId)
 					.orElseThrow(() -> new ResourceNotFoundException(
@@ -289,18 +293,19 @@ public class GeneratedPdfController {
 		// Check if Document is in ODT Format
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
 		System.out.println("ooData: " + ooData);
-		
+
 		if (StringUtils.startsWithIgnoreCase(input.getFileName(), "SYM-") && !StringUtils.isEmpty(input.getDsp2Key())) {
 			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
 			System.out.println("oomData: " + oometaData);
 			System.out.println("docURL: " + oometaData.getDocUrl());
-			//	fetch by dsp2Key for synopsis module
+			// fetch by dsp2Key for synopsis module
 
-		if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
-			input.setDocUrl(oometaData.getDocUrl());
-			return;
-		}}
-		
+			if (oometaData != null && !StringUtils.isEmpty(oometaData.getDocUrl())) {
+				input.setDocUrl(oometaData.getDocUrl());
+				return;
+			}
+		}
+
 		if (!StringUtils.isEmpty(input.getDsp2Key())) {
 			// Check if Document is in ODT Format
 			OnlyOfficeData oofData = getOnlyOffcDataByKeyIfExists(input.getDsp2Key());
@@ -310,9 +315,9 @@ public class GeneratedPdfController {
 			if (oofData != null && !StringUtils.isEmpty(oofData.getDocUrl())) {
 				input.setDocUrl(oofData.getDocUrl());
 				return;
-			}	
-		} 
-		
+			}
+		}
+
 		if (ooData != null && !StringUtils.isEmpty(ooData.getDocUrl())) {
 			input.setDocUrl(ooData.getDocUrl());
 			return;
@@ -326,14 +331,15 @@ public class GeneratedPdfController {
 		return onlyOfficeData;
 
 	}
-	
+
 	private OnlyOfficeData getOnlyOffcMetaDataByKeyIfExists(String dsp2Key, Long appInstanceId) {
 
-		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeMetaDataByDsp2Key(dsp2Key, appInstanceId);
+		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeMetaDataByDsp2Key(dsp2Key,
+				appInstanceId);
 		return onlyOfficeData;
 
 	}
-	
+
 	private OnlyOfficeData getODTDataIfExists(Long appInstId) {
 
 		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(appInstId);
@@ -384,27 +390,26 @@ public class GeneratedPdfController {
 	}
 
 	@PostMapping(value = "/upload-html-english", produces = MediaType.APPLICATION_JSON_VALUE)
-	
-	public ResponseEntity<?> uploadHtml(@RequestParam(required = false) String htmlContentEn,@RequestParam(required = false) String htmlContentHi, @RequestParam int startingPageNo,
+
+	public ResponseEntity<?> uploadHtml(@RequestParam(required = false) String htmlContentEn,
+			@RequestParam(required = false) String htmlContentHi, @RequestParam int startingPageNo,
 			@RequestParam Long applicationId, @RequestParam(defaultValue = "en", required = false) String locale,
 			@RequestParam(required = false) String fileName, @RequestParam(required = false) String applicationAbbr) {
 
 		try {
 
-			PdfConverterDTO upload=new PdfConverterDTO();
-			if(htmlContentEn != null)
-			{
-			 upload = PdfConverterDTO.builder().htmlContent(htmlContentEn)
-					.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
-					.locale(locale).fileName(fileName).build();
+			PdfConverterDTO upload = new PdfConverterDTO();
+			if (htmlContentEn != null) {
+				upload = PdfConverterDTO.builder().htmlContent(htmlContentEn).startPageNumber(startingPageNo)
+						.applicationId(applicationId).applicationAbbr(applicationAbbr).locale(locale).fileName(fileName)
+						.build();
 			}
-			if(htmlContentHi != null)
-			{
-				 upload = PdfConverterDTO.builder().htmlContent(htmlContentHi)
-						.startPageNumber(startingPageNo).applicationId(applicationId).applicationAbbr(applicationAbbr)
-						.locale(locale).fileName(fileName).build();
+			if (htmlContentHi != null) {
+				upload = PdfConverterDTO.builder().htmlContent(htmlContentHi).startPageNumber(startingPageNo)
+						.applicationId(applicationId).applicationAbbr(applicationAbbr).locale(locale).fileName(fileName)
+						.build();
 			}
-			
+
 			UUID documentUuid = pdfService.uploadHtmlAndReturnUuid(upload);
 
 			Map<String, Object> response = new HashMap<>();
@@ -427,5 +432,15 @@ public class GeneratedPdfController {
 	public ResponseEntity<NewEventsLss> addDsp1Table(@RequestBody NewEventsLssDTO dto) {
 		NewEventsLss response = nelssService.saveNewEvent(dto);
 		return ResponseEntity.ok(response);
+	}
+
+	@PostMapping("/clear-dsp1")
+	public ResponseEntity<String> clearDsp1Cache(@RequestParam String appNo, @RequestParam String appAbbr) {
+
+		log.info("🔄 Request received to clear DSP1 cache -> appNo: {}, appAbbr: {}", appNo, appAbbr);
+
+		dsp1CacheService.clearCacheDsp1(appNo, appAbbr);
+
+		return ResponseEntity.ok("✅ Cache clearing triggered for appNo: " + appNo + ", appAbbr: " + appAbbr);
 	}
 }

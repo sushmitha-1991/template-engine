@@ -1,6 +1,6 @@
 /**
  * 
- * @author Mrinal Lakhanpal
+ * @author MrinalRP Lakhanpal
  * @version 1.0
  */
 package com.dsp.templateEngine.service;
@@ -36,6 +36,12 @@ public class Dsp1CacheService {
 	@Value("${dsp1.cache.clear.url}")
 	private String dsp1CacheClearUrl;
 
+	private static String DSP1_MONTHLY_CALENDAR_CACHE_NAME = "twelveHourCache";
+
+	private static String DSP1_MONTHLY_CALENDAR_ENDPOINT = "/api_ls/ppHome/MonthlyCalendar";
+
+	public static String TRP = "TRP";
+
 	public Dsp1CacheService(GeneratedPdfModelRepository generatedPdfModelRepository, RestTemplate asyncRestTemplate) {
 		this.generatedPdfModelRepository = generatedPdfModelRepository;
 		this.asyncRestTemplate = asyncRestTemplate;
@@ -44,6 +50,11 @@ public class Dsp1CacheService {
 	@Async
 	public void clearCacheDsp1(String appNo, String appAbbr) {
 		try {
+
+			if (appAbbr.equals(TRP)) {
+				appNo = appNo + "_HI";
+			}
+
 			PublishHistoryProjection docDetails = generatedPdfModelRepository.getAppDetailsByAbbr(appNo);
 
 			List<Dsp1CacheRegistryProjection> dsp1CacheList = generatedPdfModelRepository
@@ -65,29 +76,43 @@ public class Dsp1CacheService {
 				}
 
 			} else if (appAbbr.equalsIgnoreCase("B2")) {
+
 				for (Dsp1CacheRegistryProjection dsp1Cache : dsp1CacheList) {
+
 					String endpoint = dsp1Cache.getDsp1Endpoint();
-					if (endpoint.contains("bull2Day")) {
-						endpoint = endpoint
-								.replaceFirst("\\$", docDetails.getDay() != null ? docDetails.getDay().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getYear() != null ? docDetails.getYear().toString() : "")
-								.replaceFirst("\\$", docDetails.getLocale() != null ? docDetails.getLocale() : "");
-					} else {
-						endpoint = endpoint
-								.replaceFirst("\\$",
-										docDetails.getMonth() != null ? docDetails.getMonth().toString() : "")
-								.replaceFirst("\\$",
-										docDetails.getYear() != null ? docDetails.getYear().toString() : "");
+
+					// ---- 1️⃣ bulletin2Url (has 4 placeholders: day, month, year, locale)
+					if (endpoint.contains("bulletin2Url")) {
+
+						String urlEndpoint = endpoint.replaceFirst("\\$", docDetails.getDay().toString())
+								.replaceFirst("\\$", docDetails.getMonth().toString())
+								.replaceFirst("\\$", docDetails.getYear().toString())
+								.replaceFirst("\\$", docDetails.getLocale());
+
+						clearCacheFromDSP1(dsp1Cache.getDsp1CacheName() + "::" + urlEndpoint);
 					}
 
-					String redisKey = dsp1Cache.getDsp1CacheName() + "::" + endpoint;
-					clearCacheFromDSP1(redisKey);
+					// ---- 2️⃣ bulletin2Dates (has 2 placeholders: month, year)
+					if (endpoint.contains("bulletin2Dates")) {
+
+						String dateEndpoint = endpoint.replaceFirst("\\$", docDetails.getMonth().toString())
+								.replaceFirst("\\$", docDetails.getYear().toString());
+
+						clearCacheFromDSP1(dsp1Cache.getDsp1CacheName() + "::" + dateEndpoint);
+					}
 				}
 			}
-		} catch (Exception e) {
+
+			String monthlyCalendarEndpoint = DSP1_MONTHLY_CALENDAR_ENDPOINT + "?month=" + docDetails.getMonth()
+					+ "&year=" + docDetails.getYear() + "&locale=" + docDetails.getLocale();
+
+			String monthlyCalendarRedisKey = DSP1_MONTHLY_CALENDAR_CACHE_NAME + "::" + monthlyCalendarEndpoint;
+			System.out.println(">>> monthlyCalendarRedisKey " + monthlyCalendarRedisKey);
+			clearCacheFromDSP1(monthlyCalendarRedisKey);
+
+		} catch (
+
+		Exception e) {
 			log.error("❌ Error in async DSP1 cache clearing for appNo={}, appAbbr={}: {}", appNo, appAbbr,
 					e.getMessage());
 		}
