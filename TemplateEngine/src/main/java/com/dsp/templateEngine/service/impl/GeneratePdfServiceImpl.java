@@ -283,12 +283,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			//translation code
 			
 			Boolean isSendToTranslation=false;
-			try {
-				translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
-				isSendToTranslation = true;
-			} catch (Exception e) {
-				isSendToTranslation = false;
-			}
+			// try {
+			// 	translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
+			// 	isSendToTranslation = true;
+			// } catch (Exception e) {
+			// 	isSendToTranslation = false;
+			// }
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
 		} catch (Exception e) {
@@ -991,12 +991,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			//translation code
 			
 			Boolean isSendToTranslation=false;
-			try {
-				translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
-				isSendToTranslation = true;
-			} catch (Exception e) {
-				isSendToTranslation = false;
-			}
+			// try {
+			// 	translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
+			// 	isSendToTranslation = true;
+			// } catch (Exception e) {
+			// 	isSendToTranslation = false;
+			// }
 
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
