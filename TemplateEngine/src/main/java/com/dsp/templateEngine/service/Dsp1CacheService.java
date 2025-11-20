@@ -96,7 +96,8 @@ public class Dsp1CacheService {
 					if (endpoint.contains("bulletin2Dates")) {
 
 						String dateEndpoint = endpoint.replaceFirst("\\$", docDetails.getMonth().toString())
-								.replaceFirst("\\$", docDetails.getYear().toString());
+								.replaceFirst("\\$", docDetails.getYear().toString())
+								.replaceFirst("\\$", docDetails.getLocale());
 
 						clearCacheFromDSP1(dsp1Cache.getDsp1CacheName() + "::" + dateEndpoint);
 					}
