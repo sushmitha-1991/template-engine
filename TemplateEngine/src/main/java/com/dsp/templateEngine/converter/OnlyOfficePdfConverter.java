@@ -42,7 +42,7 @@ public class OnlyOfficePdfConverter implements IConverter {
 	        if (!response.isSuccessful())
 	            throw new RuntimeException("Conversion failed: " + response);
 	
-	        String resultJson = response.body().string();
+	        String resultJson = response.body().string(); 
 	
 	        // Extract "fileUrl" from result JSON
 	        String pdfUrl = extractDownloadUrl(resultJson);
