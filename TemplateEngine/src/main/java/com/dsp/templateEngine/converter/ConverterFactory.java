@@ -24,13 +24,18 @@ public class ConverterFactory {
 	@Autowired
 	ITextConverter itextConverter;
 	
+	@Autowired
+	OnlyOfficePdfConverter onlyOfficeConverter;
+	
 	public IConverter getConverter (String applicationName, String lang, boolean odtFlag) {
 		
 		log.debug("Application Name: " + applicationName);
 		log.debug("Lang: " + lang);
 		
 		if (odtFlag) {
-			return libreOdtConverter;
+			System.out.println("Selected LibreConvertor");
+//			return libreOdtConverter;
+			return onlyOfficeConverter;
 		}
 
 //		temporary hindi temp check
