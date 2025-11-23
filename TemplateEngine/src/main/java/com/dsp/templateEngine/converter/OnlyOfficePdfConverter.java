@@ -7,6 +7,13 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import java.io.*;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathFactory;
+import org.w3c.dom.Document;
+
+
 @Service
 @Slf4j
 public class OnlyOfficePdfConverter implements IConverter {
@@ -17,51 +24,44 @@ public class OnlyOfficePdfConverter implements IConverter {
 	private static final String ONLY_OFFICE_END_POINT = "/ConvertService.ashx"; 
     private static final MediaType JSON = MediaType.get("application/json");
 
-    public File convertToPdf (PdfConverterDTO input) {
+	@Override
+	public File convertToPdf (PdfConverterDTO input) throws IOException {
+		
+		// Extract relevant fields
+		String fileName = input.getFileName();
+	
+		ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+		convertToByteArray(input, pdfOutputStream);
+	
+		byte[] numberedPdfBytes = ConverterUtils.addPageNumbersToPdf(pdfOutputStream.toByteArray(), input.getStartPageNumber());
 
-        // JSON body for conversion
-        String json = "{\n" +
-                "  \"async\": false,\n" +
-                "  \"filetype\": \"docx\",\n" +
-                "  \"outputtype\": \"pdf\",\n" +
-                "  \"title\": \"converted\",\n" +
-                "  \"url\": \"" + input.getDocUrl() + "\"\n" +
-                "}";
+		// Step 3: Write PDF bytes to a temp file and return it
+		File tempPdfFile = File.createTempFile(fileName, ".pdf");
 
-        OkHttpClient client = new OkHttpClient();
+		try (FileOutputStream fileOutputStream = new FileOutputStream(tempPdfFile)) {
+			fileOutputStream.write(numberedPdfBytes);
+		}
 
-        RequestBody body = RequestBody.create(json, JSON);
+		return tempPdfFile;
+	}
 
-        Request request = new Request.Builder()
-                .url(onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT)
-                .post(body)
-                .build();
 
+    public String extractDownloadUrl (String xml) {
         try {
-	        Response response = client.newCall(request).execute();
-	        if (!response.isSuccessful())
-	            throw new RuntimeException("Conversion failed: " + response);
-	
-	        String resultJson = response.body().string(); 
-	
-	        // Extract "fileUrl" from result JSON
-	        String pdfUrl = extractDownloadUrl(resultJson);
-	
-	        // Download the PDF
-	        return downloadFile(pdfUrl, input.getFileName());
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setNamespaceAware(false);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+
+            Document doc = builder.parse(new ByteArrayInputStream(xml.getBytes("UTF-8")));
+
+            XPath xpath = XPathFactory.newInstance().newXPath();
+            return xpath.evaluate("/FileResult/FileUrl", doc);  // <-- SAFE AND CORRECT
+
         } catch (Exception e) {
-        	log.error("Failed to convert to PDF using Only Office converter: {}", e.getMessage());
-        	return null;
+            throw new RuntimeException("Failed to parse OnlyOffice response: " + e.getMessage(), e);
         }
     }
-
-    private String extractDownloadUrl(String json) {
-        // Expected response: {"endConvert":true,"fileUrl":"http://...."}
-        int start = json.indexOf("\"fileUrl\":\"") + 11;
-        int end = json.indexOf("\"", start);
-        return json.substring(start, end);
-    }
-
+    
     private File downloadFile(String url, String fileName) throws Exception {
         OkHttpClient client = new OkHttpClient();
 
@@ -81,8 +81,73 @@ public class OnlyOfficePdfConverter implements IConverter {
         return file;
     }
     
+    public void downloadPdfToStream(String pdfUrl, OutputStream outputStream) throws Exception {
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(pdfUrl)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+
+            if (!response.isSuccessful()) {
+                throw new RuntimeException("Error downloading PDF: " + response);
+            }
+
+            try (InputStream in = response.body().byteStream()) {
+                byte[] buffer = new byte[8192];
+                int n;
+                while ((n = in.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, n);
+                }
+            }
+        }
+    }
+
+    
 	public void convertToByteArray(PdfConverterDTO input, ByteArrayOutputStream outputStream) throws IOException {
-		// do nothing
+		
+	       // JSON body for conversion
+        String json = "{\n" +
+                "  \"async\": false,\n" +
+                "  \"filetype\": \"docx\",\n" +
+                "  \"outputtype\": \"pdf\",\n" +
+                "  \"title\": \"converted\",\n" +
+                "  \"url\": \"" + input.getDocUrl() + "\"\n" +
+                "}";
+
+        OkHttpClient client = new OkHttpClient();
+
+        RequestBody body = RequestBody.create(json, JSON);
+        
+        log.debug("Only Office URL: {}", onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT);
+        System.out.println("Only Office URL: {}" + onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT);
+        Request request = new Request.Builder()
+                .url(onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT)
+                .post(body)
+                .build();
+
+        try {
+	        Response response = client.newCall(request).execute();
+	        if (!response.isSuccessful())
+	            throw new RuntimeException("Conversion failed: " + response);
+	
+	        String resultJson = response.body().string(); 
+	        log.debug("Result JSON: {}", resultJson);
+//	        System.out.println("Result JSON: {}" + resultJson);
+	
+	        // Extract "fileUrl" from result JSON
+	        String pdfUrl = extractDownloadUrl(resultJson);
+	        log.debug("URL of generated PDF: {}", pdfUrl);
+//	        System.out.println("URL of generated PDF: {}" + pdfUrl);
+	
+	        // Download the PDF
+	        downloadPdfToStream(pdfUrl, outputStream);
+	        
+        } catch (Exception e) {
+        	log.error("Failed to convert to PDF using Only Office converter: {}", e.getMessage());
+        }
+        
 	}
 
 }

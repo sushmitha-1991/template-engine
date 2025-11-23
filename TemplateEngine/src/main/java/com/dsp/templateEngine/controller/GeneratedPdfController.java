@@ -2,12 +2,15 @@ package com.dsp.templateEngine.controller;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -132,10 +135,30 @@ public class GeneratedPdfController {
 			// Add page numbers to the final PDF
 			byte[] pdfWithPageNumbers = pdfService.addPageNumbersToPdf(mergedPdfBytes, input.getStartPageNumber());
 
-			// Set HTTP response headers
+//			// Set HTTP response headers
+//			HttpHeaders headers = new HttpHeaders();
+//			headers.setContentType(MediaType.APPLICATION_PDF);
+//			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
+
+			
+			// New Code
+			String sanitized = sanitizeFileName(fileName); 
+			String outputFileName = fileName + ".pdf";
+			log.debug("outputFileName: {} ", outputFileName);
+//			System.out.println("outputFileName: {} " + outputFileName);
+
+			String encoded = URLEncoder.encode(outputFileName, StandardCharsets.UTF_8)
+			                            .replace("+", "%20"); // keep spaces, if any
+
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_PDF);
-			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
+			
+			String fallback = "attachment.pdf";
+			String disposition = "attachment; " +
+			        "filename=\"" + outputFileName + "\"; " +
+			        "filename*=UTF-8''" + encoded;
+
+			headers.add(HttpHeaders.CONTENT_DISPOSITION, disposition);
 
 			return new ResponseEntity<>(pdfWithPageNumbers, headers, HttpStatus.OK);
 
@@ -347,6 +370,32 @@ public class GeneratedPdfController {
 
 	}
 
+	private static String sanitizeFileName(String fileName) {
+
+	    if (fileName == null || fileName.isEmpty()) {
+	        return fileName;
+	    }
+
+	    // Replace space and colon with hyphen
+	    String sanitized = fileName.replace(" ", "-")
+	                               .replace(":", "-");
+	    
+	    // NBSP → normal space
+	    fileName = fileName.replace("\u00A0", " "); 
+	    
+	    // Remove any remaining whitespace (tabs, unicode spaces etc.)
+	    sanitized = sanitized.replaceAll("\\s+", "");
+	    
+	    // Replace multiple hyphens with a single hyphen
+	    sanitized = sanitized.replaceAll("-{2,}", "-");
+
+	    // Trim starting & ending hyphens
+	    sanitized = sanitized.replaceAll("^-+", "")
+	                         .replaceAll("-+$", "");
+
+	    return sanitized;
+	}
+	
 	private ByteArrayOutputStream processHtml(PdfConverterDTO input) {
 
 		System.out.println("### processHtml HTML - ");

@@ -33,7 +33,7 @@ public class ConverterFactory {
 		log.debug("Lang: " + lang);
 		
 		if (odtFlag) {
-			System.out.println("Selected LibreConvertor");
+			System.out.println("Selected onlyOfficeConverter");
 //			return libreOdtConverter;
 			return onlyOfficeConverter;
 		} 
