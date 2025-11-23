@@ -3,6 +3,7 @@ package com.dsp.templateEngine.converter;
 import okhttp3.*;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import java.io.*;
@@ -15,7 +16,7 @@ import javax.xml.xpath.XPathFactory;
 import org.w3c.dom.Document;
 
 
-@Service
+@Component
 @Slf4j
 public class OnlyOfficePdfConverter implements IConverter {
 
@@ -114,9 +115,13 @@ public class OnlyOfficePdfConverter implements IConverter {
                 "  \"filetype\": \"docx\",\n" +
                 "  \"outputtype\": \"pdf\",\n" +
                 "  \"title\": \"converted\",\n" +
-                "  \"url\": \"" + input.getDocUrl() + "\"\n" +
+                "  \"url\": \"" + input.getDocUrl() + "\",\n" +
                 "  \"key\": \"" + UUID.randomUUID().toString() + "\"\n" +
                 "}";
+
+        log.debug("Only Office Request Body: {}", json);
+        System.out.println ("Only Office Request Body: {}" +  json);
+
 
         OkHttpClient client = new OkHttpClient();
 
@@ -124,6 +129,7 @@ public class OnlyOfficePdfConverter implements IConverter {
         
         log.debug("Only Office URL: {}", onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT);
         System.out.println("Only Office URL: {}" + onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT);
+        
         Request request = new Request.Builder()
                 .url(onlyOfficeServiceUrl + ONLY_OFFICE_END_POINT)
                 .post(body)
@@ -136,12 +142,12 @@ public class OnlyOfficePdfConverter implements IConverter {
 	
 	        String resultJson = response.body().string(); 
 	        log.debug("Result JSON: {}", resultJson);
-//	        System.out.println("Result JSON: {}" + resultJson);
+	        System.out.println("Result JSON: {}" + resultJson);
 	
 	        // Extract "fileUrl" from result JSON
 	        String pdfUrl = extractDownloadUrl(resultJson);
 	        log.debug("URL of generated PDF: {}", pdfUrl);
-//	        System.out.println("URL of generated PDF: {}" + pdfUrl);
+	        System.out.println("URL of generated PDF: {}" + pdfUrl);
 	
 	        // Download the PDF
 	        downloadPdfToStream(pdfUrl, outputStream);
