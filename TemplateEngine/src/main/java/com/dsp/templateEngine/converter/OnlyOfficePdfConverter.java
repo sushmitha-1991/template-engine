@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 import java.io.*;
+import java.util.UUID;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -114,6 +115,7 @@ public class OnlyOfficePdfConverter implements IConverter {
                 "  \"outputtype\": \"pdf\",\n" +
                 "  \"title\": \"converted\",\n" +
                 "  \"url\": \"" + input.getDocUrl() + "\"\n" +
+                "  \"key\": \"" + UUID.randomUUID().toString() + "\"\n" +
                 "}";
 
         OkHttpClient client = new OkHttpClient();
