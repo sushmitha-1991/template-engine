@@ -63,6 +63,7 @@ import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.TranslationService;
+import com.dsp.templateEngine.util.Balloting377Utils;
 import com.dsp.templateEngine.util.Dsp1Utils;
 import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
@@ -124,6 +125,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private Utils util;
+	@Autowired
+	private Balloting377Utils ballotUtil;
 
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
@@ -824,10 +827,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();
 			entry = publishRepository.save(entry);
-
 			// Writing to DSP1
 			try {
+				if(Balloting377Utils.NOTICE_377.equalsIgnoreCase(dto.getNoticeType()))
 				dsp1Utils.writeToBallotingDSP1(entry, houseAbbr, ballotTitle);
+			else if(Balloting377Utils.NOTICE_377.equalsIgnoreCase(dto.getNoticeType()))
+				ballotUtil.saveIntoEtransmission(entry,houseAbbr,ballotTitle,dto);
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new RuntimeException("Error in writeToBallDSP1", e);
