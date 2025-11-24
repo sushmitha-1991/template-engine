@@ -93,15 +93,34 @@ public class Dsp1Utils {
 			// 6. Final title
 			String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
 
-			NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
-					.eurl(publishHistoryEntity.getPublishUrl())
-					.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
-					.etitle(eTitle)
-					.isNew(1)
-					.etype("dsp2En")
-					.build();
-			NewEventsLss lss = nelssService.saveNewEvent(nELss);
-			System.out.println("Function call which table " + lss);
+			System.out.println("house " + houseAbbr);
+		BaseUser user = getUser();
+		// if (houseAbbr.equalsIgnoreCase("LS")) {
+		LssUpdatesDTO lssUpdateEn = LssUpdatesDTO.builder()
+				.isActive(1)
+				.date(publishHistoryEntity.getForDate())
+				.file(fetchUuid(publishHistoryEntity.getPublishUrl()))
+				.title(eTitle)
+				.isNew(1)
+				.type("dsp2En")
+				.uuid(""+publishHistoryEntity.getPublishUuid())
+				.locale("en")
+				.createdAt(LocalDateTime.now())
+				.publishedAt(LocalDateTime.now())
+				.createdBy(user.getUsername())
+				.publishedBy(user.getUsername())
+				.build();
+		LssUpdates lssEn = nelssService.saveLssUpdates(lssUpdateEn);
+
+			// NewEventsLssDTO nELss = NewEventsLssDTO.builder().isActive(1).edate(publishHistoryEntity.getForDate())
+			// 		.eurl(publishHistoryEntity.getPublishUrl())
+			// 		.efile(fetchUuid(publishHistoryEntity.getPublishUrl()))
+			// 		.etitle(eTitle)
+			// 		.isNew(1)
+			// 		.etype("dsp2En")
+			// 		.build();
+			// NewEventsLss lss = nelssService.saveNewEvent(nELss);
+			System.out.println("Function call which table " + lssEn);
 		} catch (NoResultException e) {
 			throw new RuntimeException("Session or Lok Sabha number not found for given IDs.");
 		} catch (Exception e) {
