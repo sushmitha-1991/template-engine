@@ -839,7 +839,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				e.printStackTrace();
 				throw new RuntimeException("Error in writeToBallDSP1", e);
 			}
-
 			return dto;
 		} catch (IOException e) {
 			e.printStackTrace(); // Log the exception

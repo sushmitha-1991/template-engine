@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.util;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,8 @@ import com.dsp.templateEngine.entity.ETransmission;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.repository.EtransmissionRepo;
 
+import ch.qos.logback.classic.pattern.Util;
+
 @Component
 public class Balloting377Utils {
 
@@ -20,6 +23,8 @@ public class Balloting377Utils {
 
 	@Autowired
 	private EtransmissionRepo etransmissionRepo;
+	@Autowired
+	private Utils utils;
 
 	public void saveIntoEtransmission(PublishHistoryEntity publishEntity, String house, String title,
 			PublishHistoryDTO dto) {
@@ -28,24 +33,34 @@ public class Balloting377Utils {
 		System.out.println("LS Session: " + dto.getLokSabhaSessionNo());
 		System.out.println("RS Session: " + dto.getRajyaSabhaSessionNo());
 
-		Map<String,Object> paperData=getOfficePaperId(BALLOT_RESULT);
-		Long officePaperId = paperData.get("paperId") != null 
-        ? ((Number) paperData.get("paperId")).longValue() 
-        : null;
-		Long officeId = paperData.get("officeId") != null 
-        ? ((Number) paperData.get("officeId")).longValue() 
-        : null;
+		Map<String, Object> paperData = getOfficePaperId(BALLOT_RESULT);
+		Long officePaperId = paperData.get("paperId") != null
+				? ((Number) paperData.get("paperId")).longValue()
+				: null;
+		Long officeId = paperData.get("officeId") != null
+				? ((Number) paperData.get("officeId")).longValue()
+				: null;
 		System.out.println(">>> officePaperId " + officePaperId);
-		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
-				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
-				.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
-				.dateOfCirculation(publishEntity.getForDate()).officeId(officeId).build();
+		ETransmission transmission =
+		ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
+		.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
+		.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
+		.dateOfCirculation(publishEntity.getForDate()).officeId(officeId).build();
+		System.out.println("transmisaion");
+		System.out.println(transmission);
+		// try {
+		// 	etransmissionRepo.saveEntityQuery(dto.getLokSabhaNo(), dto.getLokSabhaSessionNo(), officeId, officePaperId,
+		// 			publishEntity.getPublishUuid(), publishEntity.getForDate(), utils.getUserIdFromAuthentication(),
+		// 			LocalDateTime.now());
+		// } catch (Exception e) {
+		// 	System.out.println(e.getLocalizedMessage());
+		// }
 		etransmissionRepo.save(transmission);
 	}
 
-	public Map<String,Object> getOfficePaperId(String paperType) {
+	public Map<String, Object> getOfficePaperId(String paperType) {
 		System.out.println(">>> paperType - " + paperType);
-		Map<String,Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
+		Map<String, Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
 		return paperIds.isEmpty() ? null : paperIds;
 	}
 }
