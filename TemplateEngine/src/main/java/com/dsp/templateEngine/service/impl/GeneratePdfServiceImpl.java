@@ -831,7 +831,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			entry = publishRepository.save(entry);
 			// Writing to DSP1
 			try {
-				if (Balloting377Utils.NOTICE_377.equalsIgnoreCase(dto.getNoticeType()))
+				if (Balloting377Utils.NOTICE_ZERO_HOUR.equalsIgnoreCase(dto.getNoticeType()))
 					dsp1Utils.writeToBallotingDSP1(entry, houseAbbr, ballotTitle);
 				else if (Balloting377Utils.NOTICE_377.equalsIgnoreCase(dto.getNoticeType()))
 					ballotUtil.saveIntoEtransmission(entry, houseAbbr, ballotTitle, dto);

@@ -25,58 +25,61 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 @Entity
-@Table(name="e_transmission",schema="transmission")
-public class ETransmission  extends Auditable{
+@Table(name = "e_transmission", schema = "transmission")
+public class ETransmission extends Auditable {
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "e_transmission_id_seq")
+	@SequenceGenerator(name = "e_transmission_id_seq", sequenceName = "transmission.e_transmission_id_seq", allocationSize = 1)
 	private Long id;
 
-	    @Column(name = "lok_sabha_no")
-	    private Long lokSabhaNo;
+	@Column(name = "lok_sabha_no")
+	private Long lokSabhaNo;
 
-	    @Column(name = "lok_sabha_session_no")
-	    private Long lokSabhaSessionNo;
+	@Column(name = "lok_sabha_session_no")
+	private Long lokSabhaSessionNo;
 
-	    @Column(name = "rajya_sabha_session_no")
-	    private Long rajyaSabhaSessionNo;
-	    
-	    @Column(name = "office_paper_id")
-	    private Long officepaperid;
+	@Column(name = "rajya_sabha_session_no")
+	private Long rajyaSabhaSessionNo;
 
-	    @Column(name = "date_of_circulation", nullable = false)
-	    private LocalDate dateOfCirculation;
+	@Column(name = "office_paper_id")
+	private Long officepaperid;
 
-	    @Column(name = "office_id", nullable = false)
-	    private Long officeId;
+	@Column(name = "date_of_circulation", nullable = false)
+	private LocalDate dateOfCirculation;
 
-		@Column(name = "file_english")
-	    private UUID fileEnglish;
+	@Column(name = "office_id", nullable = false)
+	private Long officeId;
 
-	    @Column(name = "file_english_ver", nullable = false)
-	    private String fileEnglishVer;
+	@Column(name = "file_english")
+	private UUID fileEnglish;
 
-	    @Column(name = "file_hindi")
-	    private UUID fileHindi;
+	@Column(name = "file_english_ver", nullable = false)
+	private String fileEnglishVer;
 
-	    @Column(name = "file_hindi_ver", nullable = false)
-	    private String fileHindiVer;
-	    
-	    @Column(name = "file_english_update")
-	    private UUID file_english_update;
-	    
-	    @Column(name = "file_hindi_update")
-	    private UUID file_hindi_update;
+	@Column(name = "file_hindi")
+	private UUID fileHindi;
 
-	    @Column(name = "errata_file_english")
-	    private UUID errataFileEnglish;
-	    
-	    @Column(name = "errata_file_hindi")
-	    private UUID errataFileHindi;
-	    
-	    @Column(name = "content")
-	    private String content;
-	    
-	    @Column(name = "category_id")
-	    private Integer categoryId;
-	    
-	    @Column(name = "date_of_sitting", nullable = false)
-	    private LocalDate dateOfSitting;	    
+	@Column(name = "file_hindi_ver", nullable = false)
+	private String fileHindiVer;
+
+	@Column(name = "file_english_update")
+	private UUID file_english_update;
+
+	@Column(name = "file_hindi_update")
+	private UUID file_hindi_update;
+
+	@Column(name = "errata_file_english")
+	private UUID errataFileEnglish;
+
+	@Column(name = "errata_file_hindi")
+	private UUID errataFileHindi;
+
+	@Column(name = "content")
+	private String content;
+
+	@Column(name = "category_id")
+	private Integer categoryId;
+
+	@Column(name = "date_of_sitting", nullable = false)
+	private LocalDate dateOfSitting;
 }
