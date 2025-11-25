@@ -1,10 +1,11 @@
-package com.dsp.template.entity;
+package com.dsp.templateEngine.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.UUID;
 
+import org.hibernate.envers.Audited;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,6 +20,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
+@Audited
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
