@@ -9,39 +9,32 @@ import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.entity.ETransmission;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.repository.EtransmissionRepo;
-import com.dsp.templateEngine.repository.PublishRepository;
 
 @Component
 public class Balloting377Utils {
 
-    public static final String NOTICE_377 = "377";
-    public static final String NOTICE_ZERO_HOUR = "ZH";
-    @Autowired
-    private EtransmissionRepo etransmissionRepo;
+	public static final String NOTICE_377 = "377";
+	public static final String NOTICE_ZERO_HOUR = "ZH";
+	public static final String BALLOT_RESULT = "Ballot Result (Matters under rule 377)";
 
-    public void saveIntoEtransmission(PublishHistoryEntity publishEntity,
-                                      String house,
-                                      String title,
-                                      PublishHistoryDTO dto) {
+	@Autowired
+	private EtransmissionRepo etransmissionRepo;
 
-        Long officePaperId = getPaperId(NOTICE_377);
+	public void saveIntoEtransmission(PublishHistoryEntity publishEntity, String house, String title,
+			PublishHistoryDTO dto) {
 
-        ETransmission transmission = ETransmission.builder()
-                .lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
-                .lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo()))
-                .rajyaSabhaSessionNo(Long.valueOf(dto.getRajyaSabhaSessionNo()))
-                .officepaperid(officePaperId)
-                .fileEnglish(publishEntity.getPublishUuid())
-                .dateOfCirculation(publishEntity.getForDate())
-                .build();
-        etransmissionRepo.save(transmission);
-    }
+		Long officePaperId = getPaperId(BALLOT_RESULT);
 
-    public Long getPaperId(String paperType) {
-        List<Long> paperIds = etransmissionRepo.getPaperId(
-                "%" + paperType + "%", 
-                Utils.getHouseId()
-        );
-        return paperIds.isEmpty() ? null : paperIds.get(0);
-    }
+		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
+				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo()))
+				.rajyaSabhaSessionNo(Long.valueOf(dto.getRajyaSabhaSessionNo())).officepaperid(officePaperId)
+				.fileEnglish(publishEntity.getPublishUuid()).dateOfCirculation(publishEntity.getForDate()).build();
+		etransmissionRepo.save(transmission);
+	}
+
+	public Long getPaperId(String paperType) {
+		System.out.println(">>> paperType - " + paperType);
+		List<Long> paperIds = etransmissionRepo.getPaperId("%" + paperType + "%", Utils.getHouseId());
+		return paperIds.isEmpty() ? null : paperIds.get(0);
+	}
 }
