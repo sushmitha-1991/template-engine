@@ -826,7 +826,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.applicationName(applicationName).applicationNo(appNo).publishUuid(documentUuid)
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
 					.fileType("pdf").locale(dto.getLocale())
-					.forDate(LocalDateTime.now())
+					.forDate(LocalDate.now())
 					// .forDate(dto.getForDate())
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();
