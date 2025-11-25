@@ -63,6 +63,7 @@ import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.TranslationService;
+import com.dsp.templateEngine.util.Balloting377Utils;
 import com.dsp.templateEngine.util.Dsp1Utils;
 import com.dsp.templateEngine.util.JwtUtil;
 import com.dsp.templateEngine.util.Utils;
@@ -124,6 +125,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private Utils util;
+	@Autowired
+	private Balloting377Utils ballotUtil;
 
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
@@ -168,7 +171,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private static final String LISTOFBUSINESS = "LOB";
 
 	private static final String TRANSLATION_ABBR = "TRP";
-	
+
 	private static final String SYNOPSIS_ABBR = "SYM";
 
 	private static final String CREATION_OF_NOTICES_UNDER_RULE_377 = "N377";
@@ -237,19 +240,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Check for Translation Papers Publishing
 			String appAbbr = applicationInstanceRepository.getApplicationNameByInstId(appInstId);
 			if (appAbbr.equals(TRANSLATION_ABBR)) {
-//				htmlContentHi = htmlContentEn;
+				// htmlContentHi = htmlContentEn;
 				htmlContentEn = null;
 			}
-			
-			//SYNOPSIS
-			String hindiDocUrl="";
-			if(appAbbr.equals(SYNOPSIS_ABBR) && !StringUtils.isBlank(htmlContentHi)) {
+
+			// SYNOPSIS
+			String hindiDocUrl = "";
+			if (appAbbr.equals(SYNOPSIS_ABBR) && !StringUtils.isBlank(htmlContentHi)) {
 				OnlyOfficeData ooDataSyn = util.getODTDataForSynopsis(appInstId);
 				if (ooDataSyn != null && !StringUtils.isEmpty(ooDataSyn.getDocUrl()))
 					hindiDocUrl = ooDataSyn.getDocUrl();
 				System.out.println(hindiDocUrl);
 			}
-			
+
 			if (uploadedDoc != null) {
 				documentUuidEn = uploadedDoc;
 			} else {
@@ -261,7 +264,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					System.out.println("Here in the synopsis block for hindi");
 					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
 							hindiDocUrl);
-				} else if (!StringUtils.isBlank(htmlContentHi)){
+				} else if (!StringUtils.isBlank(htmlContentHi)) {
 					documentUuidHi = generateAndUploadPdf(htmlContentHi, startPageNumber, appDetails, appInstId, "_hi",
 							ooData.getDocUrl());
 				}
@@ -280,17 +283,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 			// Trigger async cache clearing — won't block publishing flow
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
-			//translation code
-			
-			Boolean isSendToTranslation=false;
+			// translation code
+
+			Boolean isSendToTranslation = false;
 			// try {
-			// 	translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
-			// 	isSendToTranslation = true;
+			// translationService.sendToTranslation(appInstId, appDetails, documentUuidEn,
+			// appAbbr);
+			// isSendToTranslation = true;
 			// } catch (Exception e) {
-			// 	isSendToTranslation = false;
+			// isSendToTranslation = false;
 			// }
 
-			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
+			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
@@ -368,7 +372,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		log.info("appDetails " + appDetails);
 
 		List<String> folders = new ArrayList();
-//		//changes 19-07-2025
+		// //changes 19-07-2025
 		String houseAbbr = utils.getHouseAbbr();
 		folders.add(houseAbbr);
 		if ("LS".equals(houseAbbr)) {
@@ -514,13 +518,14 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return "saved";
 	}
 
-	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid,Boolean isSendToTranslation) {
+	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid,
+			Boolean isSendToTranslation) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");
 		response.put("message", "Document(s) published successfully.");
 		response.put("englishDocumentUuid", enUuid);
 		response.put("hindiDocumentUuid", hiUuid);
-		response.put("isSendToTranslation",isSendToTranslation);
+		response.put("isSendToTranslation", isSendToTranslation);
 		return ResponseEntity.ok(response);
 	}
 
@@ -824,10 +829,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();
 			entry = publishRepository.save(entry);
-
 			// Writing to DSP1
 			try {
-				dsp1Utils.writeToBallotingDSP1(entry, houseAbbr, ballotTitle);
+				if (Balloting377Utils.NOTICE_ZERO_HOUR.equalsIgnoreCase(dto.getNoticeType()))
+					dsp1Utils.writeToBallotingDSP1(entry, houseAbbr, ballotTitle);
+				else if (Balloting377Utils.NOTICE_377.equalsIgnoreCase(dto.getNoticeType()))
+					ballotUtil.saveIntoEtransmission(entry, houseAbbr, ballotTitle, dto);
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new RuntimeException("Error in writeToBallDSP1", e);
@@ -918,7 +925,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		upload.setFileName(fileName);
 		return fileName;
 	}
-	
+
 	@Transactional
 	public ResponseEntity<Map<String, Object>> publishDocumentV2(String htmlContentEn, String htmlContentHi,
 
@@ -988,18 +995,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
-			//translation code
-			
-			Boolean isSendToTranslation=false;
+			// translation code
+
+			Boolean isSendToTranslation = false;
 			// try {
-			// 	translationService.sendToTranslation(appInstId, appDetails, documentUuidEn, appAbbr);
-			// 	isSendToTranslation = true;
+			// translationService.sendToTranslation(appInstId, appDetails, documentUuidEn,
+			// appAbbr);
+			// isSendToTranslation = true;
 			// } catch (Exception e) {
-			// 	isSendToTranslation = false;
+			// isSendToTranslation = false;
 			// }
 
-
-			return buildSuccessResponse(documentUuidEn, documentUuidHi,isSendToTranslation);
+			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation);
 
 		} catch (Exception e) {
 
@@ -1127,7 +1134,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private UUID generateDoc(String htmlContent, int startPageNumber,
 
-			ApplicationInstanceProjection appDetails, String locale,String docUrl) throws Exception {
+			ApplicationInstanceProjection appDetails, String locale, String docUrl) throws Exception {
 
 		UUID documentUuid = generateAndUploadPdf(htmlContent, startPageNumber, appDetails, appDetails.getAppId(),
 				locale, docUrl);

@@ -49,4 +49,5 @@ public class PublishHistoryDTO {
 	private String house;
 	private int year;
 	private int month;
+	private String noticeType;
 }
