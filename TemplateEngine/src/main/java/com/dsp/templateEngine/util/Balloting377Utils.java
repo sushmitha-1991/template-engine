@@ -32,7 +32,7 @@ public class Balloting377Utils {
 		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
 				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
 				.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
-				.dateOfCirculation(publishEntity.getForDate()).build();
+				.dateOfCirculation(publishEntity.getForDate()).officeId(officePaperId).build();
 		etransmissionRepo.save(transmission);
 	}
 
