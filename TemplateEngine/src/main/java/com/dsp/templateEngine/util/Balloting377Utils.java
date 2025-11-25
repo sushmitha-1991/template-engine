@@ -24,7 +24,7 @@ public class Balloting377Utils {
 			PublishHistoryDTO dto) {
 
 		Long officePaperId = getPaperId(BALLOT_RESULT);
-
+		System.out.println(">>> officePaperId " + officePaperId);
 		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
 				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo()))
 				.rajyaSabhaSessionNo(Long.valueOf(dto.getRajyaSabhaSessionNo())).officepaperid(officePaperId)
@@ -34,7 +34,7 @@ public class Balloting377Utils {
 
 	public Long getPaperId(String paperType) {
 		System.out.println(">>> paperType - " + paperType);
-		List<Long> paperIds = etransmissionRepo.getPaperId("%" + paperType + "%", Utils.getHouseId());
+		List<Long> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
 		return paperIds.isEmpty() ? null : paperIds.get(0);
 	}
 }
