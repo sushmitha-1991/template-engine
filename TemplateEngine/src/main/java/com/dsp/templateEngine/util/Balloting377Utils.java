@@ -23,12 +23,16 @@ public class Balloting377Utils {
 	public void saveIntoEtransmission(PublishHistoryEntity publishEntity, String house, String title,
 			PublishHistoryDTO dto) {
 
+		System.out.println("LS No: " + dto.getLokSabhaNo());
+		System.out.println("LS Session: " + dto.getLokSabhaSessionNo());
+		System.out.println("RS Session: " + dto.getRajyaSabhaSessionNo());
+
 		Long officePaperId = getPaperId(BALLOT_RESULT);
 		System.out.println(">>> officePaperId " + officePaperId);
 		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
-				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo()))
-				.rajyaSabhaSessionNo(Long.valueOf(dto.getRajyaSabhaSessionNo())).officepaperid(officePaperId)
-				.fileEnglish(publishEntity.getPublishUuid()).dateOfCirculation(publishEntity.getForDate()).build();
+				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
+				.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
+				.dateOfCirculation(publishEntity.getForDate()).build();
 		etransmissionRepo.save(transmission);
 	}
 
