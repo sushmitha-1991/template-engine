@@ -46,15 +46,7 @@ public class Balloting377Utils {
 		.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
 		.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
 		.dateOfCirculation(publishEntity.getForDate()).officeId(officeId).build();
-		System.out.println("transmisaion");
-		System.out.println(transmission);
-		// try {
-		// 	etransmissionRepo.saveEntityQuery(dto.getLokSabhaNo(), dto.getLokSabhaSessionNo(), officeId, officePaperId,
-		// 			publishEntity.getPublishUuid(), publishEntity.getForDate(), utils.getUserIdFromAuthentication(),
-		// 			LocalDateTime.now());
-		// } catch (Exception e) {
-		// 	System.out.println(e.getLocalizedMessage());
-		// }
+		
 		etransmissionRepo.save(transmission);
 	}
 
@@ -63,4 +55,5 @@ public class Balloting377Utils {
 		Map<String, Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
 		return paperIds.isEmpty() ? null : paperIds;
 	}
+
 }
