@@ -20,6 +20,9 @@ public class Balloting377Utils {
 	@Autowired
 	private EtransmissionRepo etransmissionRepo;
 
+	@Autowired
+	private Utils utils;
+
 	public void saveIntoEtransmission(PublishHistoryEntity publishEntity, String house, String title,
 			PublishHistoryDTO dto) {
 
@@ -32,7 +35,7 @@ public class Balloting377Utils {
 		ETransmission transmission = ETransmission.builder().lokSabhaNo(Long.valueOf(dto.getLokSabhaNo()))
 				.lokSabhaSessionNo(Long.valueOf(dto.getLokSabhaSessionNo())).rajyaSabhaSessionNo(null)
 				.officepaperid(officePaperId).fileEnglish(publishEntity.getPublishUuid())
-				.dateOfCirculation(publishEntity.getForDate()).officeId(officePaperId).build();
+				.dateOfCirculation(publishEntity.getForDate()).officeId(utils.getOfficeIdFromAuthentication()).build();
 		etransmissionRepo.save(transmission);
 	}
 
@@ -41,4 +44,5 @@ public class Balloting377Utils {
 		List<Long> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
 		return paperIds.isEmpty() ? null : paperIds.get(0);
 	}
+
 }

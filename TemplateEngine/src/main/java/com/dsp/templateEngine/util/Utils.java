@@ -7,7 +7,6 @@ package com.dsp.templateEngine.util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -17,14 +16,11 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
-import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
-import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UserDetailsDTO;
 import com.dsp.templateEngine.entity.BaseUser;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
-import com.ibm.icu.text.RuleBasedNumberFormat;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -41,16 +37,16 @@ public class Utils {
 
 	@Autowired
 	private EntityManager entityManager; // For native query execution
-	
+
 	@Autowired
-	private HttpServletRequest httpRequest;	
+	private HttpServletRequest httpRequest;
 
 	@Autowired
 	private MyUserRepository userResponsibility;
-	
+
 	@Autowired
 	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
-	
+
 	public static final String LOK_SABHA = "LS";
 
 	public static final String RAJYA_SABHA = "RS";
@@ -58,11 +54,11 @@ public class Utils {
 	public static final String SUMMON = "SN";
 
 	public static final String PROROGATION = "PN";
-	
-	public static final String  BALLOTING_OF_NOTICES = "BON";
-	
+
+	public static final String BALLOTING_OF_NOTICES = "BON";
+
 	public static final String OKM_ROOT = "/okm:root/";
-	
+
 	/**
 	 * Fetches the user ID of the currently authenticated user
 	 * 
@@ -218,7 +214,7 @@ public class Utils {
 		Optional<String> abbr = userResponsibility.findHouseAbbrById(houseId);
 		return abbr.get();
 	}
-	
+
 	public static boolean isEmpty(String input) {
 
 		if (input == null || input.equals("")) {
@@ -226,7 +222,7 @@ public class Utils {
 		}
 		return false;
 	}
-	
+
 	public String getTokenFromRequest() {
 		System.out.println("Inside GetToken");
 		String authorizationHeader = httpRequest.getHeader("Authorization");
@@ -236,7 +232,7 @@ public class Utils {
 		System.out.println("Done In  GetToken method");
 		return null;
 	}
-	
+
 	/**
 	 * 
 	 * @param value
@@ -247,14 +243,14 @@ public class Utils {
 			return value + "TH";
 		}
 		switch ((int) (value % 10)) {
-			case 1:
-				return value + "ST";
-			case 2:
-				return value + "ND";
-			case 3:
-				return value + "RD";
-			default:
-				return value + "TH";
+		case 1:
+			return value + "ST";
+		case 2:
+			return value + "ND";
+		case 3:
+			return value + "RD";
+		default:
+			return value + "TH";
 		}
 	}
 
@@ -265,30 +261,30 @@ public class Utils {
 	 */
 	public static String ordinalToWord(String ordinal) {
 		switch (ordinal) {
-			case "1ST":
-				return "FITRST";
-			case "2ND":
-				return "SECOND";
-			case "3RD":
-				return "THIRD";
-			case "4TH":
-				return "FOUTH";
-			case "5TH":
-				return "FIFTH";
+		case "1ST":
+			return "FITRST";
+		case "2ND":
+			return "SECOND";
+		case "3RD":
+			return "THIRD";
+		case "4TH":
+			return "FOUTH";
+		case "5TH":
+			return "FIFTH";
 
-			case "6TH":
-				return "SIXTH";
-			case "7TH":
-				return "SEVENTH";
-			case "8TH":
-				return "EIGHTH";
-			case "9TH":
-				return "NINTH";
-			case "10TH":
-				return "TENTH";
-			// Add more as needed
-			default:
-				return ordinal;
+		case "6TH":
+			return "SIXTH";
+		case "7TH":
+			return "SEVENTH";
+		case "8TH":
+			return "EIGHTH";
+		case "9TH":
+			return "NINTH";
+		case "10TH":
+			return "TENTH";
+		// Add more as needed
+		default:
+			return ordinal;
 		}
 	}
 
@@ -315,7 +311,7 @@ public class Utils {
 
 		return result;
 	}
-	
+
 	public OnlyOfficeData getODTDataIfExists(Long appInstId) {
 
 		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeData(appInstId);
@@ -325,15 +321,34 @@ public class Utils {
 
 	public OnlyOfficeData getODTDataForSynopsis(Long appInstId) {
 
-		OnlyOfficeData onlyOfficeDataSynopsis = onlyOfficeMetadataRepository.getOnlyOfficeDataForSynopsis(appInstId); 
+		OnlyOfficeData onlyOfficeDataSynopsis = onlyOfficeMetadataRepository.getOnlyOfficeDataForSynopsis(appInstId);
 		return onlyOfficeDataSynopsis;
-		
+
 	}
-	
+
 	public OnlyOfficeData getODTDataIfExistsV2(Long appInstId) {
 
 		OnlyOfficeData onlyOfficeData = onlyOfficeMetadataRepository.getOnlyOfficeDataV2(appInstId);
 		return onlyOfficeData;
 
+	}
+
+	public Long getOfficeIdFromAuthentication() {
+		Long userId = getUserIdFromAuthentication(); // Get the authenticated user's ID
+
+		// Define the native query
+		String nativeQuery = "select ur.office_id from authentication.base_user bu left join authentication.user_roles ur on ur.user_id = bu.id where bu.id = :userId AND ur.is_active = true and ur.is_deleted = false";
+
+		// Execute the query
+		Query query = entityManager.createNativeQuery(nativeQuery);
+		query.setParameter("userId", userId);
+
+		// Retrieve and return the house_id
+		Object result = query.getSingleResult();
+		if (result != null) {
+			return ((Number) result).longValue(); // Cast result to Long
+		} else {
+			throw new IllegalStateException("House ID not found for the authenticated user.");
+		}
 	}
 }
