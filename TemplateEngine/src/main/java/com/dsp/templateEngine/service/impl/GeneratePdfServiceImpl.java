@@ -825,7 +825,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					.lokSabhaSessionNo(dto.getLokSabhaSessionNo()).applicationId(dto.getApplicationId())
 					.applicationName(applicationName).applicationNo(appNo).publishUuid(documentUuid)
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
-					.fileType("pdf").locale(dto.getLocale()).forDate(dto.getForDate())
+					.fileType("pdf").locale(dto.getLocale())
+					.forDate(LocalDateTime.now())
+					// .forDate(dto.getForDate())
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();
 			entry = publishRepository.save(entry);
