@@ -775,6 +775,21 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
+	public static boolean isRoman(String input) {
+
+		String ROMAN_REGEX = "^(?i)(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$";
+
+		return input.matches(ROMAN_REGEX);
+	}
+
+	public String getRomanSession(String sessionNo,String loksabha) {
+		String session = sessionNo;
+		if (!isRoman(sessionNo)) {
+			publishRepository.fetchLokSabhaSession(session,loksabha);
+		}
+		return session;
+	}
+
 	@Override
 	public PublishHistoryDTO publishNotice(PublishHistoryDTO dto) {
 		try {
@@ -822,7 +837,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String houseAbbr = jwtUtil.extractHouseAbbr(token);
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
-					.lokSabhaSessionNo(dto.getLokSabhaSessionNo()).applicationId(dto.getApplicationId())
+					.lokSabhaSessionNo(getRomanSession(dto.getLokSabhaSessionNo(), dto.getLokSabhaNo()))
+					.applicationId(dto.getApplicationId())
 					.applicationName(applicationName).applicationNo(appNo).publishUuid(documentUuid)
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
 					.fileType("pdf").locale(dto.getLocale())
