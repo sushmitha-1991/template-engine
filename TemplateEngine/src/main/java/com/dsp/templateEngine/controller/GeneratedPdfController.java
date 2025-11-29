@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.dsp.templateEngine.converter.PdfConverterDTO;
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.DownloadRequestDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 //import com.dsp.templateEngine.dto.OnlyOfficeData;
@@ -31,12 +32,16 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
+import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.GeneratePdfService;
 import com.dsp.templateEngine.service.NewEventsLssService;
+import com.dsp.templateEngine.translation.RegionalTranslationDto;
+import com.dsp.templateEngine.translation.RegionalTranslationService;
+import com.dsp.templateEngine.util.Utils;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -58,6 +63,12 @@ public class GeneratedPdfController {
 
 	@Autowired
 	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
+	
+	@Autowired
+	private Utils util;
+	
+	@Autowired
+	private RegionalTranslationService regionalTransService;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -252,8 +263,9 @@ public class GeneratedPdfController {
 		try {
 
 			Integer startingPageNumber = 1;
+			ApplicationInstance instance = null;
 			if (appInstId != null) {
-				ApplicationInstance instance = applicationInstanceRepository.findById(appInstId).orElseThrow(
+				instance = applicationInstanceRepository.findById(appInstId).orElseThrow(
 						() -> new ResourceNotFoundException("ApplicationInstance not found with id: " + appInstId));
 
 				if (instance.getStartingPageNo() != null) {
@@ -274,6 +286,14 @@ public class GeneratedPdfController {
 				return handleConflict(response);
 			}
 
+			// send for regional language translation
+			try {
+				sendForRegionalLanguageTranslation(instance);
+			} catch (Exception e) {
+				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
+				// ensure that publish functionality is not impacted
+			}
+			
 			Map<String, Object> responseBody = response.getBody();
 			Map<String, Object> resultData = new HashMap<>();
 			if (responseBody != null) {
@@ -296,6 +316,25 @@ public class GeneratedPdfController {
 		}
 	}
 
+	
+	private void sendForRegionalLanguageTranslation(ApplicationInstance appInstance) {
+		
+		ApplicationInstanceProjection appDetails = util.getAppDetails(appInstance.getId());
+		OnlyOfficeData ooData = util.getODTDataIfExistsV2(appInstance.getId());
+		
+		RegionalTranslationDto input = new RegionalTranslationDto();
+		input.setSittingDate(appInstance.getDocumentDate());
+		input.setDocumentType(appDetails.getAbbr());
+		input.setDocumentSubType(appDetails.getAppName());
+		input.setFileUrl(ooData.getDocUrl());
+		
+		// Determine if first time publish or re-publish
+		input.setEditFlag(false);
+		
+		regionalTransService.sendForTranslation(input);
+	}
+	
+	
 	private void initPdfConversion(PdfConverterDTO input) {
 
 		Integer startingPageNumber = 1;
