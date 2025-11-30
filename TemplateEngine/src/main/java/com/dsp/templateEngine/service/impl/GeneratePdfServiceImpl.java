@@ -41,6 +41,7 @@ import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
@@ -782,12 +783,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return input.matches(ROMAN_REGEX);
 	}
 
-	public String getRomanSession(String sessionNo,String loksabha) {
-		String session = sessionNo;
-		if (!isRoman(sessionNo)) {
-			publishRepository.fetchLokSabhaSession(session,loksabha);
-		}
-		return session;
+	public LokSabhaSessionDTO getRomanSession(Long sessionNo,Long loksabha) {
+			Map<String,Object> mapVal=publishRepository.fetchLokSabhaSession(sessionNo,loksabha);
+
+			LokSabhaSessionDTO resDto=new LokSabhaSessionDTO();
+			resDto.setLsNo(Integer.parseInt(mapVal.get("lsNo").toString()));
+			resDto.setSessionNo(Integer.parseInt(mapVal.get("sessionNo").toString()));
+			resDto.setSession(mapVal.get("session").toString());
+			resDto.setLoksabha(mapVal.get("loksabha").toString());
+
+			return resDto;
+
 	}
 
 	@Override
@@ -836,8 +842,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 			String houseAbbr = jwtUtil.extractHouseAbbr(token);
 
-			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
-					.lokSabhaSessionNo(getRomanSession(dto.getLokSabhaSessionNo(), dto.getLokSabhaNo()))
+			LokSabhaSessionDTO lsDto=getRomanSession(Long.parseLong(dto.getLokSabhaSessionNo()), Long.parseLong(dto.getLokSabhaNo()));
+
+			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(lsDto.getLoksabha())
+					.lokSabhaSessionNo(lsDto.getSession())
 					.applicationId(dto.getApplicationId())
 					.applicationName(applicationName).applicationNo(appNo).publishUuid(documentUuid)
 					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
