@@ -162,7 +162,7 @@ public class RegionalTranslationService {
         // Sub Category
         String subCategory = !StringUtils.isBlank(input.getDocumentSubType()) ?
         						(SUB_CATEGORY_MAP.get(input.getDocumentSubType()) != null ? 
-        						 SUB_CATEGORY_MAP.get(input.getDocumentSubType()) : null) 
+        						 SUB_CATEGORY_MAP.get(input.getDocumentSubType()) : StringUtils.EMPTY) 
         					  : StringUtils.EMPTY;
         
         input.setSubCategory(subCategory);
