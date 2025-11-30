@@ -179,7 +179,8 @@ public class RegionalTranslationService {
         RestTemplate restTemplate = new RestTemplate();
 
         // Base URL of your service
-        String url = baseUrl + "/api/v1/translated-files";
+//        String url = baseUrl + "/api/v1/translated-files";
+        String url = baseUrl + "/api/avk_file/translation";
 
          // Prepare multipart/form-data
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();        
