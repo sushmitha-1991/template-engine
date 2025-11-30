@@ -73,6 +73,7 @@ public class RegionalTranslationService {
 
         // Base URL of your service
         String url = buildTranslateUrl(baseUrl, input.isEditFlag()); // edit=t
+        log.debug("Reverie URL: {}", url);
 
         if (!validate(input)) {
         	return null;
@@ -80,6 +81,10 @@ public class RegionalTranslationService {
         
         populateEndPointParams(input);
         
+		log.debug("RegionalTranslationDto input (after population): {} / {} / {} / {}" +  
+				input.getSittingDate(), input.getCategory(), 
+				input.getSubCategory(), input.getSource());
+		
          // Prepare multipart/form-data
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();        
         body.add("sourceFile", new FileSystemResource(input.getSource()));        
@@ -94,7 +99,7 @@ public class RegionalTranslationService {
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        System.out.println("Request: " + requestEntity);
+        log.info("Request: {}" + requestEntity);
 
         // Invoke API
         ResponseEntity<String> response = restTemplate.exchange(
@@ -105,8 +110,7 @@ public class RegionalTranslationService {
         );
 
         // Output result
-        System.out.println("Status: " + response.getStatusCode());
-        System.out.println("Response: " + response.getBody());
+        log.debug("Response: {} ", response.getBody());
         
         return response;
     }

@@ -296,6 +296,7 @@ public class GeneratedPdfController {
 			} catch (Exception e) {
 				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
 				// ensure that publish functionality is not impacted
+				throw e;
 			}
 			
 			Map<String, Object> responseBody = response.getBody();
@@ -377,6 +378,7 @@ public class GeneratedPdfController {
     
 	private ResponseEntity<String> sendForRegionalLanguageTranslation(ApplicationInstance appInstance) {
 		
+		log.info("In sendForRegionalLanguageTranslation");
 		ApplicationInstanceProjection appDetails = util.getAppDetails(appInstance.getId());
 		OnlyOfficeData ooData = util.getODTDataIfExistsV2(appInstance.getId());
 		
@@ -386,8 +388,9 @@ public class GeneratedPdfController {
 		input.setDocumentSubType(appInstance.getDocumentDisplayName());
 		input.setFileUrl(ooData.getDocUrl());
 		
-		System.out.println("RegionalTranslationDto input: {} / {} / {} / {}" +  
-							appInstance.getDocumentDate() + appDetails.getAbbr() + appDetails.getAppName() + ooData.getDocUrl());
+		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" +  
+							input.getSittingDate(), input.getDocumentType(), 
+							input.getDocumentSubType(), input.getFileUrl());
 		
 		// Determine if first time publish or re-publish
 		input.setEditFlag(false);
@@ -415,7 +418,7 @@ public class GeneratedPdfController {
 
 		// Check if Document is in ODT Format
 		OnlyOfficeData ooData = getODTDataIfExists(applicationInstanceId);
-		System.out.println("ooData: " + ooData);
+		log.debug("ooData: " + ooData);
 
 		if (StringUtils.startsWithIgnoreCase(input.getFileName(), "SYM-") && !StringUtils.isEmpty(input.getDsp2Key())) {
 			OnlyOfficeData oometaData = getOnlyOffcMetaDataByKeyIfExists(input.getDsp2Key(), input.getAppInstanceId());
