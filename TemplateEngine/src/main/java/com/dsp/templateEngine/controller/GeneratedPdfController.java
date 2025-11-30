@@ -386,6 +386,9 @@ public class GeneratedPdfController {
 		input.setDocumentSubType(appDetails.getAppName());
 		input.setFileUrl(ooData.getDocUrl());
 		
+		System.out.println("RegionalTranslationDto input: {} / {} / {} / {}" +  
+							appInstance.getDocumentDate() + appDetails.getAbbr() + appDetails.getAppName() + ooData.getDocUrl());
+		
 		// Determine if first time publish or re-publish
 		input.setEditFlag(false);
 		
