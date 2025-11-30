@@ -18,4 +18,6 @@ import lombok.NoArgsConstructor;
 public class LokSabhaSessionDTO {
 	private int lsNo;
 	private int sessionNo;
+	private String session;
+	private String loksabha;
 }
