@@ -174,7 +174,7 @@ public class RegionalTranslationService {
 	}
 	
 	// Fetch Translated File
-    public File getTranslatedFile(String sourceUrl, String locale, String type) {
+    public File getTranslatedFile(String sourceUrl, String locale, String type) { 
 
         RestTemplate restTemplate = new RestTemplate();
 

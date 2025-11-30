@@ -387,7 +387,7 @@ public class GeneratedPdfController {
 		// Determine if first time publish or re-publish
 		input.setEditFlag(false);
 		
-		return regionalTransService.sendForTranslation(input);
+		return regionalTransService.sendForTranslation(input); 
 	}
 	
 	
