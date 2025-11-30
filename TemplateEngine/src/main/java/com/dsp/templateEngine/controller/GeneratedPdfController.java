@@ -383,7 +383,7 @@ public class GeneratedPdfController {
 		RegionalTranslationDto input = new RegionalTranslationDto();
 		input.setSittingDate(appInstance.getDocumentDate());
 		input.setDocumentType(appDetails.getAbbr());
-		input.setDocumentSubType(appDetails.getAppName());
+		input.setDocumentSubType(appInstance.getDocumentDisplayName());
 		input.setFileUrl(ooData.getDocUrl());
 		
 		System.out.println("RegionalTranslationDto input: {} / {} / {} / {}" +  

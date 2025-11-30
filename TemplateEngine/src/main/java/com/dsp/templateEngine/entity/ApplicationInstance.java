@@ -97,4 +97,7 @@ public class ApplicationInstance extends Auditable {
 
 	@Column(name = "translation_document_type_id")
 	private Long translationDocumentTypeId;
+	
+	@Column(name = "document_display_name")
+	private String documentDisplayName;
 }
