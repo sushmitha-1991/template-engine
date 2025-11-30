@@ -1,8 +1,10 @@
 
 package com.dsp.templateEngine.util;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -91,7 +93,12 @@ public class Dsp1Utils {
 			String ordNoLs = Utils.ordinalToWord(ordinalLs);
 
 			// 6. Final title
-			String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+			// String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
+			LocalDate date = LocalDate.now();
+			DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+			String formattedDate = date.format(formatter);
+
+			String eTitle = "Zero Hour Ballot Dt. " + formattedDate + "..";
 
 			System.out.println("house " + houseAbbr);
 		BaseUser user = getUser();
