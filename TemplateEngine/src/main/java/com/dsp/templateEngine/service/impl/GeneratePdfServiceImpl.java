@@ -782,10 +782,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		return input.matches(ROMAN_REGEX);
 	}
 
-	public String getRomanSession(String sessionNo,String loksabha) {
+	public String getRomanSession(String sessionNo, String loksabha) {
 		String session = sessionNo;
+
 		if (!isRoman(sessionNo)) {
-			publishRepository.fetchLokSabhaSession(session,loksabha);
+			session = publishRepository.fetchLokSabhaSession(Long.parseLong(sessionNo), Long.parseLong(loksabha));
 		}
 		return session;
 	}
@@ -838,11 +839,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(dto.getLokSabhaNo())
 					.lokSabhaSessionNo(getRomanSession(dto.getLokSabhaSessionNo(), dto.getLokSabhaNo()))
-					.applicationId(dto.getApplicationId())
-					.applicationName(applicationName).applicationNo(appNo).publishUuid(documentUuid)
-					.publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl).publishDate(LocalDate.now())
-					.fileType("pdf").locale(dto.getLocale())
-					.forDate(LocalDate.now())
+					.applicationId(dto.getApplicationId()).applicationName(applicationName).applicationNo(appNo)
+					.publishUuid(documentUuid).publishByUser(dto.getPublishByUser()).publishUrl(publishedUrl)
+					.publishDate(LocalDate.now()).fileType("pdf").locale(dto.getLocale()).forDate(LocalDate.now())
 					// .forDate(dto.getForDate())
 					.publishStatus(dto.getPublishStatus()).unpublishByUser(dto.getUnpublishByUser())
 					.unpublishDate(dto.getUnpublishDate()).house(houseAbbr).build();

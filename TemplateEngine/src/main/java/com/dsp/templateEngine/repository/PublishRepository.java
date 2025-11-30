@@ -17,9 +17,9 @@ import com.dsp.templateEngine.entity.PublishHistoryEntity;
 @Repository
 public interface PublishRepository extends JpaRepository<PublishHistoryEntity, Long> {
 
-    @Query(value = " Select lss.session_number from master.lok_sabha_session_masters lss "+
-        " where lss.id = :session and lss.lok_sabha_master_id = :loksabha ",nativeQuery = true)
-        
-    String fetchLokSabhaSession(String session,String loksabha);
-   
+	@Query(value = " Select lss.session_number from master.lok_sabha_session_masters lss "
+			+ " where lss.id = :session and lss.lok_sabha_master_id = :loksabha ", nativeQuery = true)
+
+	String fetchLokSabhaSession(Long session, Long loksabha);
+
 }
