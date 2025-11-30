@@ -351,21 +351,23 @@ public class GeneratedPdfController {
             @RequestParam String locale,
             @RequestParam String type) {
 	   
-        File resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
+//        File resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
+        String resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
 
-        if (resource == null || !resource.exists()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+//        if (resource == null || !resource.exists()) {
+        if (StringUtils.isBlank(resource)) {
+        	return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("message", "Translated file not found for the given parameters."));
         }
 
-        FileSystemResource fs = new FileSystemResource(resource);
+//        FileSystemResource fs = new FileSystemResource(resource);
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentDisposition(
-                ContentDisposition.attachment().filename(resource.getName()).build()
-        );
-        headers.setContentLength(resource.length());
-        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+//        headers.setContentDisposition(
+//                ContentDisposition.attachment().filename(resource.getName()).build()
+//        );
+//        headers.setContentLength(resource.length());
+//        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
         return ResponseEntity.ok()
                 .headers(headers)

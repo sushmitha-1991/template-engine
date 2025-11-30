@@ -174,7 +174,7 @@ public class RegionalTranslationService {
 	}
 	
 	// Fetch Translated File
-    public File getTranslatedFile(String sourceUrl, String locale, String type) { 
+    public String getTranslatedFile(String sourceUrl, String locale, String type) { 
 
         RestTemplate restTemplate = new RestTemplate();
 
@@ -197,33 +197,36 @@ public class RegionalTranslationService {
         System.out.println("Request: " + requestEntity);
 
         // Invoke API
-        ResponseEntity<byte[]> response = restTemplate.exchange(
+//      ResponseEntity<byte[]> response = restTemplate.exchange(
+        ResponseEntity<String> response = restTemplate.exchange(		
                 url,
                 HttpMethod.GET,
                 requestEntity,
-                byte[].class
+                String.class
         );
 
         // Output result
         System.out.println("Status: " + response.getStatusCode());
         System.out.println("Response: " + response.getBody());
         
-        File file = null;
-        try {
-	        if (response.getStatusCode() == HttpStatus.OK) {
-	
-	            // Create output file
-	            file = new File("translated_output.docx");
-	
-	            try (FileOutputStream fos = new FileOutputStream(file)) {
-	                fos.write(response.getBody());
-	            }
-	
-	            System.out.println("File saved: " + file.getAbsolutePath());
-	        }
-        } catch (Exception e) {
-        	log.error("Failed to retrieve file: {}", e.getMessage());
-        }
-        return file;
+//        File file = null;
+//        try {
+//	        if (response.getStatusCode() == HttpStatus.OK) {
+//	
+//	            // Create output file
+//	            file = new File("translated_output.docx");
+//	
+//	            try (FileOutputStream fos = new FileOutputStream(file)) {
+//	                fos.write(response.getBody());
+//	            }
+//	
+//	            System.out.println("File saved: " + file.getAbsolutePath());
+//	        }
+//        } catch (Exception e) {
+//        	log.error("Failed to retrieve file: {}", e.getMessage());
+//        }
+//        return file;
+        
+        return response.getBody();
     }	
 }
