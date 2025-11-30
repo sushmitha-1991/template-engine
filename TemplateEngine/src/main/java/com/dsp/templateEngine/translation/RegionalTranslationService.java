@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.translation;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -65,7 +67,7 @@ public class RegionalTranslationService {
 	@Value("${regional.language.translation.url}")
 	private String baseUrl;
 	
-	public void sendForTranslation (RegionalTranslationDto input) {
+	public ResponseEntity<String> sendForTranslation (RegionalTranslationDto input) {
 		
         RestTemplate restTemplate = new RestTemplate();
 
@@ -73,7 +75,7 @@ public class RegionalTranslationService {
         String url = buildTranslateUrl(baseUrl, input.isEditFlag()); // edit=t
 
         if (!validate(input)) {
-        	return;
+        	return null;
         }
         
         populateEndPointParams(input);
@@ -105,6 +107,8 @@ public class RegionalTranslationService {
         // Output result
         System.out.println("Status: " + response.getStatusCode());
         System.out.println("Response: " + response.getBody());
+        
+        return response;
     }
 
 	
@@ -169,4 +173,56 @@ public class RegionalTranslationService {
         return;
 	}
 	
+	// Fetch Translated File
+    public File getTranslatedFile(String sourceUrl, String locale, String type) {
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        // Base URL of your service
+        String url = baseUrl + "/api/v1/translated-files";
+
+         // Prepare multipart/form-data
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<String, Object>();        
+        body.add("sourceUrl", sourceUrl);        
+        body.add("type", type);        
+        body.add("locale", locale);        
+
+        // Prepare headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+        HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
+
+        System.out.println("Request: " + requestEntity);
+
+        // Invoke API
+        ResponseEntity<byte[]> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                requestEntity,
+                byte[].class
+        );
+
+        // Output result
+        System.out.println("Status: " + response.getStatusCode());
+        System.out.println("Response: " + response.getBody());
+        
+        File file = null;
+        try {
+	        if (response.getStatusCode() == HttpStatus.OK) {
+	
+	            // Create output file
+	            file = new File("translated_output.docx");
+	
+	            try (FileOutputStream fos = new FileOutputStream(file)) {
+	                fos.write(response.getBody());
+	            }
+	
+	            System.out.println("File saved: " + file.getAbsolutePath());
+	        }
+        } catch (Exception e) {
+        	log.error("Failed to retrieve file: {}", e.getMessage());
+        }
+        return file;
+    }	
 }
