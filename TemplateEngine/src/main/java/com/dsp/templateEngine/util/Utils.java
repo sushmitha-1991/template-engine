@@ -16,20 +16,24 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
+import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.UserDetailsDTO;
 import com.dsp.templateEngine.entity.BaseUser;
+import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * 
  */
 @Component
+@Slf4j
 public class Utils {
 
 	@Autowired
@@ -46,6 +50,9 @@ public class Utils {
 
 	@Autowired
 	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
+	
+	@Autowired
+	private GeneratedPdfModelRepository generatedPdfModelRepository;
 
 	public static final String LOK_SABHA = "LS";
 
@@ -350,5 +357,15 @@ public class Utils {
 		} else {
 			throw new IllegalStateException("House ID not found for the authenticated user.");
 		}
+	}
+	
+	
+	public ApplicationInstanceProjection getAppDetails(Long appInstId) {
+		log.error("app id " + appInstId);
+		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
+		if (details == null) {
+			throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
+		}
+		return details;
 	}
 }
