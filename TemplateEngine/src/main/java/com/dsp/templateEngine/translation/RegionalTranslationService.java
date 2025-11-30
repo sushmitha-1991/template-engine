@@ -67,7 +67,15 @@ public class RegionalTranslationService {
 	@Value("${regional.language.translation.url}")
 	private String baseUrl;
 	
+	@Value("${regional.language.translation.enabled}")
+	private Boolean translationFlag;
+	
 	public ResponseEntity<String> sendForTranslation (RegionalTranslationDto input) {
+		
+		if (!translationFlag) {
+	        log.debug("Regional language translation is not enabled for this environment");
+			return new ResponseEntity<>("Regional language translation is not enabled for this environment", HttpStatus.BAD_REQUEST);
+		}
 		
         RestTemplate restTemplate = new RestTemplate();
 
