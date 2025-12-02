@@ -22,6 +22,9 @@ public class RegionalTranslationDto {
 	LocalDate sittingDate;
 	boolean editFlag;
 	
+	// Application instance ID for logging
+	Long applicationInstanceId;
+	
 	// Input Params from Publish module --> converted to End Point params
 	File source;
 	String category;

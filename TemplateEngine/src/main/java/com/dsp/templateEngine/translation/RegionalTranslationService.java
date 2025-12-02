@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpHeaders;
@@ -27,12 +28,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.service.RegionalTranslationLogService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
 public class RegionalTranslationService {
 	
+	@Autowired
+	private RegionalTranslationLogService regionalTranslationLogService;
     public static final Map<String, String> CATEGORY_MAP = new HashMap<>();
 
     public static final Map<String, String> SUB_CATEGORY_MAP = new HashMap<>();
@@ -119,6 +125,16 @@ public class RegionalTranslationService {
 
         // Output result
         log.debug("Response: {} ", response.getBody());
+        
+        // Log request and response
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            String requestBodyJson = mapper.writeValueAsString(body);
+            Long appInstanceId = input.getApplicationInstanceId();
+            regionalTranslationLogService.saveTranslationLog(appInstanceId, requestBodyJson, response);
+        } catch (Exception e) {
+            log.warn("Failed to save translation log", e);
+        }
         
         return response;
     }

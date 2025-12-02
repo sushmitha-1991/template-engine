@@ -387,6 +387,7 @@ public class GeneratedPdfController {
 		input.setDocumentType(appDetails.getAbbr());
 		input.setDocumentSubType(appInstance.getDocumentDisplayName());
 		input.setFileUrl(ooData.getDocUrl());
+		input.setApplicationInstanceId(appInstance.getId());
 		
 		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" +  
 							input.getSittingDate(), input.getDocumentType(), 
