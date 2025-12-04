@@ -1,8 +1,6 @@
 package com.dsp.templateEngine.dto;
 
 import java.time.LocalDate;
-import java.time.Month;
-import java.time.Year;
 import java.util.UUID;
 
 import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
@@ -20,6 +18,7 @@ import lombok.NoArgsConstructor;
 public class PublishHistoryDTO {
 
 	private Long id;
+	private Long ballotingId;
 	private String lokSabhaNo;
 	private String lokSabhaSessionNo;
 	private String rajyaSabhaSessionNo;
