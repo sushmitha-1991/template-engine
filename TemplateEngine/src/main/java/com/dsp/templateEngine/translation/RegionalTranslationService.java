@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
@@ -126,15 +127,21 @@ public class RegionalTranslationService {
         // Output result
         log.debug("Response: {} ", response.getBody());
         
-        // Log request and response
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            String requestBodyJson = mapper.writeValueAsString(body);
-            Long appInstanceId = input.getApplicationInstanceId();
-            regionalTranslationLogService.saveTranslationLog(appInstanceId, requestBodyJson, response);
-        } catch (Exception e) {
-            log.warn("Failed to save translation log", e);
-        }
+		// Log request and response
+		try {
+			ObjectMapper mapper = new ObjectMapper();
+			String requestBodyJson = mapper.writeValueAsString(body);
+			Long appInstanceId = input.getApplicationInstanceId();
+			LocalDate sittingDate = input.getSittingDate();
+			String documentType = input.getDocumentType();
+			String documentSubType = input.getDocumentSubType();
+			String fileUrl = input.getFileUrl();
+			boolean editFlag = input.isEditFlag();
+			regionalTranslationLogService.saveTranslationLog(appInstanceId, requestBodyJson, response, sittingDate,
+					documentType, documentSubType, fileUrl, editFlag);
+		} catch (Exception e) {
+			log.warn("Failed to save translation log", e);
+		}
         
         return response;
     }

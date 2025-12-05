@@ -7,5 +7,7 @@ import com.dsp.templateEngine.entity.RegionalTranslationLog;
 
 @Repository
 public interface RegionalTranslationLogRepository extends JpaRepository<RegionalTranslationLog, Long> {
+	
+	boolean existsByApplicationInstanceId(Long applicationInstanceId);
 
 }

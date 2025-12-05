@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.entity;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -41,6 +42,21 @@ public class RegionalTranslationLog {
 
 	@Column(name = "response_status", length = 50)
 	private String responseStatus;
+
+	@Column(name = "sitting_date")
+	private LocalDate sittingDate;
+
+	@Column(name = "document_type")
+	private String documentType;
+
+	@Column(name = "document_sub_type")
+	private String documentSubType;
+
+	@Column(name = "file_url", columnDefinition = "TEXT")
+	private String fileUrl;
+
+	@Column(name = "edit_flag")
+	private Boolean editFlag;
 
 	@Column(name = "created_at", updatable = false)
 	private LocalDateTime createdAt;

@@ -1,5 +1,6 @@
 package com.dsp.templateEngine.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,22 +29,22 @@ public class RegionalTranslationLogService {
 	 * @param requestBody the request body/payload sent to translate API
 	 * @param response the response from translate API
 	 */
-	public void saveTranslationLog(Long applicationInstanceId, String requestBody, ResponseEntity<String> response) {
+	public void saveTranslationLog(Long applicationInstanceId, String requestBody, ResponseEntity<String> response,
+			LocalDate sittingDate, String documentType, String documentSubType, String fileUrl, boolean editFlag) {
 		try {
 			RegionalTranslationLog translationLog = RegionalTranslationLog.builder()
-					.applicationInstanceId(applicationInstanceId)
-					.requestPayload(requestBody)
+					.applicationInstanceId(applicationInstanceId).requestPayload(requestBody)
 					.responseBody(response != null ? response.getBody() : null)
 					.responseStatus(response != null ? response.getStatusCode().toString() : "UNKNOWN")
-					.createdAt(LocalDateTime.now())
-					.updatedAt(LocalDateTime.now())
+					.sittingDate(sittingDate).documentType(documentType).documentSubType(documentSubType)
+					.fileUrl(fileUrl).editFlag(editFlag).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
 					.build();
 
 			repository.save(translationLog);
 			log.info("Saved translation log for applicationInstanceId: {}", applicationInstanceId);
 		} catch (Exception e) {
-			log.error("Failed to save translation log for applicationInstanceId: {}. Error: {}", 
-					applicationInstanceId, e.getMessage());
+			log.error("Failed to save translation log for applicationInstanceId: {}. Error: {}", applicationInstanceId,
+					e.getMessage());
 		}
 	}
 }
