@@ -38,6 +38,7 @@ import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
 import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
+import com.dsp.templateEngine.repository.RegionalTranslationLogRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.Dsp1CacheService;
@@ -73,6 +74,9 @@ public class GeneratedPdfController {
 	
 	@Autowired
 	private RegionalTranslationService regionalTransService;
+	
+	@Autowired
+	private RegionalTranslationLogRepository regionalTranslationLogRepository;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -387,17 +391,27 @@ public class GeneratedPdfController {
 		input.setDocumentType(appDetails.getAbbr());
 		input.setDocumentSubType(appInstance.getDocumentDisplayName());
 		input.setFileUrl(ooData.getDocUrl());
+		input.setApplicationInstanceId(appInstance.getId());
 		
 		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" +  
 							input.getSittingDate(), input.getDocumentType(), 
 							input.getDocumentSubType(), input.getFileUrl());
 		
 		// Determine if first time publish or re-publish
-		input.setEditFlag(false);
+		input.setEditFlag(getEditFlag(appInstance.getId()));
 		
 		return regionalTransService.sendForTranslation(input); 
 	}
 	
+	private boolean getEditFlag(Long appInstanceId) {
+		boolean alreadyExists = regionalTranslationLogRepository.existsByApplicationInstanceId(appInstanceId);
+
+		if (alreadyExists) {
+			return true;
+		} else {
+			return false;
+		}
+	}
 	
 	private void initPdfConversion(PdfConverterDTO input) {
 

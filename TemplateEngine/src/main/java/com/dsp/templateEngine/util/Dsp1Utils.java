@@ -71,26 +71,26 @@ public class Dsp1Utils {
 	public void writeToBallotingDSP1(PublishHistoryEntity publishHistoryEntity, String houseAbbr, String ballotTitle) {
 
 		try {
-			Long sessionId = Long.parseLong(publishHistoryEntity.getLokSabhaSessionNo());
-			Long lokSabhaId = Long.parseLong(publishHistoryEntity.getLokSabhaNo());
-
-			Integer sessionNo = (Integer) entityManager.createNativeQuery(
-					"SELECT session_number_int FROM master.lok_sabha_session_masters WHERE id = :id")
-					.setParameter("id", sessionId)
-					.getSingleResult();
-
-			String lokSabhaNumberStr = (String) entityManager.createNativeQuery(
-					"SELECT lok_sabha_number FROM master.lok_sabha_masters WHERE id = :id")
-					.setParameter("id", lokSabhaId)
-					.getSingleResult();
-
-			int lokSabhaNo = Integer.parseInt(lokSabhaNumberStr);
-			RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
-			String ordinal = ordinalFmt.format(sessionNo);
-			String ordinalLs = ordinalFmt.format(lokSabhaNo);
-
-			// 5. Convert to word form (optional)
-			String ordNoLs = Utils.ordinalToWord(ordinalLs);
+//			Long sessionId = Long.parseLong(publishHistoryEntity.getLokSabhaSessionNo());
+//			Long lokSabhaId = Long.parseLong(publishHistoryEntity.getLokSabhaNo());
+//
+//			Integer sessionNo = (Integer) entityManager.createNativeQuery(
+//					"SELECT session_number_int FROM master.lok_sabha_session_masters WHERE id = :id")
+//					.setParameter("id", sessionId)
+//					.getSingleResult();
+//
+//			String lokSabhaNumberStr = (String) entityManager.createNativeQuery(
+//					"SELECT lok_sabha_number FROM master.lok_sabha_masters WHERE id = :id")
+//					.setParameter("id", lokSabhaId)
+//					.getSingleResult();
+//
+//			int lokSabhaNo = Integer.parseInt(lokSabhaNumberStr);
+//			RuleBasedNumberFormat ordinalFmt = new RuleBasedNumberFormat(Locale.ENGLISH, RuleBasedNumberFormat.ORDINAL);
+//			String ordinal = ordinalFmt.format(sessionNo);
+//			String ordinalLs = ordinalFmt.format(lokSabhaNo);
+//
+//			// 5. Convert to word form (optional)
+//			String ordNoLs = Utils.ordinalToWord(ordinalLs);
 
 			// 6. Final title
 			// String eTitle = "Balloting of Notices " + ordinal + " Session of " + ordNoLs + " Lok Sabha.";
