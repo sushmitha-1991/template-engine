@@ -66,5 +66,5 @@ public interface ApplicationInstanceRepository extends JpaRepository<Application
 			where ai.id = :appInstId
 			""", nativeQuery = true)
 	UploadedDocumentProjection getAppId(Long appInstId);
-
+	
 }

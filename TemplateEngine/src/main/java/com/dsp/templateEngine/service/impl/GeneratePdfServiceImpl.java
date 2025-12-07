@@ -85,6 +85,7 @@ import com.itextpdf.layout.font.FontProvider;
 import com.itextpdf.layout.properties.TextAlignment;
 import com.itextpdf.layout.properties.VerticalAlignment;
 
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
@@ -165,6 +166,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private ApplicationRepository appRepository;
 
+	@Autowired
+	private EntityManager entityManager;
+	
 	private final String SUMMON = "SN";
 
 	private final String PROROGATION = "PN";
@@ -502,11 +506,41 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			addPublishHistoryEntry(publishHistoryDto);
 		}
 
+
 		if (documentUuidHi != null) {
-			addPublishHistoryEntry(dtoHi);
+			if (TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
+				// Get original application abbr
+				String abbr = appRepository.findAbbrById(translAppId);
+				if (LISTOFBUSINESS.equals(abbr)) {
+					String displayName = getLOBDisplayName (appInstId);
+					dtoHi.setApplicationName(displayName);
+				}
+			}
+			addPublishHistoryEntry(dtoHi);			
 		}
 	}
 
+	
+	private String getLOBDisplayName(Long appInstId) {
+		
+		String lobQuery = """
+					select ti.sub_document_type from translation.translation_input ti 
+					left join translation.translation_paper tp on tp.translation_input_id = ti.id
+					where tp.id = :appInstId
+				""";
+		
+		 String displayName =  (String) entityManager.createNativeQuery(lobQuery)
+		            .setParameter("appInstId", appInstId)
+		            .getSingleResult();
+		 
+		 if (StringUtils.isEmpty(displayName)) {
+			 displayName = "List Of Business";
+		 }
+		 
+		 return displayName;
+	}
+	
+	
 	@Override
 	public String savedSuccess(Long appInstId, UUID documentUuid, UUID documentUuidHi) {
 		ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
@@ -761,12 +795,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String houseAbbr = jwtUtil.extractHouseAbbr(token);
 		BaseUser userDetails = userResponsibility.findByUsername(sub);
 		System.out.println("user Data " + userDetails);
+		
+		publishHistoryDto.setPublishByUser(getUserName(userDetails));
+		
 		Long officeId = generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
-		publishHistoryDto.setPublishByUser(
-				userDetails.getFirstName() + " " + userDetails.getMiddleName() + " " + userDetails.getLastName());
 		publishHistoryDto.setOfficeId(officeId);
+		
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
-
 		try {
 			return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
 		} catch (Exception e) {
@@ -776,6 +811,23 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
+	
+	private String getUserName(BaseUser userDetails) {
+	
+		StringBuffer fullName = new StringBuffer(userDetails.getFirstName());
+		
+		if (!StringUtils.isEmpty(userDetails.getMiddleName())) {
+			fullName = fullName.append(" ").append(userDetails.getMiddleName());
+		}
+		
+		if (!StringUtils.isEmpty(userDetails.getLastName())) {
+			fullName = fullName.append(" ").append(userDetails.getLastName());
+		}
+		
+		return fullName.toString();
+	}
+	
+	
 	public static boolean isRoman(String input) {
 
 		String ROMAN_REGEX = "^(?i)(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$";
