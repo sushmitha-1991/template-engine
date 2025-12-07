@@ -291,15 +291,6 @@ public class GeneratedPdfController {
 				return handleConflict(response);
 			}
 
-			// send for regional language translation
-			try {
-				sendForRegionalLanguageTranslation(instance);
-			} catch (Exception e) {
-				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
-				// ensure that publish functionality is not impacted
-				throw e;
-			}
-			
 			Map<String, Object> responseBody = response.getBody();
 			Map<String, Object> resultData = new HashMap<>();
 			if (responseBody != null) {
@@ -312,6 +303,14 @@ public class GeneratedPdfController {
 			GenericResponse<Map<String, Object>> genericResponse = new GenericResponse<>(HttpStatus.OK.value(), true,
 					"Document published successfully.", resultData);
 
+			// send for regional language translation
+			try {
+				sendForRegionalLanguageTranslation(instance);
+			} catch (Exception e) {
+				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
+				// ensure that publish functionality is not impacted
+			}
+			
 			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: {}. Error: {}", appInstId, e.getMessage());
@@ -381,6 +380,12 @@ public class GeneratedPdfController {
 		
 		log.info("In sendForRegionalLanguageTranslation");
 		ApplicationInstanceProjection appDetails = util.getAppDetails(appInstance.getId());
+		
+		if (!regionalTransService.isTranslationRequired(appDetails.getAbbr())) {
+			log.debug("Regional translation not required for document of type {}", appDetails.getAbbr());
+			return (new ResponseEntity<String>(HttpStatus.BAD_REQUEST));
+		}
+		
 		OnlyOfficeData ooData = util.getODTDataIfExistsV2(appInstance.getId());
 		
 		RegionalTranslationDto input = new RegionalTranslationDto();

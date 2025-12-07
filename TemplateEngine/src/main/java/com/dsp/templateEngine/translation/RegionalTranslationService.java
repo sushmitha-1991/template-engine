@@ -80,6 +80,19 @@ public class RegionalTranslationService {
 	@Value("${regional.language.translation.enabled}")
 	private Boolean translationFlag;
 	
+	
+	public boolean isTranslationRequired (String abbr) {
+		
+		if (!translationFlag) return false;
+		
+		if (CATEGORY_MAP.get(abbr) == null) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	
 	public ResponseEntity<String> sendForTranslation (RegionalTranslationDto input) {
 		
 		if (!translationFlag) {
