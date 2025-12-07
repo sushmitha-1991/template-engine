@@ -504,19 +504,23 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		if (!TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
 			addPublishHistoryEntry(publishHistoryDto);
-		}
-
-
-		if (documentUuidHi != null) {
-			if (TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
-				// Get original application abbr
-				String abbr = appRepository.findAbbrById(translAppId);
-				if (LISTOFBUSINESS.equals(abbr)) {
-					String displayName = getLOBDisplayName (appInstId);
-					dtoHi.setApplicationName(displayName);
-				}
+			return;
+		} 
+		
+		if (TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
+			// Get original application abbr
+			String abbr = appRepository.findAbbrById(translAppId);
+			if (LISTOFBUSINESS.equals(abbr)) {
+				String displayName = getLOBDisplayName (appInstId);
+				dtoHi.setApplicationName(displayName);
 			}
-			addPublishHistoryEntry(dtoHi);			
+			addPublishHistoryEntry(dtoHi);
+			return;
+		}
+		
+		if (documentUuidHi != null) {
+			addPublishHistoryEntry(dtoHi);
+			return;
 		}
 	}
 
