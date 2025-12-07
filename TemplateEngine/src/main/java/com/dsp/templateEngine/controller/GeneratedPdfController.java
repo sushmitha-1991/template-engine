@@ -75,9 +75,6 @@ public class GeneratedPdfController {
 	@Autowired
 	private RegionalTranslationService regionalTransService;
 	
-	@Autowired
-	private RegionalTranslationLogRepository regionalTranslationLogRepository;
-
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
 			@RequestParam String fileName) {
@@ -397,21 +394,9 @@ public class GeneratedPdfController {
 							input.getSittingDate(), input.getDocumentType(), 
 							input.getDocumentSubType(), input.getFileUrl());
 		
-		// Determine if first time publish or re-publish
-		input.setEditFlag(getEditFlag(appInstance.getId()));
-		
 		return regionalTransService.sendForTranslation(input); 
 	}
 	
-	private boolean getEditFlag(Long appInstanceId) {
-		boolean alreadyExists = regionalTranslationLogRepository.existsByApplicationInstanceId(appInstanceId);
-
-		if (alreadyExists) {
-			return true;
-		} else {
-			return false;
-		}
-	}
 	
 	private void initPdfConversion(PdfConverterDTO input) {
 

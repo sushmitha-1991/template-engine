@@ -29,6 +29,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import com.dsp.templateEngine.repository.RegionalTranslationLogRepository;
 import com.dsp.templateEngine.service.RegionalTranslationLogService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -40,6 +41,10 @@ public class RegionalTranslationService {
 	
 	@Autowired
 	private RegionalTranslationLogService regionalTranslationLogService;
+	
+	@Autowired
+	private RegionalTranslationLogRepository regionalTranslationLogRepository;
+	
     public static final Map<String, String> CATEGORY_MAP = new HashMap<>();
 
     public static final Map<String, String> SUB_CATEGORY_MAP = new HashMap<>();
@@ -50,7 +55,7 @@ public class RegionalTranslationService {
         CATEGORY_MAP.put("LOB", "List of Business");
         CATEGORY_MAP.put("B1", "Bulletin Part-I");
         CATEGORY_MAP.put("B2", "Bulletin Part-II");
-//        CATEGORY_MAP.put("SYN", "Synopsis");
+        CATEGORY_MAP.put("SYN", "Synopsis");
 //        CATEGORY_MAP.put("PLOT", "Paper to be Laid");
     }
 
@@ -60,8 +65,6 @@ public class RegionalTranslationService {
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 1", "Supplementary List of Business-1");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 2", "Supplementary List of Business-2");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 3", "Supplementary List of Business-3");
-        
-        // Synopsis to be added later
     }
     
     static {
@@ -85,9 +88,12 @@ public class RegionalTranslationService {
 		}
 		
         RestTemplate restTemplate = new RestTemplate();
-
+        
+		// Determine if first time publish or re-publish
+        Boolean editFlag = getEditFlag(input);
+		
         // Base URL of your service
-        String url = buildTranslateUrl(baseUrl, input.isEditFlag()); // edit=t
+        String url = buildTranslateUrl(baseUrl, editFlag);
         log.debug("Reverie URL: {}", url);
 
         if (!validate(input)) {
@@ -114,7 +120,7 @@ public class RegionalTranslationService {
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        log.info("Request: {}" + requestEntity);
+        log.debug("Request: {}" + requestEntity);
 
         // Invoke API
         ResponseEntity<String> response = restTemplate.exchange(
@@ -136,11 +142,11 @@ public class RegionalTranslationService {
 			String documentType = input.getDocumentType();
 			String documentSubType = input.getDocumentSubType();
 			String fileUrl = input.getFileUrl();
-			boolean editFlag = input.isEditFlag();
+
 			regionalTranslationLogService.saveTranslationLog(appInstanceId, requestBodyJson, response, sittingDate,
 					documentType, documentSubType, fileUrl, editFlag);
 		} catch (Exception e) {
-			log.warn("Failed to save translation log", e);
+			log.error("Failed to save translation log", e);
 		}
         
         return response;
@@ -198,8 +204,7 @@ public class RegionalTranslationService {
         String subCategory = !StringUtils.isBlank(input.getDocumentSubType()) ?
         						(SUB_CATEGORY_MAP.get(input.getDocumentSubType()) != null ? 
         						 SUB_CATEGORY_MAP.get(input.getDocumentSubType()) : StringUtils.EMPTY) 
-        					  : StringUtils.EMPTY;
-        
+        					  : StringUtils.EMPTY;        
         input.setSubCategory(subCategory);
         
         // House
@@ -232,7 +237,6 @@ public class RegionalTranslationService {
         System.out.println("Request: " + requestEntity);
 
         // Invoke API
-//      ResponseEntity<byte[]> response = restTemplate.exchange(
         ResponseEntity<String> response = restTemplate.exchange(		
                 url,
                 HttpMethod.GET,
@@ -263,5 +267,14 @@ public class RegionalTranslationService {
 //        return file;
         
         return response.getBody();
-    }	
+    }
+    
+	private boolean getEditFlag(RegionalTranslationDto input) {
+		Boolean alreadyExists = regionalTranslationLogRepository.getTranslationEditFlag(
+										input.getSittingDate(),
+										input.getDocumentType(),
+										input.getDocumentSubType());
+
+		return (alreadyExists ? true : false);
+	}    
 }
