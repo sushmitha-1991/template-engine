@@ -116,6 +116,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Value("${upload.document.url}")
 	private String uploadDocUrl;
 
+	@Value("${send.sms.ballot}")
+	private String smsBallotUrl;
+
 	@Autowired
 	private Dsp1CacheService dsp1CacheService;
 
@@ -168,7 +171,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Autowired
 	private EntityManager entityManager;
-	
+
 	private final String SUMMON = "SN";
 
 	private final String PROROGATION = "PN";
@@ -505,46 +508,43 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (!TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
 			addPublishHistoryEntry(publishHistoryDto);
 			return;
-		} 
-		
+		}
+
 		if (TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
 			// Get original application abbr
 			String abbr = appRepository.findAbbrById(translAppId);
 			if (LISTOFBUSINESS.equals(abbr)) {
-				String displayName = getLOBDisplayName (appInstId);
+				String displayName = getLOBDisplayName(appInstId);
 				dtoHi.setApplicationName(displayName);
 			}
 			addPublishHistoryEntry(dtoHi);
 			return;
 		}
-		
+
 		if (documentUuidHi != null) {
 			addPublishHistoryEntry(dtoHi);
 			return;
 		}
 	}
 
-	
 	private String getLOBDisplayName(Long appInstId) {
-		
+
 		String lobQuery = """
-					select ti.sub_document_type from translation.translation_input ti 
+					select ti.sub_document_type from translation.translation_input ti
 					left join translation.translation_paper tp on tp.translation_input_id = ti.id
 					where tp.id = :appInstId
 				""";
-		
-		 String displayName =  (String) entityManager.createNativeQuery(lobQuery)
-		            .setParameter("appInstId", appInstId)
-		            .getSingleResult();
-		 
-		 if (StringUtils.isEmpty(displayName)) {
-			 displayName = "List Of Business";
-		 }
-		 
-		 return displayName;
+
+		String displayName = (String) entityManager.createNativeQuery(lobQuery).setParameter("appInstId", appInstId)
+				.getSingleResult();
+
+		if (StringUtils.isEmpty(displayName)) {
+			displayName = "List Of Business";
+		}
+
+		return displayName;
 	}
-	
-	
+
 	@Override
 	public String savedSuccess(Long appInstId, UUID documentUuid, UUID documentUuidHi) {
 		ApplicationInstanceProjection appDetails = getAppDetails(appInstId);
@@ -799,12 +799,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		String houseAbbr = jwtUtil.extractHouseAbbr(token);
 		BaseUser userDetails = userResponsibility.findByUsername(sub);
 		System.out.println("user Data " + userDetails);
-		
+
 		publishHistoryDto.setPublishByUser(getUserName(userDetails));
-		
+
 		Long officeId = generatedPdfModelRepository.getOfficeIdUsingUserId(userDetails.getId());
 		publishHistoryDto.setOfficeId(officeId);
-		
+
 		HttpEntity<PublishHistoryDTO> entity = new HttpEntity<>(publishHistoryDto);
 		try {
 			return restTemplate.postForObject(url, entity, PublishHistoryDTO.class);
@@ -815,23 +815,21 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		}
 	}
 
-	
 	private String getUserName(BaseUser userDetails) {
-	
+
 		StringBuffer fullName = new StringBuffer(userDetails.getFirstName());
-		
+
 		if (!StringUtils.isEmpty(userDetails.getMiddleName())) {
 			fullName = fullName.append(" ").append(userDetails.getMiddleName());
 		}
-		
+
 		if (!StringUtils.isEmpty(userDetails.getLastName())) {
 			fullName = fullName.append(" ").append(userDetails.getLastName());
 		}
-		
+
 		return fullName.toString();
 	}
-	
-	
+
 	public static boolean isRoman(String input) {
 
 		String ROMAN_REGEX = "^(?i)(M{0,3})(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$";
@@ -924,11 +922,40 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				e.printStackTrace();
 				throw new RuntimeException("Error in writeToBallDSP1", e);
 			}
+
+			try {
+				Map<String, Object> payload = buildSmsPayload(dto);
+
+				HttpHeaders headers = new HttpHeaders();
+				headers.setContentType(MediaType.APPLICATION_JSON);
+
+				HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+				ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
+
+				log.info("SMS API status: {}", response.getStatusCode());
+
+			} catch (Exception e) {
+				log.error("Error while sending sms to MPs", e);
+				throw new RuntimeException("Error while sending sms to MPs", e);
+			}
+
 			return dto;
 		} catch (IOException e) {
 			e.printStackTrace(); // Log the exception
 			throw new RuntimeException("Error while processing notice publishing", e);
 		}
+	}
+
+	private Map<String, Object> buildSmsPayload(PublishHistoryDTO dto) {
+
+		Map<String, Object> payload = new HashMap<>();
+		payload.put("appAbbr", dto.getNoticeType());
+		payload.put("appId", dto.getApplicationId());
+		payload.put("date", dto.getForDate().toString());
+		payload.put("mpDetails", dto.getMpDetails());
+
+		return payload;
 	}
 
 	@Override
