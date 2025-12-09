@@ -1,6 +1,7 @@
 package com.dsp.templateEngine.dto;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 import com.dsp.templateEngine.config.XSSConfig.AllowHtml;
@@ -49,4 +50,6 @@ public class PublishHistoryDTO {
 	private int year;
 	private int month;
 	private String noticeType;
+	private List<MpDetailDTO> mpDetails;
+
 }

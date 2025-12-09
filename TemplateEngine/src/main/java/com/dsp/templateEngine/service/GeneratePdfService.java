@@ -14,7 +14,6 @@ import org.springframework.http.ResponseEntity;
 
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
-import com.dsp.templateEngine.dto.UploadHtmlDTO;
 
 /**
  * 
@@ -42,11 +41,10 @@ public interface GeneratePdfService {
 	ResponseEntity<Map<String, Object>> publishDocumentV2(String htmlContentEn, String htmlContentHi, Long appInstId,
 			Integer startPageNumber, UUID uploadedDoc);
 //	void createPdfFromHtml(String htmlContent, ByteArrayOutputStream outputStream) throws IOException;   
-	
-//	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale,  Long appInstId);
-	
-	public void createPdfV3(PdfConverterDTO upload, ByteArrayOutputStream outputStream);
 
+//	void createPdfFromHtmlV2(String htmlContent, ByteArrayOutputStream outputStream, String locale,  Long appInstId);
+
+	public void createPdfV3(PdfConverterDTO upload, ByteArrayOutputStream outputStream);
 
 	byte[] mergePdfs(byte[] enPdfBytes, byte[] hiPdfBytes) throws IOException;
 
@@ -73,6 +71,12 @@ public interface GeneratePdfService {
 	 * @param applicationId
 	 * @return
 	 */
-	UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload);	
-	String savedSuccess(Long appInstId, UUID documentUuid,UUID documentUuidHi);
+	UUID uploadHtmlAndReturnUuid(PdfConverterDTO upload);
+
+	String savedSuccess(Long appInstId, UUID documentUuid, UUID documentUuidHi);
+
+	/**
+	 * @param appInstId
+	 */
+	void sendSMS(Long appInstId, String docName, String locale);
 }
