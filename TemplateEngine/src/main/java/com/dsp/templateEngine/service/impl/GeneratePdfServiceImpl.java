@@ -1299,27 +1299,26 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		if (agenda == null) {
 			log.warn("No agenda details found for appInstId={}", appInstId);
-			return; // ✅ Do not stop main flow
-		}
-
-//		// ✅ 1️⃣ Check publish_history
-//		boolean alreadyPublished = publishRepository.existsByApplicationNo(agenda.getAppNo());
-//
-//		System.out.println(">>> alreadyPublished  " + alreadyPublished);
-//
-//		if (alreadyPublished) {
-//			log.info("SMS skipped. Publish history already exists for appNo={}", agenda.getAppNo());
-//			return; // ✅ DO NOT SEND SMS
-//		}
-
-		if (locale.equalsIgnoreCase("hi")) {
 			return;
 		}
 
-		System.out.println(">>> getAppAbbr " + agenda.getAppAbbr());
-		System.out.println(">>> getAppId " + agenda.getAppId());
-		System.out.println(">>> getDate " + agenda.getDate());
-		System.out.println(">>> agenda.getAppNo() " + agenda.getAppNo());
+		String unpublishByUser = publishRepository.findUnpublishByUser(agenda.getAppNo());
+
+		boolean isRepublished = unpublishByUser != null;
+
+		log.info("isRepublished={}", isRepublished);
+
+		log.info("unpublishByUser={}, isRepublished={}", unpublishByUser, isRepublished);
+
+		if ("hi".equalsIgnoreCase(locale) || isRepublished) {
+			log.info("SMS skipped. locale={}, appNo={}", locale, agenda.getAppNo());
+			return;
+		}
+
+		log.info("appAbbr={}", agenda.getAppAbbr());
+		log.info("appId={}", agenda.getAppId());
+		log.info("date={}", agenda.getDate());
+		log.info("appNo={}", agenda.getAppNo());
 
 		try {
 			// ✅ Build payload
@@ -1342,7 +1341,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// ✅ Call SMS API
 			ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
 
-			System.out.println(">>> response " + response);
+			log.info("SMS API response={}", response);
 			log.info("SMS API status: {}", response.getStatusCode());
 
 		} catch (Exception e) {

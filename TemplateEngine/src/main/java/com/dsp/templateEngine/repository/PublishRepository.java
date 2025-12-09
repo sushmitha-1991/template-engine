@@ -88,4 +88,18 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 			""", nativeQuery = true)
 	DocDetailsForSms getDisplayNameFromPublishHistory(@Param("appNo") String appNo);
 
+	/**
+	 * @param appNo
+	 * @return
+	 */
+
+	@Query(value = """
+			select ph.unpublish_by_user
+			from workflow.publish_history ph
+			where ph.application_no = :appNo
+			order by ph.publish_date desc
+			limit 1
+			""", nativeQuery = true)
+	String findUnpublishByUser(@Param("appNo") String appNo);
+
 }
