@@ -14,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.dsp.templateEngine.dto.AgendaPapersDTO;
 import com.dsp.templateEngine.dto.MpBallotDTO;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 
@@ -48,5 +49,30 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 			where nd.balloting_id = :ballotingId
 			""", nativeQuery = true)
 	List<MpBallotDTO> getMpCodeAndBallotPosition(@Param("ballotingId") Long ballotingId);
+
+	/**
+	 * @param appInstId
+	 * @return
+	 */
+	@Query(value = """
+			select a.abbr as appAbbr,
+			       ai.document_date as date,
+			       a.id as appId,
+			       ai.application_no as appNo
+			from master.application_instance ai
+			left join master.applications a
+			       on a.id = ai.application_id
+			where ai.id = :appInstId
+			""", nativeQuery = true)
+	AgendaPapersDTO getAgendaSms(@Param("appInstId") Long appInstId);
+
+	@Query(value = """
+			select exists (
+			    select 1
+			    from workflow.publish_history ph
+			    where ph.application_no = :appNo
+			)
+			""", nativeQuery = true)
+	boolean existsByApplicationNo(@Param("appNo") String appNo);
 
 }

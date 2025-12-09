@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import com.dsp.templateEngine.converter.ConverterFactory;
 import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
+import com.dsp.templateEngine.dto.AgendaPapersDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
@@ -1282,4 +1284,58 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		private UUID documentUuidHi;
 
 	}
+
+	@Override
+	public void sendSMS(Long appInstId) {
+
+		AgendaPapersDTO agenda = publishRepository.getAgendaSms(appInstId);
+
+		if (agenda == null) {
+			log.warn("No agenda details found for appInstId={}", appInstId);
+			return; // ✅ Do not stop main flow
+		}
+
+		// ✅ 1️⃣ Check publish_history
+		boolean alreadyPublished = publishRepository.existsByApplicationNo(agenda.getAppNo());
+
+		System.out.println(">>> alreadyPublished  " + alreadyPublished);
+
+		if (alreadyPublished) {
+			log.info("SMS skipped. Publish history already exists for appNo={}", agenda.getAppNo());
+			return; // ✅ DO NOT SEND SMS
+		}
+
+		System.out.println(">>> getAppAbbr " + agenda.getAppAbbr());
+		System.out.println(">>> getAppId " + agenda.getAppId());
+		System.out.println(">>> getDate " + agenda.getDate());
+		System.out.println(">>> agenda.getAppNo() " + agenda.getAppNo());
+
+		try {
+			// ✅ Build payload
+			Map<String, Object> payload = new HashMap<>();
+			payload.put("appAbbr", agenda.getAppAbbr());
+			payload.put("appId", agenda.getAppId());
+
+			// Format date → dd-MM-yyyy
+			String formattedDate = agenda.getDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+			payload.put("date", formattedDate);
+
+			// ✅ Prepare request
+			HttpHeaders headers = new HttpHeaders();
+			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+
+			// ✅ Call SMS API
+			ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
+
+			System.out.println(">>> response " + response);
+			log.info("SMS API status: {}", response.getStatusCode());
+
+		} catch (Exception e) {
+			// ✅ Log only, DO NOT throw (best-effort SMS)
+			log.error("Failed to send SMS for appInstId={}", appInstId, e);
+		}
+	}
+
 }

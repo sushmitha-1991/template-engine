@@ -311,6 +311,13 @@ public class GeneratedPdfController {
 				// ensure that publish functionality is not impacted
 			}
 			
+			try {
+				pdfService.sendSMS(appInstId);
+			} catch (Exception e) {
+				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
+				// ensure that publish functionality is not impacted
+			}
+			
 			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: {}. Error: {}", appInstId, e.getMessage());
