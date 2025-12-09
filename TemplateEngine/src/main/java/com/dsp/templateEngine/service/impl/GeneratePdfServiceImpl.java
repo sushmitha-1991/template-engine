@@ -43,6 +43,7 @@ import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
+import com.dsp.templateEngine.dto.MpBallotDTO;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
 import com.dsp.templateEngine.dto.PublishHistoryDTO;
 import com.dsp.templateEngine.dto.UploadedDocumentDTO;
@@ -925,19 +926,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			try {
 				Map<String, Object> payload = buildSmsPayload(dto);
-
 				HttpHeaders headers = new HttpHeaders();
 				headers.setContentType(MediaType.APPLICATION_JSON);
-
 				HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-
 				ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
-
 				log.info("SMS API status: {}", response.getStatusCode());
-
 			} catch (Exception e) {
-				log.error("Error while sending sms to MPs", e);
-				throw new RuntimeException("Error while sending sms to MPs", e);
+				log.error("SMS API failed, continuing main process. Reason: {}", e.getMessage(), e);
 			}
 
 			return dto;
@@ -950,10 +945,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	private Map<String, Object> buildSmsPayload(PublishHistoryDTO dto) {
 
 		Map<String, Object> payload = new HashMap<>();
+
 		payload.put("appAbbr", dto.getNoticeType());
 		payload.put("appId", dto.getApplicationId());
 		payload.put("date", dto.getForDate().toString());
-		payload.put("mpDetails", dto.getMpDetails());
+
+		// ✅ Fetch MP details
+		List<MpBallotDTO> mpDetails = publishRepository.getMpCodeAndBallotPosition(dto.getBallotingId());
+
+		payload.put("mpDetails", mpDetails);
 
 		return payload;
 	}

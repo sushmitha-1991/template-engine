@@ -5,6 +5,7 @@
  */
 package com.dsp.templateEngine.repository;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.dsp.templateEngine.dto.MpBallotDTO;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 
 import jakarta.transaction.Transactional;
@@ -36,5 +38,15 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 	@Transactional
 	@Query(value = "UPDATE notices.balloting_of_notices SET is_published = true WHERE id = :ballotingId", nativeQuery = true)
 	void updateIsPublish(@Param("ballotingId") Long ballotingId);
+
+	@Query(value = """
+			select pd.mp_code as mpCode,
+			       nd.ballot_position as ballPos
+			from notices.notice_details nd
+			left join members.personal_details pd
+			       on pd.id = nd.member_id
+			where nd.balloting_id = :ballotingId
+			""", nativeQuery = true)
+	List<MpBallotDTO> getMpCodeAndBallotPosition(@Param("ballotingId") Long ballotingId);
 
 }
