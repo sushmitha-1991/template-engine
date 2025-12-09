@@ -43,6 +43,7 @@ import com.dsp.templateEngine.converter.IConverter;
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.AgendaPapersDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
+import com.dsp.templateEngine.dto.DocDetailsForSms;
 import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.MpBallotDTO;
@@ -311,7 +312,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// isSendToTranslation = false;
 			// }
 
-			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation);
+			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation, null, null);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 			return buildErrorResponse(appInstId, e);
@@ -579,13 +580,15 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	private ResponseEntity<Map<String, Object>> buildSuccessResponse(UUID enUuid, UUID hiUuid,
-			Boolean isSendToTranslation) {
+			Boolean isSendToTranslation, String displayName, String locale) {
 		Map<String, Object> response = new HashMap<>();
 		response.put("status", "success");
 		response.put("message", "Document(s) published successfully.");
 		response.put("englishDocumentUuid", enUuid);
 		response.put("hindiDocumentUuid", hiUuid);
 		response.put("isSendToTranslation", isSendToTranslation);
+		response.put("docName", displayName);
+		response.put("locale", locale);
 		return ResponseEntity.ok(response);
 	}
 
@@ -1122,6 +1125,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 
+			DocDetailsForSms docDetailsForSms = publishRepository
+					.getDisplayNameFromPublishHistory(appDetails.getAppNo());
+
 			// Trigger async cache clearing — won't block publishing flow
 
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
@@ -1137,7 +1143,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// isSendToTranslation = false;
 			// }
 
-			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation);
+			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation,
+					docDetailsForSms.getDisplayName(), docDetailsForSms.getLocale());
 
 		} catch (Exception e) {
 
@@ -1286,7 +1293,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public void sendSMS(Long appInstId) {
+	public void sendSMS(Long appInstId, String docName, String locale) {
 
 		AgendaPapersDTO agenda = publishRepository.getAgendaSms(appInstId);
 
@@ -1295,14 +1302,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			return; // ✅ Do not stop main flow
 		}
 
-		// ✅ 1️⃣ Check publish_history
-		boolean alreadyPublished = publishRepository.existsByApplicationNo(agenda.getAppNo());
+//		// ✅ 1️⃣ Check publish_history
+//		boolean alreadyPublished = publishRepository.existsByApplicationNo(agenda.getAppNo());
+//
+//		System.out.println(">>> alreadyPublished  " + alreadyPublished);
+//
+//		if (alreadyPublished) {
+//			log.info("SMS skipped. Publish history already exists for appNo={}", agenda.getAppNo());
+//			return; // ✅ DO NOT SEND SMS
+//		}
 
-		System.out.println(">>> alreadyPublished  " + alreadyPublished);
-
-		if (alreadyPublished) {
-			log.info("SMS skipped. Publish history already exists for appNo={}", agenda.getAppNo());
-			return; // ✅ DO NOT SEND SMS
+		if (locale.equalsIgnoreCase("hi")) {
+			return;
 		}
 
 		System.out.println(">>> getAppAbbr " + agenda.getAppAbbr());
@@ -1315,9 +1326,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			Map<String, Object> payload = new HashMap<>();
 			payload.put("appAbbr", agenda.getAppAbbr());
 			payload.put("appId", agenda.getAppId());
+			payload.put("docName", docName);
 
-			// Format date → dd-MM-yyyy
-			String formattedDate = agenda.getDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+			// Format date → 10-Dec-2025
+			String formattedDate = agenda.getDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
+
 			payload.put("date", formattedDate);
 
 			// ✅ Prepare request

@@ -15,6 +15,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.dsp.templateEngine.dto.AgendaPapersDTO;
+import com.dsp.templateEngine.dto.DocDetailsForSms;
 import com.dsp.templateEngine.dto.MpBallotDTO;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 
@@ -67,12 +68,24 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 	AgendaPapersDTO getAgendaSms(@Param("appInstId") Long appInstId);
 
 	@Query(value = """
-			select exists (
-			    select 1
-			    from workflow.publish_history ph
-			    where ph.application_no = :appNo
-			)
+			select ph.publish_status
+			from workflow.publish_history ph
+			where ph.application_no = :appNo
+			limit 1
 			""", nativeQuery = true)
-	boolean existsByApplicationNo(@Param("appNo") String appNo);
+	Boolean getPublishStatusByApplicationNo(@Param("appNo") String appNo);
+
+	/**
+	 * @param appNo
+	 * @return
+	 */
+
+	@Query(value = """
+			select ph.application_name as displayName,
+			ph.locale as locale
+			from workflow.publish_history ph
+			where ph.application_no = :appNo
+			""", nativeQuery = true)
+	DocDetailsForSms getDisplayNameFromPublishHistory(@Param("appNo") String appNo);
 
 }

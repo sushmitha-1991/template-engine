@@ -1,7 +1,6 @@
 package com.dsp.templateEngine.controller;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -11,8 +10,6 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.FileSystemResource;
-import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
@@ -36,9 +32,7 @@ import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.nelss.NewEventsLss;
 import com.dsp.templateEngine.exception.ResourceNotFoundException;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
-import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
-import com.dsp.templateEngine.repository.RegionalTranslationLogRepository;
 //import com.dsp.templateEngine.repository.OnlyOfficeMetadataRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.Dsp1CacheService;
@@ -68,13 +62,13 @@ public class GeneratedPdfController {
 
 	@Autowired
 	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
-	
+
 	@Autowired
 	private Utils util;
-	
+
 	@Autowired
 	private RegionalTranslationService regionalTransService;
-	
+
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
 			@RequestParam String fileName) {
@@ -156,23 +150,22 @@ public class GeneratedPdfController {
 //			headers.setContentType(MediaType.APPLICATION_PDF);
 //			headers.setContentDispositionFormData("attachment", fileName + ".pdf");
 
-			
 			// New Code
-			String sanitized = sanitizeFileName(fileName); 
+			String sanitized = sanitizeFileName(fileName);
 			String outputFileName = fileName + ".pdf";
 			log.debug("outputFileName: {} ", outputFileName);
 //			System.out.println("outputFileName: {} " + outputFileName);
 
-			String encoded = URLEncoder.encode(outputFileName, StandardCharsets.UTF_8)
-			                            .replace("+", "%20"); // keep spaces, if any
+			String encoded = URLEncoder.encode(outputFileName, StandardCharsets.UTF_8).replace("+", "%20"); // keep
+																											// spaces,
+																											// if any
 
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_PDF);
-			
+
 			String fallback = "attachment.pdf";
-			String disposition = "attachment; " +
-			        "filename=\"" + outputFileName + "\"; " +
-			        "filename*=UTF-8''" + encoded;
+			String disposition = "attachment; " + "filename=\"" + outputFileName + "\"; " + "filename*=UTF-8''"
+					+ encoded;
 
 			headers.add(HttpHeaders.CONTENT_DISPOSITION, disposition);
 
@@ -293,9 +286,16 @@ public class GeneratedPdfController {
 
 			Map<String, Object> responseBody = response.getBody();
 			Map<String, Object> resultData = new HashMap<>();
+			String docName = null;
+			String locale = null;
+
 			if (responseBody != null) {
 				resultData.put("englishDocumentUuid", responseBody.get("englishDocumentUuid"));
 				resultData.put("hindiDocumentUuid", responseBody.get("hindiDocumentUuid"));
+				resultData.put("docName", responseBody.get("docName"));
+				resultData.put("locale", responseBody.get("locale"));
+				docName = (String) responseBody.get("docName");
+				locale = (String) responseBody.get("locale");
 			}
 
 			log.info("Document published successfully for appInstId: {}", appInstId);
@@ -310,14 +310,14 @@ public class GeneratedPdfController {
 				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
 				// ensure that publish functionality is not impacted
 			}
-			
+
 			try {
-				pdfService.sendSMS(appInstId);
+				pdfService.sendSMS(appInstId, docName, locale);
 			} catch (Exception e) {
 				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
 				// ensure that publish functionality is not impacted
 			}
-			
+
 			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
 		} catch (Exception e) {
 			log.error("Error publishing document for appInstId: {}. Error: {}", appInstId, e.getMessage());
@@ -328,88 +328,78 @@ public class GeneratedPdfController {
 		}
 	}
 
-	
 	@PostMapping(path = "/translate-file", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<GenericResponse> translateFile (
-		        @RequestParam("appInstId") Long appInstanceId) {
-		
+	public ResponseEntity<GenericResponse> translateFile(@RequestParam("appInstId") Long appInstanceId) {
+
 		// send for regional language translation
 		try {
 			ApplicationInstance appInstance = applicationInstanceRepository.findById(appInstanceId).get();
 			ResponseEntity<String> response = sendForRegionalLanguageTranslation(appInstance);
-			
+
 			GenericResponse<String> genericResponse = new GenericResponse<>(HttpStatus.OK.value(), true,
 					"Document sent to Reverie successfully.", response.getBody());
 
 			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
-			
+
 		} catch (Exception e) {
 			log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
-			GenericResponse<Void> genericResponse = new GenericResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(), true,
-					"Document could not be sent to Reverie successfully.", null);
+			GenericResponse<Void> genericResponse = new GenericResponse<>(HttpStatus.INTERNAL_SERVER_ERROR.value(),
+					true, "Document could not be sent to Reverie successfully.", null);
 
-			return new ResponseEntity<>(genericResponse, HttpStatus.FORBIDDEN);			
+			return new ResponseEntity<>(genericResponse, HttpStatus.FORBIDDEN);
 		}
-    }
-	   
-	   
-   @GetMapping("/get-translated-file")
-    public ResponseEntity<?> getTranslatedFile(
-            @RequestParam String sourceUrl,
-            @RequestParam String locale,
-            @RequestParam String type) {
-	   
+	}
+
+	@GetMapping("/get-translated-file")
+	public ResponseEntity<?> getTranslatedFile(@RequestParam String sourceUrl, @RequestParam String locale,
+			@RequestParam String type) {
+
 //        File resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
-        String resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
+		String resource = regionalTransService.getTranslatedFile(sourceUrl, locale, type);
 
 //        if (resource == null || !resource.exists()) {
-        if (StringUtils.isBlank(resource)) {
-        	return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Translated file not found for the given parameters."));
-        }
+		if (StringUtils.isBlank(resource)) {
+			return ResponseEntity.status(HttpStatus.NOT_FOUND)
+					.body(Map.of("message", "Translated file not found for the given parameters."));
+		}
 
 //        FileSystemResource fs = new FileSystemResource(resource);
 
-        HttpHeaders headers = new HttpHeaders();
+		HttpHeaders headers = new HttpHeaders();
 //        headers.setContentDisposition(
 //                ContentDisposition.attachment().filename(resource.getName()).build()
 //        );
 //        headers.setContentLength(resource.length());
 //        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
 
-        return ResponseEntity.ok()
-                .headers(headers)
-                .body(resource);
-    }
-	
-    
+		return ResponseEntity.ok().headers(headers).body(resource);
+	}
+
 	private ResponseEntity<String> sendForRegionalLanguageTranslation(ApplicationInstance appInstance) {
-		
+
 		log.info("In sendForRegionalLanguageTranslation");
 		ApplicationInstanceProjection appDetails = util.getAppDetails(appInstance.getId());
-		
+
 		if (!regionalTransService.isTranslationRequired(appDetails.getAbbr())) {
 			log.debug("Regional translation not required for document of type {}", appDetails.getAbbr());
 			return (new ResponseEntity<String>(HttpStatus.BAD_REQUEST));
 		}
-		
+
 		OnlyOfficeData ooData = util.getODTDataIfExistsV2(appInstance.getId());
-		
+
 		RegionalTranslationDto input = new RegionalTranslationDto();
 		input.setSittingDate(appInstance.getDocumentDate());
 		input.setDocumentType(appDetails.getAbbr());
 		input.setDocumentSubType(appInstance.getDocumentDisplayName());
 		input.setFileUrl(ooData.getDocUrl());
 		input.setApplicationInstanceId(appInstance.getId());
-		
-		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" +  
-							input.getSittingDate(), input.getDocumentType(), 
-							input.getDocumentSubType(), input.getFileUrl());
-		
-		return regionalTransService.sendForTranslation(input); 
+
+		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" + input.getSittingDate(), input.getDocumentType(),
+				input.getDocumentSubType(), input.getFileUrl());
+
+		return regionalTransService.sendForTranslation(input);
 	}
-	
-	
+
 	private void initPdfConversion(PdfConverterDTO input) {
 
 		Integer startingPageNumber = 1;
@@ -486,30 +476,28 @@ public class GeneratedPdfController {
 
 	private static String sanitizeFileName(String fileName) {
 
-	    if (fileName == null || fileName.isEmpty()) {
-	        return fileName;
-	    }
+		if (fileName == null || fileName.isEmpty()) {
+			return fileName;
+		}
 
-	    // Replace space and colon with hyphen
-	    String sanitized = fileName.replace(" ", "-")
-	                               .replace(":", "-");
-	    
-	    // NBSP → normal space
-	    fileName = fileName.replace("\u00A0", " "); 
-	    
-	    // Remove any remaining whitespace (tabs, unicode spaces etc.)
-	    sanitized = sanitized.replaceAll("\\s+", "");
-	    
-	    // Replace multiple hyphens with a single hyphen
-	    sanitized = sanitized.replaceAll("-{2,}", "-");
+		// Replace space and colon with hyphen
+		String sanitized = fileName.replace(" ", "-").replace(":", "-");
 
-	    // Trim starting & ending hyphens
-	    sanitized = sanitized.replaceAll("^-+", "")
-	                         .replaceAll("-+$", "");
+		// NBSP → normal space
+		fileName = fileName.replace("\u00A0", " ");
 
-	    return sanitized;
+		// Remove any remaining whitespace (tabs, unicode spaces etc.)
+		sanitized = sanitized.replaceAll("\\s+", "");
+
+		// Replace multiple hyphens with a single hyphen
+		sanitized = sanitized.replaceAll("-{2,}", "-");
+
+		// Trim starting & ending hyphens
+		sanitized = sanitized.replaceAll("^-+", "").replaceAll("-+$", "");
+
+		return sanitized;
 	}
-	
+
 	private ByteArrayOutputStream processHtml(PdfConverterDTO input) {
 
 		System.out.println("### processHtml HTML - ");
