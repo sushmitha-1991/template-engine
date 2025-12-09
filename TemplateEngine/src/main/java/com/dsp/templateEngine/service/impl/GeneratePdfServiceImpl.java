@@ -971,7 +971,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		payload.put("appAbbr", dto.getNoticeType());
 		payload.put("appId", dto.getApplicationId());
-		payload.put("date", dto.getForDate().toString());
+
+		String formattedDate = dto.getForDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
+		payload.put("date", formattedDate);
 
 		// ✅ Fetch MP details
 		List<MpBallotDTO> mpDetails = publishRepository.getMpCodeAndBallotPosition(dto.getBallotingId());
