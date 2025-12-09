@@ -85,7 +85,7 @@ public class RegionalTranslationService {
 		
 		if (!translationFlag) return false;
 		
-		if (CATEGORY_MAP.get(abbr) == null) {
+		if (CATEGORY_MAP.get(abbr) != null) {
 			return true;
 		}
 		

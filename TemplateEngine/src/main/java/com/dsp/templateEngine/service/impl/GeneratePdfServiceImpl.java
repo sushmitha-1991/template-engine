@@ -183,6 +183,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private static final String SYNOPSIS_ABBR = "SYM";
 
+	private static final String LOB = "LIST_OF_BUSINESS";
+
+	private static final String RLOB = "REVISED_LIST_OF_BUSINESS";
+
+	private static final String SLOB = "SUPPLEMENTARY_LIST_OF_BUSINESS";
+
 	private static final String CREATION_OF_NOTICES_UNDER_RULE_377 = "N377";
 
 	public String generatePdfFromHtml(String html, String fileName) throws IOException {
@@ -540,10 +546,22 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				.getSingleResult();
 
 		if (StringUtils.isEmpty(displayName)) {
-			displayName = "List Of Business";
+			displayName = "List of Business";
 		}
 
-		return displayName;
+		return getDsp1DisplayName(displayName);
+	}
+
+	private String getDsp1DisplayName(String lobType) {
+
+		if ("List of Business".equalsIgnoreCase(lobType)) {
+			return LOB;
+		} else if ("Revised List of Business".equalsIgnoreCase(lobType)) {
+			return RLOB;
+		} else if (lobType.contains("Supplementary List Of Business")) {
+			return SLOB;
+		}
+		return null;
 	}
 
 	@Override
