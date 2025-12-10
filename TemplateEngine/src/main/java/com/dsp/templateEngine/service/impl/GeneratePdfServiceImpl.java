@@ -176,6 +176,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Autowired
 	private EntityManager entityManager;
 
+	@Value("${send.sms:false}")
+	private boolean sendSms;
+
 	private final String SUMMON = "SN";
 
 	private final String PROROGATION = "PN";
@@ -947,15 +950,17 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new RuntimeException("Error in writeToBallDSP1", e);
 			}
 
-			try {
-				Map<String, Object> payload = buildSmsPayload(dto);
-				HttpHeaders headers = new HttpHeaders();
-				headers.setContentType(MediaType.APPLICATION_JSON);
-				HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
-				ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
-				log.info("SMS API status: {}", response.getStatusCode());
-			} catch (Exception e) {
-				log.error("SMS API failed, continuing main process. Reason: {}", e.getMessage(), e);
+			if (sendSms) {
+				try {
+					Map<String, Object> payload = buildSmsPayload(dto);
+					HttpHeaders headers = new HttpHeaders();
+					headers.setContentType(MediaType.APPLICATION_JSON);
+					HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+					ResponseEntity<String> response = restTemplate.postForEntity(smsBallotUrl, request, String.class);
+					log.info("SMS API status: {}", response.getStatusCode());
+				} catch (Exception e) {
+					log.error("SMS API failed, continuing main process. Reason: {}", e.getMessage(), e);
+				}
 			}
 
 			return dto;
