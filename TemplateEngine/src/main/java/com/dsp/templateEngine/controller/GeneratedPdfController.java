@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -68,6 +69,9 @@ public class GeneratedPdfController {
 
 	@Autowired
 	private RegionalTranslationService regionalTransService;
+
+	@Value("${send.sms:false}")
+	private boolean sendSms;
 
 	@PostMapping("/generatePdfFromHtml")
 	public ResponseEntity<GenericResponse<String>> generatePdfFromHtml(@RequestParam String html,
@@ -311,11 +315,13 @@ public class GeneratedPdfController {
 				// ensure that publish functionality is not impacted
 			}
 
-			try {
-				pdfService.sendSMS(appInstId, docName, locale);
-			} catch (Exception e) {
-				log.error("Failed to send Document for Regional Language translation: {}", e.getMessage());
-				// ensure that publish functionality is not impacted
+			if (sendSms) {
+				try {
+					pdfService.sendSMS(appInstId, docName, locale);
+				} catch (Exception e) {
+					log.error("Failed to send Document for Regional Language translation: {}", e.getMessage(), e);
+					// publish flow must not break
+				}
 			}
 
 			return new ResponseEntity<>(genericResponse, HttpStatus.OK);
