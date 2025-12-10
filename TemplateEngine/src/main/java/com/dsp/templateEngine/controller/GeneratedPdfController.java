@@ -315,6 +315,9 @@ public class GeneratedPdfController {
 				// ensure that publish functionality is not impacted
 			}
 
+			// ❌ IMPORTANT: Do NOT use or enable this code in STAGING environment.
+			// This triggers actual SMS sending and may cause unintended notifications.
+			// Enable only in PRODUCTION after explicit confirmation.
 			if (sendSms) {
 				try {
 					pdfService.sendSMS(appInstId, docName, locale);
