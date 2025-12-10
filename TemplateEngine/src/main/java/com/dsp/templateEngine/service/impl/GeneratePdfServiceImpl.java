@@ -1154,7 +1154,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 					docDetailsForSms.getDisplayName(), docDetailsForSms.getLocale());
 
 		} catch (Exception e) {
-
+			e.printStackTrace();
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 
 			return buildErrorResponse(appInstId, e);
