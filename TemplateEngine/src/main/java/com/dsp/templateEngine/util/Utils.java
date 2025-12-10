@@ -361,11 +361,12 @@ public class Utils {
 	
 	
 	public ApplicationInstanceProjection getAppDetails(Long appInstId) {
-		log.error("app id " + appInstId);
+		log.info("app id " + appInstId);
 		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
 		if (details == null) {
 			throw new IllegalArgumentException("Application instance not found for ID: " + appInstId);
 		}
+		log.info("app details " + details);
 		return details;
 	}
 }

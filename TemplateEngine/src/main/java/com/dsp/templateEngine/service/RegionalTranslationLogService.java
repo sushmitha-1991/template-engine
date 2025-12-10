@@ -3,6 +3,7 @@ package com.dsp.templateEngine.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -29,14 +30,15 @@ public class RegionalTranslationLogService {
 	 * @param requestBody the request body/payload sent to translate API
 	 * @param response the response from translate API
 	 */
-	public void saveTranslationLog(Long applicationInstanceId, String requestBody, ResponseEntity<String> response,
+	public void saveTranslationLog(Long applicationInstanceId, ResponseEntity<String> response,
 			LocalDate sittingDate, String documentType, String documentSubType, String fileUrl, boolean editFlag) {
 		try {
 			RegionalTranslationLog translationLog = RegionalTranslationLog.builder()
-					.applicationInstanceId(applicationInstanceId).requestPayload(requestBody)
+					.applicationInstanceId(applicationInstanceId)
 					.responseBody(response != null ? response.getBody() : null)
 					.responseStatus(response != null ? response.getStatusCode().toString() : "UNKNOWN")
-					.sittingDate(sittingDate).documentType(documentType).documentSubType(documentSubType)
+					.sittingDate(sittingDate).documentType(documentType)
+					.documentSubType(StringUtils.isEmpty(documentSubType) ? StringUtils.EMPTY : documentSubType)
 					.fileUrl(fileUrl).editFlag(editFlag).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
 					.build();
 

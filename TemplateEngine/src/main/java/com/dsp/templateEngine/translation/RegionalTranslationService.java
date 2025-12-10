@@ -149,14 +149,14 @@ public class RegionalTranslationService {
 		// Log request and response
 		try {
 			ObjectMapper mapper = new ObjectMapper();
-			String requestBodyJson = mapper.writeValueAsString(body);
+//			String requestBodyJson = mapper.writeValueAsString(body);
 			Long appInstanceId = input.getApplicationInstanceId();
 			LocalDate sittingDate = input.getSittingDate();
 			String documentType = input.getDocumentType();
 			String documentSubType = input.getDocumentSubType();
 			String fileUrl = input.getFileUrl();
 
-			regionalTranslationLogService.saveTranslationLog(appInstanceId, requestBodyJson, response, sittingDate,
+			regionalTranslationLogService.saveTranslationLog(appInstanceId, response, sittingDate,
 					documentType, documentSubType, fileUrl, editFlag);
 		} catch (Exception e) {
 			log.error("Failed to save translation log", e);
@@ -283,6 +283,11 @@ public class RegionalTranslationService {
     }
     
 	private boolean getEditFlag(RegionalTranslationDto input) {
+		log.debug("Sitting date: {}, Document Type: {}, Sub Document Type: {}", 
+							input.getSittingDate(), 
+							input.getDocumentType(), 
+							input.getDocumentSubType());
+		
 		Boolean alreadyExists = regionalTranslationLogRepository.getTranslationEditFlag(
 										input.getSittingDate(),
 										input.getDocumentType(),

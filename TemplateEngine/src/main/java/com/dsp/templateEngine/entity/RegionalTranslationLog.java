@@ -34,9 +34,6 @@ public class RegionalTranslationLog {
 	@Column(name = "application_instance_id")
 	private Long applicationInstanceId;
 
-	@Column(name = "request_payload", columnDefinition = "TEXT")
-	private String requestPayload;
-
 	@Column(name = "response_body", columnDefinition = "TEXT")
 	private String responseBody;
 
