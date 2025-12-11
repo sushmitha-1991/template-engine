@@ -1151,7 +1151,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// }
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation,
-					docDetailsForSms!=null?docDetailsForSms.getDisplayName():"", docDetailsForSms!=null?docDetailsForSms.getDisplayName():"");
+					docDetailsForSms != null ? docDetailsForSms.getDisplayName() : "",
+					docDetailsForSms != null ? docDetailsForSms.getLocale() : "");
 
 		} catch (Exception e) {
 			e.printStackTrace();
