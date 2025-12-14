@@ -133,7 +133,7 @@ public class RegionalTranslationService {
 
         HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-        log.debug("Request: {}" + requestEntity);
+        log.debug("Request: {}" + requestEntity); 
 
         // Invoke API
         ResponseEntity<String> response = restTemplate.exchange(
