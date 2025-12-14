@@ -20,7 +20,7 @@ public interface RegionalTranslationLogRepository extends JpaRepository<Regional
 			sitting_date = :sittingDate and
 			document_type = :documentType and 
 			document_sub_type = :documentSubType and 
-			response_status = '200')
+			response_status = '202')
 			""", nativeQuery = true)
 	Boolean getTranslationEditFlag(@Param("sittingDate") LocalDate sittingDate,
 								@Param("documentType") String documentType,
