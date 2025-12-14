@@ -1151,10 +1151,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// }
 
 			return buildSuccessResponse(documentUuidEn, documentUuidHi, isSendToTranslation,
-					docDetailsForSms.getDisplayName(), docDetailsForSms.getLocale());
+					docDetailsForSms != null ? docDetailsForSms.getDisplayName() : "",
+					docDetailsForSms != null ? docDetailsForSms.getLocale() : "");
 
 		} catch (Exception e) {
-
+			e.printStackTrace();
 			log.error("Error publishing document for appInstId: " + appInstId, e);
 
 			return buildErrorResponse(appInstId, e);
