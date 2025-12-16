@@ -893,6 +893,11 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// Generate filename with the language suffix
 			String appNo = "Balloting" + randomInt + ".pdf";
 			String ballotTitle = "Balloting" + randomInt;
+
+			
+			LokSabhaSessionDTO lsDto = getRomanSession(Long.parseLong(dto.getLokSabhaSessionNo()),
+					Long.parseLong(dto.getLokSabhaNo()));
+					
 			String okmPath = "/okm:root/" + abbr;
 
 			// Step 2: Convert HTML content to a PDF
@@ -924,8 +929,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			}
 			String houseAbbr = jwtUtil.extractHouseAbbr(token);
 
-			LokSabhaSessionDTO lsDto = getRomanSession(Long.parseLong(dto.getLokSabhaSessionNo()),
-					Long.parseLong(dto.getLokSabhaNo()));
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(lsDto.getLoksabha())
 					.lokSabhaSessionNo(lsDto.getSession()).applicationId(dto.getApplicationId())
