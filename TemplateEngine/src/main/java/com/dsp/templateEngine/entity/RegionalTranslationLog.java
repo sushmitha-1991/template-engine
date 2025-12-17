@@ -60,4 +60,7 @@ public class RegionalTranslationLog {
 
 	@Column(name = "updated_at")
 	private LocalDateTime updatedAt;
+
+	@Column(name = "is_send_manually")
+	private Boolean isSendManually;
 }

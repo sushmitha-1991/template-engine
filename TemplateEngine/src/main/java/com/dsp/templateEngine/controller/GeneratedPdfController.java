@@ -406,7 +406,7 @@ public class GeneratedPdfController {
 		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" + input.getSittingDate(), input.getDocumentType(),
 				input.getDocumentSubType(), input.getFileUrl());
 
-		return regionalTransService.sendForTranslation(input);
+		return regionalTransService.sendForTranslation(input,false);
 	}
 
 	private void initPdfConversion(PdfConverterDTO input) {

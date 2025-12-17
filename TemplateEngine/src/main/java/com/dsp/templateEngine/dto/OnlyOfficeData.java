@@ -12,4 +12,5 @@ public interface OnlyOfficeData {
 	String getDocUrl();
 	String getDocUrlHi();
 	String getAbbr();
+	String getDsp2Key();
 }

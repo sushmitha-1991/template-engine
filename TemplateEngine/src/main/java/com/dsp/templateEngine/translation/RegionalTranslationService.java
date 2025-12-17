@@ -93,7 +93,7 @@ public class RegionalTranslationService {
 	}
 	
 	
-	public ResponseEntity<String> sendForTranslation (RegionalTranslationDto input) {
+	public ResponseEntity<String> sendForTranslation (RegionalTranslationDto input,Boolean isSendManual) {
 		
 		if (!translationFlag) {
 	        log.debug("Regional language translation is not enabled for this environment");
@@ -157,7 +157,7 @@ public class RegionalTranslationService {
 			String fileUrl = input.getFileUrl();
 
 			regionalTranslationLogService.saveTranslationLog(appInstanceId, response, sittingDate,
-					documentType, documentSubType, fileUrl, editFlag);
+					documentType, documentSubType, fileUrl, editFlag, isSendManual);
 		} catch (Exception e) {
 			log.error("Failed to save translation log", e);
 		}

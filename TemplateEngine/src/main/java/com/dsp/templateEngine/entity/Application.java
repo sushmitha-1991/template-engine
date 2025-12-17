@@ -35,4 +35,12 @@ public class Application extends Auditable {
 	@Column(nullable = false, length = 255)
 	private String abbr;
 
+	@Column(name = "dsp1_document_name")
+	private String dsp1DocumentName;
+
+	@Column(name = "document_display_name")
+	private String documentDisplayName;
+
+	@Column(name = "house")
+	private String house;
 }
