@@ -291,7 +291,7 @@ public class RegionalTranslationService {
 		Boolean alreadyExists = regionalTranslationLogRepository.getTranslationEditFlag(
 										input.getSittingDate(),
 										input.getDocumentType(),
-										input.getDocumentSubType());
+										StringUtils.isEmpty(input.getDocumentSubType()) ? null : input.getDocumentSubType());
 
 		return (alreadyExists ? true : false);
 	}    

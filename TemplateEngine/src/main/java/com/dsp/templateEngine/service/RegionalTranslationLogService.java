@@ -47,11 +47,14 @@ public class RegionalTranslationLogService {
 			RegionalTranslationLog translationLog = RegionalTranslationLog.builder()
 					.applicationInstanceId(applicationInstanceId)
 					.responseBody(response != null ? response.getBody() : null)
-					//.responseStatus(response != null ? response.getStatusCode().toString() : "UNKNOWN")
 					.responseStatus(status)
-					.sittingDate(sittingDate).documentType(documentType)
-					.documentSubType(StringUtils.isEmpty(documentSubType) ? StringUtils.EMPTY : documentSubType)
-					.fileUrl(fileUrl).editFlag(editFlag).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
+					.sittingDate(sittingDate)
+					.documentType(documentType)
+					.documentSubType(StringUtils.isEmpty(documentSubType) ? null : documentSubType)
+					.fileUrl(fileUrl)
+					.editFlag(editFlag)
+					.createdAt(LocalDateTime.now())
+					.updatedAt(LocalDateTime.now())
 					.build();
 
 			repository.save(translationLog);
