@@ -118,4 +118,9 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 			@Param("appName") String appName,
 			@Param("house") String house);
 
+	@Query(value = "select c.code as subCategory from master.codes c where c.id=:subCategory ", nativeQuery = true)
+    Map<String, Object> fetchCodeByCodeId(Long subCategory);
+	@Query(value = "select c.abbr as abbr from master.codes c where c.id=:id ", nativeQuery = true)
+    Map<String, Object> fetchAbbrByCodeId(Long id);
+
 }

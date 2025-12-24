@@ -26,6 +26,8 @@ import com.dsp.templateEngine.translation.RegionalTranslationDto;
 import com.dsp.templateEngine.util.Utils;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.GetMapping;
+
 
 @Slf4j
 @RestController
@@ -39,8 +41,23 @@ public class RegionalTranslationManualController {
     public ResponseEntity<GenericResponse<Map<String,Object>>> getFile(
         @RequestParam("type") String type,
         @RequestParam("forDate") LocalDate forDate,
-        @RequestParam("category") String category,
-        @RequestParam(required = false) String subCategory)
+        @RequestParam("category") Long category,
+        @RequestParam(required = false) Long subCategory)
+    {
+        Map<String, Object> response= regionalManualService.getDocument(type,forDate,category,subCategory);
+        
+         GenericResponse<Map<String, Object>> genericResponse = new GenericResponse<>(HttpStatus.OK.value(), true,
+                    "Document recieved successfully.", response);
+
+            return new ResponseEntity<>(genericResponse, HttpStatus.OK);
+        
+    }
+    @GetMapping("/get-doc")
+    public ResponseEntity<GenericResponse<Map<String,Object>>> getFileDoc(
+        @RequestParam("type") String type,
+        @RequestParam("forDate") LocalDate forDate,
+        @RequestParam("category") Long category,
+        @RequestParam(required = false) Long subCategory)
     {
         Map<String, Object> response= regionalManualService.getDocument(type,forDate,category,subCategory);
         

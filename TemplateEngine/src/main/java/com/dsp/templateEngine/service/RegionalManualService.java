@@ -60,7 +60,7 @@ public class RegionalManualService {
     public static final Map<String, String> SUB_CATEGORY_MAP = new HashMap<>();
 
     public static final Map<String, String> HOUSE_MAP = new HashMap<>();
-
+    
     static {
         CATEGORY_MAP.put("LOB", "List of Business");
         CATEGORY_MAP.put("B1", "Bulletin Part-I");
@@ -70,12 +70,13 @@ public class RegionalManualService {
     }
 
     static {
-        SUB_CATEGORY_MAP.put("List Of Business", "Normal");
-        SUB_CATEGORY_MAP.put("Revised List Of Business", "Revised List of Business");
+        SUB_CATEGORY_MAP.put("101", "Normal");
+        SUB_CATEGORY_MAP.put("2", "Revised List of Business");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 1", "Supplementary List of Business-1");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 2", "Supplementary List of Business-2");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 3", "Supplementary List of Business-3");
     }
+
 
     static {
         HOUSE_MAP.put("RS", "rs");
@@ -133,37 +134,8 @@ public class RegionalManualService {
         return true;
     }
 
-    private void populateEndPointParams(RegionalTranslationDto input) {
-
-        // Source file
-        try {
-            URL url = new URL(input.getFileUrl());
-            Path temp = Files.createTempFile(UUID.randomUUID().toString(), ".docx");
-            Files.copy(url.openStream(), temp, StandardCopyOption.REPLACE_EXISTING);
-            input.setSource(temp.toFile());
-        } catch (Exception e) {
-            log.error("Failed to download file for sending to translation: {} ", e.getMessage());
-        }
-
-        // Category
-        input.setCategory(CATEGORY_MAP.get(input.getDocumentType()));
-
-        // Sub Category
-        String subCategory = !StringUtils.isBlank(input.getDocumentSubType())
-                ? (SUB_CATEGORY_MAP.get(input.getDocumentSubType()) != null
-                        ? SUB_CATEGORY_MAP.get(input.getDocumentSubType())
-                        : StringUtils.EMPTY)
-                : StringUtils.EMPTY;
-        input.setSubCategory(subCategory);
-
-        // House
-        input.setType(HOUSE_MAP.get("LS"));
-
-        return;
-    }
-
     public Map<String, Object> getDocument(String type, LocalDate forDate,
-            String category, String subCategory) {
+            Long category, Long subCategory) {
         Map<String, Object> res = new HashMap<>();
 
         try {
@@ -172,7 +144,7 @@ public class RegionalManualService {
 
             String appName = getApplicationName(category, house, subCategory);
             System.out.println("appName " + appName);
-            System.out.println("fetchin publish data  date " + forDate);
+            System.out.println("fetching publish data  date " + forDate);
 
             PublishHistoryEntity publishData = publishRepository
                     .fetchByDateAppName(forDate, appName, house);
@@ -191,46 +163,36 @@ public class RegionalManualService {
             return res;
         } catch (Exception e) {
             System.out.println(e.getLocalizedMessage());
-            e.printStackTrace();
+            // e.printStackTrace();
         }
         return res;
     }
 
-    private String getApplicationName(String category, String house, String subCategory) {
+    private String getApplicationName(Long category, String house, Long subCategory) {
+
         try {
-
             System.out.println("category "+category);
+            Map<String,Object> businessType = publishRepository.fetchAbbrByCodeId(subCategory);
 
-            Optional<Application> appNameOpt = applicationRepository
-                    .findByDocumentDisplayName(category);
-
-            if (appNameOpt.isEmpty()) {
-                appNameOpt = applicationRepository
-                        .findByAbbr(category);
+            if(businessType==null || businessType.isEmpty())
+                return "";
+            String appName=businessType.get("abbr").toString();
+            if (subCategory != null) {
+                Map<String,Object> lobType = publishRepository.fetchAbbrByCodeId(subCategory);
+                if(!lobType.isEmpty())
+                    appName = lobType.get("abbr").toString();
             }
-            
-            String appName=appNameOpt.get().getDsp1DocumentName();
-
-            if (StringUtils.isNotBlank(subCategory)) {
-                Map<String, String> subCategoryMap = Map.of(
-                        "Revised List of Business", util.RLOB,
-                        "Supplementary List Of Business", util.SLOB);
-
-                appName = subCategoryMap.getOrDefault(subCategory.trim(), appName);
-            }
-
             System.out.println(appName);
             return appName;
 
         } catch (Exception e) {
             log.error("Error while resolving application name", e);
-            return category;
+            return "";
         }
     }
 
     public ResponseEntity<String> sendForRegionalLanguageTranslation(Long appInstId, String type, LocalDate forDate,
-            String category,
-            String subCategory, Boolean edit, String sourceUrl) {
+            String category, String subCategory, Boolean edit, String sourceUrl) {
 
         log.info("In Manualservice sendForRegionalLanguageTranslation");
 
