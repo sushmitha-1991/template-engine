@@ -69,7 +69,7 @@ public interface OnlyOfficeMetadataRepository extends JpaRepository<OnlyOfficeMe
 			+ "WHERE ai.id = :applicationInstanceId", nativeQuery = true)
 	OnlyOfficeData getOnlyOfficeDataForSynopsis(@Param("applicationInstanceId") Long applicationInstanceId);
 
-	@Query(value = "SELECT oom.download_url AS docUrl, oom1.download_url AS docUrlHi, a.abbr AS abbr " + 
+	@Query(value = "SELECT oom.download_url AS docUrl, oom1.download_url AS docUrlHi, a.abbr AS abbr, oom.dsp2_key AS dsp2Key " + 
 		    "FROM master.application_instance ai " +
 		   "LEFT JOIN master.applications a ON a.id = ai.application_id " + 
 		   "LEFT JOIN onlyoffice.only_office_metadata oom ON oom.dsp2_key = ai.only_office_dsp2_key " +

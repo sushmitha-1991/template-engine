@@ -10,9 +10,7 @@ import org.springframework.stereotype.Service;
 
 import com.dsp.templateEngine.entity.RegionalTranslationLog;
 import com.dsp.templateEngine.repository.RegionalTranslationLogRepository;
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -36,7 +34,7 @@ public class RegionalTranslationLogService {
 	 * @param response the response from translate API
 	 */
 	public void saveTranslationLog(Long applicationInstanceId, ResponseEntity<String> response,
-			LocalDate sittingDate, String documentType, String documentSubType, String fileUrl, boolean editFlag) 
+			LocalDate sittingDate, String documentType, String documentSubType, String fileUrl, boolean editFlag, Boolean isSendManual) 
 										throws JsonProcessingException {
 		
 		ObjectMapper objectMapper = new ObjectMapper();
@@ -47,14 +45,11 @@ public class RegionalTranslationLogService {
 			RegionalTranslationLog translationLog = RegionalTranslationLog.builder()
 					.applicationInstanceId(applicationInstanceId)
 					.responseBody(response != null ? response.getBody() : null)
-					.responseStatus(status)
-					.sittingDate(sittingDate)
-					.documentType(documentType)
-					.documentSubType(StringUtils.isEmpty(documentSubType) ? null : documentSubType)
-					.fileUrl(fileUrl)
-					.editFlag(editFlag)
-					.createdAt(LocalDateTime.now())
-					.updatedAt(LocalDateTime.now())
+					//.responseStatus(response != null ? response.getStatusCode().toString() : "UNKNOWN")
+					.responseStatus(status).isSendManually(isSendManual)
+					.sittingDate(sittingDate).documentType(documentType)
+					.documentSubType(StringUtils.isEmpty(documentSubType) ? StringUtils.EMPTY : documentSubType)
+					.fileUrl(fileUrl).editFlag(editFlag).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now())
 					.build();
 
 			repository.save(translationLog);

@@ -66,6 +66,12 @@ public class Utils {
 
 	public static final String OKM_ROOT = "/okm:root/";
 
+	public static final String LOB = "LIST_OF_BUSINESS";
+
+	public static final String RLOB = "REVISED_LIST_OF_BUSINESS";
+
+	public static final String SLOB = "SUPPLEMENTARY_LIST_OF_BUSINESS";
+
 	/**
 	 * Fetches the user ID of the currently authenticated user
 	 * 

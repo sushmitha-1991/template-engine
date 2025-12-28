@@ -5,6 +5,7 @@
  */
 package com.dsp.templateEngine.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
@@ -101,5 +102,25 @@ public interface PublishRepository extends JpaRepository<PublishHistoryEntity, L
 			limit 1
 			""", nativeQuery = true)
 	String findUnpublishByUser(@Param("appNo") String appNo);
+
+	@Query(value = """
+			select *
+			from workflow.publish_history ph
+			where ph.publish_status = true
+			  and ph.for_date = :forDate
+			  and ph.application_name = :appName
+			  and ph.house = :house
+			order by ph.application_no desc
+			limit 1
+			""", nativeQuery = true)
+	PublishHistoryEntity fetchByDateAppName(
+			@Param("forDate") LocalDate forDate,
+			@Param("appName") String appName,
+			@Param("house") String house);
+
+	@Query(value = "select c.code as subCategory from master.codes c where c.id=:subCategory ", nativeQuery = true)
+    Map<String, Object> fetchCodeByCodeId(Long subCategory);
+	@Query(value = "select c.abbr as abbr from master.codes c where c.id=:id ", nativeQuery = true)
+    Map<String, Object> fetchAbbrByCodeId(Long id);
 
 }
