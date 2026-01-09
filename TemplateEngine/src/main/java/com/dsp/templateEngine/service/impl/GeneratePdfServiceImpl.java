@@ -25,6 +25,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -123,6 +124,18 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Value("${send.sms.ballot}")
 	private String smsBallotUrl;
 
+	@Value("${distribution.branch.email}")
+	private String distributionBranchEmail;
+
+	@Value("${email.url}")
+	private String emailUrl;
+
+	@Value("${email.ls.subject}")
+	private String emailLsSubject;
+
+	@Value("${email.ls.body}")
+	private String emailLsBody;
+
 	@Autowired
 	private Dsp1CacheService dsp1CacheService;
 
@@ -140,7 +153,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
 
-	@Value("${openKm.service.download.endpoint}")
+	@Value("${openKm.dsp1.download.endpoint}")
 	private String openKmDownloadEndPoint;
 
 	@Value("${openKm.dsp1.download.endpoint}")
@@ -894,10 +907,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			String appNo = "Balloting" + randomInt + ".pdf";
 			String ballotTitle = "Balloting" + randomInt;
 
-			
 			LokSabhaSessionDTO lsDto = getRomanSession(Long.parseLong(dto.getLokSabhaSessionNo()),
 					Long.parseLong(dto.getLokSabhaNo()));
-					
+
 			String okmPath = "/okm:root/" + abbr;
 
 			// Step 2: Convert HTML content to a PDF
@@ -928,7 +940,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				throw new IllegalStateException("Authorization token is missing");
 			}
 			String houseAbbr = jwtUtil.extractHouseAbbr(token);
-
 
 			PublishHistoryEntity entry = PublishHistoryEntity.builder().lokSabhaNo(lsDto.getLoksabha())
 					.lokSabhaSessionNo(lsDto.getSession()).applicationId(dto.getApplicationId())
@@ -1142,6 +1153,21 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
+			if (appAbbr.equals(SUMMON)) {
+
+				try {
+
+					sendSummonNotification(documentUuidEn, documentUuidHi, appDetails.getLsNo(),
+							appDetails.getLsSesNo());
+
+				} catch (Exception e) {
+
+					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
+
+				}
+
+			}
+
 			// translation code
 
 			Boolean isSendToTranslation = false;
@@ -1165,6 +1191,79 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		}
 
+	}
+
+	public void sendSummonNotification(UUID documentUuidEn, UUID documentUuidHi, String lokSabhaNumber,
+			String sessionNumber) {
+		// 🔹 Format subject & body
+		String subject = String.format(emailLsSubject, sessionNumber, lokSabhaNumber);
+		String body = String.format(emailLsBody, sessionNumber, lokSabhaNumber);
+
+		HttpHeaders headers = new HttpHeaders();
+		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+
+		MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
+		formData.add("emailfrom", "noreply@sansad.in");
+		formData.add("emailto", distributionBranchEmail);
+		formData.add("emailsub", subject);
+		formData.add("emailbody", body);
+
+		// Attach English file
+		if (documentUuidEn != null) {
+			ByteArrayResource fileResource = downloadFileFromUUID(documentUuidEn);
+			if (fileResource != null) {
+				System.out.println("resource file was not null");
+				formData.add("file", fileResource);
+				log.info("Attached file with UUID: {}", documentUuidEn);
+			}
+		}
+
+		// Attach Hindi file
+		if (documentUuidHi != null) {
+			ByteArrayResource hindiFileResource = downloadFileFromUUID(documentUuidHi);
+			if (hindiFileResource != null) {
+				System.out.println("resource file was not null");
+				formData.add("file", hindiFileResource);
+				log.info("Attached Hindi file with UUID: {}", documentUuidHi);
+			}
+		}
+
+		HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(formData, headers);
+
+		ResponseEntity<String> response = restTemplate.postForEntity(emailUrl, request, String.class);
+
+		if (!response.getStatusCode().is2xxSuccessful()) {
+			throw new RuntimeException("Failed to send email: " + response.getBody());
+		}
+
+		log.info("Email sent successfully to {}", distributionBranchEmail);
+	}
+
+	private ByteArrayResource downloadFileFromUUID(UUID uuid) {
+		try {
+			String downloadUrl = openKmDownloadEndPoint + "/" + uuid;
+
+			ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, HttpMethod.GET,
+					new HttpEntity<>(new HttpHeaders()), byte[].class);
+
+			if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+				return new ByteArrayResource(response.getBody()) {
+					@Override
+					public String getFilename() {
+						String fileName = "Summon-Notification";
+						return fileName + ".pdf";
+					}
+				};
+			} else {
+				log.info("Failed to download file for UUID: {}, Status: {}", uuid, response.getStatusCode());
+				System.out.println("#### Failed to download file for UUID");
+			}
+		} catch (Exception e) {
+			System.out.println("#### Error downloading file for UUID" + uuid);
+			log.info("Error downloading file for UUID: " + uuid, e);
+		}
+
+		return null;
 	}
 
 	private PublishDTO processOODocument(int startPageNumber,
