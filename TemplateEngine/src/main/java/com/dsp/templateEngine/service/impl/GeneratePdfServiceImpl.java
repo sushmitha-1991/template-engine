@@ -153,7 +153,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	@Value("${openKm.service.upload.endpoint}")
 	private String openKmUploadEndpoint;
 
-	@Value("${openKm.service.download.endpoint}")
+	@Value("${openKm.dsp1.download.endpoint}")
 	private String openKmDownloadEndPoint;
 
 	@Value("${openKm.dsp1.download.endpoint}")
