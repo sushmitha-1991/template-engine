@@ -21,6 +21,7 @@ import java.util.Scanner;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -45,6 +46,7 @@ import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.AgendaPapersDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.DocDetailsForSms;
+import com.dsp.templateEngine.dto.LatestSessionResponse;
 import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.MpBallotDTO;
@@ -129,6 +131,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Value("${email.url}")
 	private String emailUrl;
+
+	@Value("${email.ls.subject}")
+	private String emailLsSubject;
+
+	@Value("${email.ls.body}")
+	private String emailLsBody;
 
 	@Autowired
 	private Dsp1CacheService dsp1CacheService;
@@ -1186,26 +1194,38 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	}
 
+	private Pair<String, String> fetchLatestSessionDetails() {
+
+		ResponseEntity<LatestSessionResponse> response = restTemplate.getForEntity(
+				"https://dspstg.sansad.in/master/loksabha/v2/latest-session", LatestSessionResponse.class);
+
+		if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null
+				|| response.getBody().getData() == null) {
+			throw new RuntimeException("Failed to fetch latest Lok Sabha session details");
+		}
+
+		LatestSessionResponse.DataNode data = response.getBody().getData();
+
+		String sessionNumber = data.getSession().get(0).getSessionNumber();
+		String lokSabhaNumber = data.getLoksabha().get(0).getLokSabhaNumber();
+
+		return Pair.of(sessionNumber, lokSabhaNumber);
+	}
+
 	public void sendSummonNotification(UUID documentUuidEn, UUID documentUuidHi) {
 
-		String subject = "Summon Notification for IV Session of Eighteenth Lok Sabha";
+		// 🔹 Fetch session details
+		Pair<String, String> sessionDetails = fetchLatestSessionDetails();
+		String sessionNumber = sessionDetails.getLeft();
+		String lokSabhaNumber = sessionDetails.getRight();
 
-		String body = """
-				Dear Sir/Ma'am,
-
-				The Summon Notification for IV Session of Eighteenth Lok Sabha is attached for your information.
-
-				Yours Sincerely,
-
-				Secretary General
-
-				E-mail Attachments: Two .pdf files for English and Hindi Summon Notification
-				""";
+		// 🔹 Format subject & body
+		String subject = String.format(emailLsSubject, sessionNumber, lokSabhaNumber);
+		String body = String.format(emailLsBody, sessionNumber, lokSabhaNumber);
 
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.MULTIPART_FORM_DATA);
 
-		// Build request body
 		MultiValueMap<String, Object> formData = new LinkedMultiValueMap<>();
 		formData.add("emailfrom", "noreply@sansad.in");
 		formData.add("emailto", distributionBranchEmail);
@@ -1215,29 +1235,19 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		// Attach English file
 		if (documentUuidEn != null) {
 			ByteArrayResource fileResource = downloadFileFromUUID(documentUuidEn);
-
 			if (fileResource != null) {
 				formData.add("file", fileResource);
 				log.info("Attached file with UUID: {}", documentUuidEn);
-			} else {
-				log.info("Attachment not found for UUID: {}", documentUuidEn);
 			}
-		} else {
-			log.info("No UUID found in history to attach a file.");
 		}
 
 		// Attach Hindi file
 		if (documentUuidHi != null) {
 			ByteArrayResource hindiFileResource = downloadFileFromUUID(documentUuidHi);
-
 			if (hindiFileResource != null) {
 				formData.add("file", hindiFileResource);
 				log.info("Attached Hindi file with UUID: {}", documentUuidHi);
-			} else {
-				log.info("Hindi attachment not found for UUID: {}", documentUuidHi);
 			}
-		} else {
-			log.info("No Hindi UUID found in history to attach a file.");
 		}
 
 		HttpEntity<MultiValueMap<String, Object>> request = new HttpEntity<>(formData, headers);
@@ -1245,7 +1255,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		ResponseEntity<String> response = restTemplate.postForEntity(emailUrl, request, String.class);
 
 		if (!response.getStatusCode().is2xxSuccessful()) {
-			throw new RuntimeException("Failed to send email to : " + response.getBody());
+			throw new RuntimeException("Failed to send email: " + response.getBody());
 		}
 
 		log.info("Email sent successfully to {}", distributionBranchEmail);
