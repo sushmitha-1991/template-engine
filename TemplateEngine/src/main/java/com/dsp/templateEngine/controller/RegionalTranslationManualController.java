@@ -105,29 +105,29 @@ public class RegionalTranslationManualController {
     public ResponseEntity<GenericResponse<List<RegionalTranslationLogDto>>> getTranslationLog(
         @RequestParam(required = false) Long appInstId,
         @RequestParam(required = false) String type,
-        @RequestParam(required = false) LocalDate forDate,
+        @RequestParam(required = false) LocalDate sittingDate,
         @RequestParam(required = false) LocalDate fromDate,
         @RequestParam(required = false) LocalDate toDate,
         @RequestParam(required = false) String category,
         @RequestParam(required = false) String subCategory,
-        @RequestParam(required = false) Boolean edit,
+        @RequestParam(required = false) Boolean editFlag,
         @RequestParam(required = false) String responseStatus,
-        @RequestParam(required = false) Boolean manuallyTranslated) {
+        @RequestParam(required = false) Boolean isManuallyTranslated) {
 
         try {
 
             List<RegionalTranslationLogDto> response =
                     regionalTranslationLogService.getTranslationLog(
                             appInstId,
-                            forDate,
+                            sittingDate,
                             responseStatus,
                             category,
                             subCategory,
-                            edit,
+                            editFlag,
                             fromDate,
                             toDate,
                             type,
-                            manuallyTranslated
+                            isManuallyTranslated
                     );
 
             return ResponseEntity.ok(

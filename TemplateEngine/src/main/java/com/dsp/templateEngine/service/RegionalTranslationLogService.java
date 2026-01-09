@@ -74,6 +74,10 @@ public class RegionalTranslationLogService {
 		{
 			spec = spec.and(isEdit(edit));
 		}
+		if(StringUtils.isNotBlank(responseStatus))
+		{
+			spec = spec.and(hasResponseStatus(responseStatus));
+		}
 		if(date != null)
 		{
 			spec = spec.and(hasDate(date));
@@ -138,7 +142,7 @@ public class RegionalTranslationLogService {
 
 	public static Specification<RegionalTranslationLog> hasDocType(String docType) {
 		return (root, query, cb) -> {
-			if (docType == null || docType.trim().isEmpty()) {
+			if (StringUtils.isBlank(docType)) {
 				return cb.conjunction();
 			}
 			return cb.like(
@@ -148,9 +152,21 @@ public class RegionalTranslationLogService {
 		};
 	}
 
+	public static Specification<RegionalTranslationLog> hasResponseStatus(String response) {
+		return (root, query, cb) -> {
+			if (StringUtils.isBlank(response)) {
+				return cb.conjunction();
+			}
+			return cb.like(
+					cb.lower(root.get("responseStatus")),
+					"%" + response.toLowerCase() + "%"
+			);
+		};
+	}
+
 	public static Specification<RegionalTranslationLog> hasDocSubType(String docSubType) {
 		return (root, query, cb) -> {
-			if (docSubType == null || docSubType.trim().isEmpty()) {
+			if (StringUtils.isBlank(docSubType)) {
 				return cb.conjunction();
 			}
 			return cb.like(
