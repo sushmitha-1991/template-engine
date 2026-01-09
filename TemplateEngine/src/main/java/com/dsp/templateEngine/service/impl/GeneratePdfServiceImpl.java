@@ -1138,7 +1138,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			updateWorkflowHistory(appInstId);
 
-			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
+//			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 
 			DocDetailsForSms docDetailsForSms = publishRepository
 					.getDisplayNameFromPublishHistory(appDetails.getAppNo());
