@@ -1144,7 +1144,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			updateWorkflowHistory(appInstId);
 
-//			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
+			savePublishHistory(appInstId, appDetails, documentUuidEn, documentUuidHi, appAbbr);
 
 			DocDetailsForSms docDetailsForSms = publishRepository
 					.getDisplayNameFromPublishHistory(appDetails.getAppNo());
@@ -1243,7 +1243,6 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		try {
 			String downloadUrl = openKmDownloadEndPoint + "/" + uuid;
 
-			System.out.println("### downloadFileFromUUID called");
 			ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, HttpMethod.GET,
 					new HttpEntity<>(new HttpHeaders()), byte[].class);
 
@@ -1251,7 +1250,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 				return new ByteArrayResource(response.getBody()) {
 					@Override
 					public String getFilename() {
-						String fileName = "Summon";
+						String fileName = "Summon-Notification";
 						return fileName + ".pdf";
 					}
 				};
