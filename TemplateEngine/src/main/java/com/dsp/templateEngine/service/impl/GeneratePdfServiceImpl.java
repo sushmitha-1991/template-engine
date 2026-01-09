@@ -1241,7 +1241,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	private ByteArrayResource downloadFileFromUUID(UUID uuid) {
 		try {
-			String downloadUrl = openKmDownloadEndPoint + uuid;
+			String downloadUrl = openKmDownloadEndPoint + "/" + uuid;
 
 			System.out.println("### downloadFileFromUUID called");
 			ResponseEntity<byte[]> response = restTemplate.exchange(downloadUrl, HttpMethod.GET,
