@@ -1212,6 +1212,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (documentUuidEn != null) {
 			ByteArrayResource fileResource = downloadFileFromUUID(documentUuidEn);
 			if (fileResource != null) {
+				System.out.println("resource file was not null");
 				formData.add("file", fileResource);
 				log.info("Attached file with UUID: {}", documentUuidEn);
 			}
@@ -1221,6 +1222,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (documentUuidHi != null) {
 			ByteArrayResource hindiFileResource = downloadFileFromUUID(documentUuidHi);
 			if (hindiFileResource != null) {
+				System.out.println("resource file was not null");
 				formData.add("file", hindiFileResource);
 				log.info("Attached Hindi file with UUID: {}", documentUuidHi);
 			}
