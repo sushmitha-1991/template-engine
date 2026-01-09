@@ -21,7 +21,6 @@ import java.util.Scanner;
 import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,7 +45,6 @@ import com.dsp.templateEngine.converter.PdfConverterDTO;
 import com.dsp.templateEngine.dto.AgendaPapersDTO;
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.DocDetailsForSms;
-import com.dsp.templateEngine.dto.LatestSessionResponse;
 import com.dsp.templateEngine.dto.LokSabhaSessionDTO;
 import com.dsp.templateEngine.dto.MemberDTO;
 import com.dsp.templateEngine.dto.MpBallotDTO;
@@ -1159,7 +1157,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 				try {
 
-					sendSummonNotification(documentUuidEn, documentUuidHi);
+					sendSummonNotification(documentUuidEn, documentUuidHi, appDetails.getLsNo(),
+							appDetails.getLsSesNo());
 
 				} catch (Exception e) {
 
@@ -1194,31 +1193,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	}
 
-	private Pair<String, String> fetchLatestSessionDetails() {
-
-		ResponseEntity<LatestSessionResponse> response = restTemplate.getForEntity(
-				"https://dspstg.sansad.in/master/loksabha/v2/latest-session", LatestSessionResponse.class);
-
-		if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null
-				|| response.getBody().getData() == null) {
-			throw new RuntimeException("Failed to fetch latest Lok Sabha session details");
-		}
-
-		LatestSessionResponse.DataNode data = response.getBody().getData();
-
-		String sessionNumber = data.getSession().get(0).getSessionNumber();
-		String lokSabhaNumber = data.getLoksabha().get(0).getLokSabhaNumber();
-
-		return Pair.of(sessionNumber, lokSabhaNumber);
-	}
-
-	public void sendSummonNotification(UUID documentUuidEn, UUID documentUuidHi) {
-
-		// 🔹 Fetch session details
-		Pair<String, String> sessionDetails = fetchLatestSessionDetails();
-		String sessionNumber = sessionDetails.getLeft();
-		String lokSabhaNumber = sessionDetails.getRight();
-
+	public void sendSummonNotification(UUID documentUuidEn, UUID documentUuidHi, String lokSabhaNumber,
+			String sessionNumber) {
 		// 🔹 Format subject & body
 		String subject = String.format(emailLsSubject, sessionNumber, lokSabhaNumber);
 		String body = String.format(emailLsBody, sessionNumber, lokSabhaNumber);
