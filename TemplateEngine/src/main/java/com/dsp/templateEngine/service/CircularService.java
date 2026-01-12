@@ -33,7 +33,7 @@ public class CircularService {
 	@Value("${lsintra.branch.id}")
 	private String branchId;
 
-	public void insertCircular() {
+	public void insertCircular(UUID documentUuidEn) {
 
 		// 1. Fetch sequence value
 		Long seqValue = jdbcTemplate.queryForObject("SELECT NEXT VALUE FOR circular_notifications_seq", Long.class);
@@ -99,7 +99,7 @@ public class CircularService {
 				utils.getUserFullNameFromAuthentication(), // updated_by
 				null, // sub_catid
 				null, // status
-				UUID.randomUUID().toString() // uuid
+				documentUuidEn.toString() // uuid
 		);
 
 		// 5. Update tlbcircular_type.cat_lastsno where id = 5

@@ -1169,7 +1169,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 				// 2️⃣ Try inserting circular (independent)
 				try {
-					circularService.insertCircular();
+					circularService.insertCircular(documentUuidEn);
 				} catch (Exception e) {
 					log.error("Error inserting circular entry for appInstId: {}", appInstId, e);
 				}
