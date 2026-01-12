@@ -5,7 +5,9 @@
  */
 package com.dsp.templateEngine.util;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,7 +52,7 @@ public class Utils {
 
 	@Autowired
 	private OnlyOfficeMetadataRepository onlyOfficeMetadataRepository;
-	
+
 	@Autowired
 	private GeneratedPdfModelRepository generatedPdfModelRepository;
 
@@ -364,8 +366,7 @@ public class Utils {
 			throw new IllegalStateException("House ID not found for the authenticated user.");
 		}
 	}
-	
-	
+
 	public ApplicationInstanceProjection getAppDetails(Long appInstId) {
 		log.info("app id " + appInstId);
 		ApplicationInstanceProjection details = generatedPdfModelRepository.findApplicationDetailsById(appInstId);
@@ -375,4 +376,61 @@ public class Utils {
 		log.info("app details " + details);
 		return details;
 	}
+
+	/**
+	 * Extracts the IP address of the logged-in user from the JWT token in the
+	 * request.
+	 *
+	 * @param request HttpServletRequest containing the "Authorization" header
+	 * @return IP address if present, otherwise null
+	 */
+	public static String getLoggedInUserIp(HttpServletRequest request) {
+		String token = getTokenFromRequest(request);
+		if (token == null) {
+			return null;
+		}
+		return extractIpFromJwt(token);
+	}
+
+	// Step 1: Extract token from header
+	private static String getTokenFromRequest(HttpServletRequest request) {
+		String authorizationHeader = request.getHeader("Authorization");
+		if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+			return authorizationHeader.substring(7);
+		}
+		return null;
+	}
+
+	// Step 2: Decode token payload and extract "ip" claim
+	private static String extractIpFromJwt(String jwt) {
+		String[] parts = jwt.split("\\.");
+		if (parts.length < 2)
+			return null;
+
+		try {
+			String payloadB64 = parts[1];
+			byte[] decoded = Base64.getUrlDecoder().decode(padBase64(payloadB64));
+			String payloadJson = new String(decoded, StandardCharsets.UTF_8);
+
+			int ipIndex = payloadJson.indexOf("\"ip\"");
+			if (ipIndex != -1) {
+				int colon = payloadJson.indexOf(":", ipIndex);
+				int quote1 = payloadJson.indexOf("\"", colon);
+				int quote2 = payloadJson.indexOf("\"", quote1 + 1);
+				return payloadJson.substring(quote1 + 1, quote2);
+			}
+		} catch (Exception e) {
+			return null;
+		}
+		return null;
+	}
+
+	// Helper for Base64 padding
+	private static String padBase64(String b64) {
+		int remainder = b64.length() % 4;
+		if (remainder == 0)
+			return b64;
+		return b64 + "=".repeat(4 - remainder);
+	}
+
 }

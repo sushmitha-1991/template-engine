@@ -65,6 +65,7 @@ import com.dsp.templateEngine.repository.GeneratedPdfModelRepository;
 import com.dsp.templateEngine.repository.MyUserRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.repository.WorkflowHistoryRepository;
+import com.dsp.templateEngine.service.CircularService;
 import com.dsp.templateEngine.service.Dsp1CacheService;
 import com.dsp.templateEngine.service.FolderStructureService;
 import com.dsp.templateEngine.service.GeneratePdfService;
@@ -135,6 +136,9 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 	@Value("${email.ls.body}")
 	private String emailLsBody;
+
+	@Autowired
+	private CircularService circularService;
 
 	@Autowired
 	private Dsp1CacheService dsp1CacheService;
@@ -1153,19 +1157,22 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 			dsp1CacheService.clearCacheDsp1(appDetails.getAppNo(), appAbbr);
 
-			if (appAbbr.equals(SUMMON)) {
+			if (SUMMON.equals(appAbbr)) {
 
+				// 1️⃣ Try sending summon notification
 				try {
-
 					sendSummonNotification(documentUuidEn, documentUuidHi, appDetails.getLsNo(),
 							appDetails.getLsSesNo());
-
 				} catch (Exception e) {
-
-					log.error("Error saving uploaded documents for appInstId: " + appInstId, e);
-
+					log.error("Error sending summon notification for appInstId: {}", appInstId, e);
 				}
 
+				// 2️⃣ Try inserting circular (independent)
+				try {
+					circularService.insertCircular();
+				} catch (Exception e) {
+					log.error("Error inserting circular entry for appInstId: {}", appInstId, e);
+				}
 			}
 
 			// translation code
