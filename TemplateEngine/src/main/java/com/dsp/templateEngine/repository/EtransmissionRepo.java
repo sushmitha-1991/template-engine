@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 public interface EtransmissionRepo extends JpaRepository<ETransmission, Long> {
 	@Query(value = "select op.id as paperId, o.id as officeId  from transmission.office_papers op " 
 			+ " JOIN master.offices o ON op.office_id=o.id "
-			+ " where op.paper_type= :paperType and o.house_id=:house", nativeQuery = true)
+			+ " where op.is_active=true and op.paper_type= :paperType and o.house_id=:house", nativeQuery = true)
 	Map<String,Object> getPaperId(@Param("paperType") String paperType, @Param("house") Long house);
 
 	
