@@ -51,6 +51,7 @@ public class Balloting377Utils {
 	}
 
 	public Map<String, Object> getOfficePaperId(String paperType) {
+		Long loginUserOfficeId = utils.getOfficeIdFromAuthentication();
 		System.out.println(">>> paperType - " + paperType);
 		Map<String, Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
 		return paperIds.isEmpty() ? null : paperIds;
