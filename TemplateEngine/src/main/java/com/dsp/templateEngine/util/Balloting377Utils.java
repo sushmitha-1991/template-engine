@@ -20,7 +20,7 @@ public class Balloting377Utils {
 	public static final String NOTICE_377 = "377";
 	public static final String NOTICE_ZERO_HOUR = "ZH";
 	public static final String BALLOT_RESULT = "Ballot Result (Matters under rule 377)";
-
+	public static final String TABLE_OFF = "LS_TOA";
 	@Autowired
 	private EtransmissionRepo etransmissionRepo;
 	@Autowired
@@ -51,9 +51,9 @@ public class Balloting377Utils {
 	}
 
 	public Map<String, Object> getOfficePaperId(String paperType) {
-		Long loginUserOfficeId = utils.getOfficeIdFromAuthentication();
+
 		System.out.println(">>> paperType - " + paperType);
-		Map<String, Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId());
+		Map<String, Object> paperIds = etransmissionRepo.getPaperId(paperType, Utils.getHouseId(), TABLE_OFF);
 		return paperIds.isEmpty() ? null : paperIds;
 	}
 
