@@ -292,6 +292,7 @@ public class GeneratedPdfController {
 			Map<String, Object> resultData = new HashMap<>();
 			String docName = null;
 			String locale = null;
+			String englishDocumentUuid = null;
 
 			if (responseBody != null) {
 				resultData.put("englishDocumentUuid", responseBody.get("englishDocumentUuid"));
@@ -300,6 +301,7 @@ public class GeneratedPdfController {
 				resultData.put("locale", responseBody.get("locale"));
 				docName = (String) responseBody.get("docName");
 				locale = (String) responseBody.get("locale");
+				englishDocumentUuid = (String) responseBody.get("englishDocumentUuid");
 			}
 
 			log.info("Document published successfully for appInstId: {}", appInstId);
@@ -320,7 +322,7 @@ public class GeneratedPdfController {
 			// Enable only in PRODUCTION after explicit confirmation.
 			if (sendSms) {
 				try {
-					pdfService.sendSMS(appInstId, docName, locale);
+					pdfService.sendSMS(appInstId, docName, locale, englishDocumentUuid);
 				} catch (Exception e) {
 					log.error("Failed to send Document for Regional Language translation: {}", e.getMessage(), e);
 					// publish flow must not break
@@ -399,14 +401,15 @@ public class GeneratedPdfController {
 		RegionalTranslationDto input = new RegionalTranslationDto();
 		input.setSittingDate(appInstance.getDocumentDate());
 		input.setDocumentType(appDetails.getAbbr());
-		input.setDocumentSubType(appInstance.getDocumentDisplayName()!=null?appInstance.getDocumentDisplayName():null);
+		input.setDocumentSubType(
+				appInstance.getDocumentDisplayName() != null ? appInstance.getDocumentDisplayName() : null);
 		input.setFileUrl(ooData.getDocUrl());
 		input.setApplicationInstanceId(appInstance.getId());
 
 		log.debug("RegionalTranslationDto input: {} / {} / {} / {}" + input.getSittingDate(), input.getDocumentType(),
 				input.getDocumentSubType(), input.getFileUrl());
 
-		return regionalTransService.sendForTranslation(input,false);
+		return regionalTransService.sendForTranslation(input, false);
 	}
 
 	private void initPdfConversion(PdfConverterDTO input) {

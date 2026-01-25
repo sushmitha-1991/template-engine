@@ -1410,7 +1410,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 	}
 
 	@Override
-	public void sendSMS(Long appInstId, String docName, String locale) {
+	public void sendSMS(Long appInstId, String docName, String locale, String englishDocumentUuid) {
 
 		AgendaPapersDTO agenda = publishRepository.getAgendaSms(appInstId);
 
@@ -1436,6 +1436,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		log.info("appId={}", agenda.getAppId());
 		log.info("date={}", agenda.getDate());
 		log.info("appNo={}", agenda.getAppNo());
+		log.info("enDocUUID={}", englishDocumentUuid);
 
 		try {
 			// ✅ Build payload
@@ -1443,6 +1444,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			payload.put("appAbbr", agenda.getAppAbbr());
 			payload.put("appId", agenda.getAppId());
 			payload.put("docName", docName);
+			payload.put("enDocUUID", englishDocumentUuid);
 
 			// Format date → 10-Dec-2025
 			String formattedDate = agenda.getDate().format(DateTimeFormatter.ofPattern("dd-MMM-yyyy"));
