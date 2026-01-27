@@ -503,9 +503,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		Long applicationId = translAppId != null ? translAppId : instance.getApplicationId();
 
 		// Decide which application name to use
-		String applicationNameToUse = translAppId != null
-				? applicationInstanceRepository.getApplicationName(translAppId)
-				: applicationName; // fallback to default
+		String applicationNameToUse = "LIST_OF_BUSINESS";
+//		String applicationNameToUse = translAppId != null
+//				? applicationInstanceRepository.getApplicationName(translAppId)
+//				: applicationName; // fallback to default
 
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber()).locale("en").house(houseAbbr)
@@ -542,7 +543,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// hindi document publishing without Translation
 			if (documentUuidHi != null) {
 				dtoHi.setApplicationName(appDetails.getAppName());
-				dtoHi.setApplicationName("hi");
+				dtoHi.setLocale("hi");
 				addPublishHistoryEntry(dtoHi);
 				return;
 			}
@@ -1464,6 +1465,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			// ✅ Prepare request
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_JSON);
+
+			System.out.println(">>> payload  - " + payload.toString());
 
 			HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 

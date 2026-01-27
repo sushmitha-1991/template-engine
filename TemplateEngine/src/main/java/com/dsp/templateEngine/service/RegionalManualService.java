@@ -7,7 +7,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,7 +62,7 @@ public class RegionalManualService {
     public static final Map<String, String> SUB_CATEGORY_MAP = new HashMap<>();
 
     public static final Map<String, String> HOUSE_MAP = new HashMap<>();
-    
+
     static {
         CATEGORY_MAP.put("LOB", "List of Business");
         CATEGORY_MAP.put("B1", "Bulletin Part-I");
@@ -76,7 +78,6 @@ public class RegionalManualService {
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 2", "Supplementary List of Business-2");
         SUB_CATEGORY_MAP.put("Supplementary List Of Business - 3", "Supplementary List of Business-3");
     }
-
 
     static {
         HOUSE_MAP.put("RS", "rs");
@@ -171,15 +172,15 @@ public class RegionalManualService {
     private String getApplicationName(Long category, String house, Long subCategory) {
 
         try {
-            System.out.println("category "+category);
-            Map<String,Object> businessType = publishRepository.fetchAbbrByCodeId(subCategory);
+            System.out.println("category " + category);
+            Map<String, Object> businessType = publishRepository.fetchAbbrByCodeId(subCategory);
 
-            if(businessType==null || businessType.isEmpty())
+            if (businessType == null || businessType.isEmpty())
                 return "";
-            String appName=businessType.get("abbr").toString();
+            String appName = businessType.get("abbr").toString();
             if (subCategory != null) {
-                Map<String,Object> lobType = publishRepository.fetchAbbrByCodeId(subCategory);
-                if(!lobType.isEmpty())
+                Map<String, Object> lobType = publishRepository.fetchAbbrByCodeId(subCategory);
+                if (!lobType.isEmpty())
                     appName = lobType.get("abbr").toString();
             }
             System.out.println(appName);
@@ -211,5 +212,6 @@ public class RegionalManualService {
         return regionalTransService.sendForTranslation(input, true);
 
     }
+
 
 }

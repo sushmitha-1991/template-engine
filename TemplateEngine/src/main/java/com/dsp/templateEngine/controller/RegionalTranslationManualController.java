@@ -1,8 +1,10 @@
 package com.dsp.templateEngine.controller;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Map;
 
+import com.dsp.templateEngine.entity.RegionalTranslationLog;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.dsp.templateEngine.dto.ApplicationInstanceProjection;
 import com.dsp.templateEngine.dto.OnlyOfficeData;
+import com.dsp.templateEngine.dto.RegionalTranslationLogDto;
 import com.dsp.templateEngine.entity.ApplicationInstance;
 import com.dsp.templateEngine.entity.PublishHistoryEntity;
 import com.dsp.templateEngine.repository.ApplicationInstanceRepository;
@@ -22,6 +25,7 @@ import com.dsp.templateEngine.repository.ApplicationRepository;
 import com.dsp.templateEngine.repository.PublishRepository;
 import com.dsp.templateEngine.response.GenericResponse;
 import com.dsp.templateEngine.service.RegionalManualService;
+import com.dsp.templateEngine.service.RegionalTranslationLogService;
 import com.dsp.templateEngine.translation.RegionalTranslationDto;
 import com.dsp.templateEngine.util.Utils;
 
@@ -36,6 +40,9 @@ public class RegionalTranslationManualController {
 
     @Autowired
     private RegionalManualService regionalManualService;
+
+    @Autowired
+    private RegionalTranslationLogService regionalTranslationLogService;
 
     @PostMapping(path = "/get-doc")
     public ResponseEntity<GenericResponse<Map<String,Object>>> getFile(
@@ -91,6 +98,57 @@ public class RegionalTranslationManualController {
                     true, "Document could not be sent to Reverie successfully.", null);
 
             return new ResponseEntity<>(genericResponse, HttpStatus.FORBIDDEN);
+        }
+    }
+
+    @GetMapping("/get-translation-log")
+    public ResponseEntity<GenericResponse<List<RegionalTranslationLogDto>>> getTranslationLog(
+        @RequestParam(required = false) Long appInstId,
+        @RequestParam(required = false) String type,
+        @RequestParam(required = false) LocalDate sittingDate,
+        @RequestParam(required = false) LocalDate fromDate,
+        @RequestParam(required = false) LocalDate toDate,
+        @RequestParam(required = false) String category,
+        @RequestParam(required = false) String subCategory,
+        @RequestParam(required = false) Boolean editFlag,
+        @RequestParam(required = false) String responseStatus,
+        @RequestParam(required = false) Boolean isManuallyTranslated) {
+
+        try {
+
+            List<RegionalTranslationLogDto> response =
+                    regionalTranslationLogService.getTranslationLog(
+                            appInstId,
+                            sittingDate,
+                            responseStatus,
+                            category,
+                            subCategory,
+                            editFlag,
+                            fromDate,
+                            toDate,
+                            type,
+                            isManuallyTranslated
+                    );
+
+            return ResponseEntity.ok(
+                    new GenericResponse<>(
+                            HttpStatus.OK.value(),
+                            true,
+                            "Translation logs fetched successfully",
+                            response
+                    )
+            );
+
+        } catch (Exception e) {
+            log.error("Error while fetching Regional Translation Logs", e);
+
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new GenericResponse<>(
+                            HttpStatus.OK.value(),
+                            false,
+                            "Failed to fetch translation logs",
+                            null
+                    ));
         }
     }
 

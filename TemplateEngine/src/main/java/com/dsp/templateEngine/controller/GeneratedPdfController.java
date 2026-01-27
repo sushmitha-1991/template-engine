@@ -301,8 +301,11 @@ public class GeneratedPdfController {
 				resultData.put("locale", responseBody.get("locale"));
 				docName = (String) responseBody.get("docName");
 				locale = (String) responseBody.get("locale");
-				englishDocumentUuid = (String) responseBody.get("englishDocumentUuid");
+				Object uuidObj = responseBody.get("englishDocumentUuid");
+				englishDocumentUuid = uuidObj != null ? uuidObj.toString() : null;
 			}
+
+			System.out.println(">>> englishDocumentUuid " + englishDocumentUuid);
 
 			log.info("Document published successfully for appInstId: {}", appInstId);
 
