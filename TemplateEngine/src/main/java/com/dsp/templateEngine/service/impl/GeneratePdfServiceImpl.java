@@ -503,9 +503,10 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		Long applicationId = translAppId != null ? translAppId : instance.getApplicationId();
 
 		// Decide which application name to use
-		String applicationNameToUse = translAppId != null
-				? applicationInstanceRepository.getApplicationName(translAppId)
-				: applicationName; // fallback to default
+		String applicationNameToUse = "LIST_OF_BUSINESS";
+//		String applicationNameToUse = translAppId != null
+//				? applicationInstanceRepository.getApplicationName(translAppId)
+//				: applicationName; // fallback to default
 
 		PublishHistoryDTO publishHistoryDto = PublishHistoryDTO.builder().lokSabhaNo(instance.getLokSabhaSession())
 				.lokSabhaSessionNo(instance.getLokSabhaSessionNumber()).locale("en").house(houseAbbr)
