@@ -537,6 +537,12 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 
 		if (!TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
 			addPublishHistoryEntry(publishHistoryDto);
+			// hindi document publishing without Translation
+			if (documentUuidHi != null) {
+				addPublishHistoryEntry(dtoHi);
+				return;
+			}
+			//here
 			return;
 		}
 
