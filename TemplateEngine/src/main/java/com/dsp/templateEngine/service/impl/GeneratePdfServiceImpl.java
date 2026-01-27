@@ -1455,6 +1455,8 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.APPLICATION_JSON);
 
+			System.out.println(">>> payload  - " + payload.toString());
+
 			HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
 
 			// ✅ Call SMS API
