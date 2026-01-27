@@ -545,7 +545,7 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 			if (documentUuidHi != null) {
 				dtoHi.setApplicationName(appDetails.getAppName());
 				dtoHi.setLocale("hi");
-				docHi.setPublishUuid(documentUuidHi);
+				dtoHi.setPublishUuid(documentUuidHi);
 				addPublishHistoryEntry(dtoHi);
 				return;
 			}
