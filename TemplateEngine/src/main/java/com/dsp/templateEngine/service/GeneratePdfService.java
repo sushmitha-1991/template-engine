@@ -78,5 +78,5 @@ public interface GeneratePdfService {
 	/**
 	 * @param appInstId
 	 */
-	void sendSMS(Long appInstId, String docName, String locale);
+	void sendSMS(Long appInstId, String docName, String locale, String englishDocumentUuid);
 }
