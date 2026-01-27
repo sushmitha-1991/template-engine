@@ -304,6 +304,8 @@ public class GeneratedPdfController {
 				englishDocumentUuid = (String) responseBody.get("englishDocumentUuid");
 			}
 
+			System.out.println(">>> englishDocumentUuid " + englishDocumentUuid);
+
 			log.info("Document published successfully for appInstId: {}", appInstId);
 
 			GenericResponse<Map<String, Object>> genericResponse = new GenericResponse<>(HttpStatus.OK.value(), true,
