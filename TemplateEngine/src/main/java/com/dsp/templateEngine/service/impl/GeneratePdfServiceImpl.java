@@ -539,11 +539,13 @@ public class GeneratePdfServiceImpl implements GeneratePdfService {
 		if (!TRANSLATION_ABBR.equalsIgnoreCase(appDetails.getAbbr())) {
 			publishHistoryDto.setApplicationName(appDetails.getAppName());
 			publishHistoryDto.setLocale("en");
+			publishHistoryDto.setPublishUuid(documentUuid);
 			addPublishHistoryEntry(publishHistoryDto);
 			// hindi document publishing without Translation
 			if (documentUuidHi != null) {
 				dtoHi.setApplicationName(appDetails.getAppName());
 				dtoHi.setLocale("hi");
+				docHi.setPublishUuid(documentUuidHi);
 				addPublishHistoryEntry(dtoHi);
 				return;
 			}
